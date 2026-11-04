@@ -1,6 +1,10 @@
 # סטים — אפליקציית מעקב אימונים
 
-קישור לאפליקציה המפורסמת: https://claude.ai/artifact/2wucA64fpWrpBqDN8fmcHQ
+**קישור ציבורי (GitHub Pages, מותקן כאפליקציה):** https://mshbkr9-pixel.github.io/setim/
+
+ריפו: https://github.com/mshbkr9-pixel/setim · כל push ל-main מתפרסם אוטומטית.
+
+גרסת claude.ai (פרטית, עם שמירה בחשבון): https://claude.ai/artifact/2wucA64fpWrpBqDN8fmcHQ
 
 ## קבצים
 - `index.html` — הקובץ המפורסם. נבנה מ-`index.template.html` (ממשק, לוגיקה) + `articles.js` (המדריכים) + בלוקי הקטלוג (יצרנים/מכשירים/תוכניות) שנמצאים ב-`index.v1.html`. לעריכה: לשנות את הטמפלייט/המאמרים ולהרכיב מחדש (ראה build בסוף).
@@ -16,6 +20,9 @@
 אחרי שינוי ב-`index.html`: לפרסם מחדש את הקובץ לאותו artifact (slug `0fc3b8d0-81e8-4911-bc1b-47d481ffff83`).
 
 ## נתונים ושיתוף
+- בקישור הציבורי (GitHub Pages) אין התחברות: הנתונים נשמרים במכשיר (localStorage). העברה בין מכשירים דרך פרופיל ← ייצוא/שחזור גיבוי.
+- `manifest.json`, `sw.js`, `icons/` — הופכים את הקישור הציבורי ל-PWA שמותקן במסך הבית.
+
 - כל משתמש שנכנס עם חשבון Claude מקבל נתונים פרטיים משלו (`data/users/<id>/`).
 - כדי שחברים יוכלו לשמור אימונים, יש לשתף את הקישור ברמת **Contributor** (לא Viewer).
 - בלי חיבור, הנתונים נשמרים ב-localStorage של הדפדפן.
