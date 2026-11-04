@@ -21,7 +21,7 @@
 
 ## נתונים ושיתוף
 - בקישור הציבורי יש הרשמה וכניסה (אימייל + סיסמה) מול PocketBase בשרת srv1809211 (`https://setim.2-24-161-2.sslip.io`). כל משתמש רואה רק את השורות שלו (כללי API של PocketBase). בלי התחברות הנתונים נשמרים במכשיר (localStorage); בהתחברות ראשונה הנתונים המקומיים עולים לחשבון.
-- `server/pb_setup.sh` מתקין את PocketBase בשרת מאחורי Caddy; `server/pb_schema.py` יוצר את הסכמה (`docs`: user, key, data); `server/mock_pb.py` שרת דמה לבדיקות מקומיות (האפליקציה פונה ל-127.0.0.1:8090 כשהיא רצה מ-localhost).
+- **השרת פעיל** (הותקן 2026-11-05): ממשק ניהול `https://setim.2-24-161-2.sslip.io/_/`, פרטי כניסה ב-`master_keys.env` (`SETIM_PB_*`). `server/pb_setup.sh` התקין את PocketBase בשרת מאחורי Caddy; `server/pb_schema.py` יוצר את הסכמה (`docs`: user, key, data); `server/mock_pb.py` שרת דמה לבדיקות מקומיות (האפליקציה פונה ל-127.0.0.1:8090 כשהיא רצה מ-localhost).
 - `manifest.json`, `sw.js`, `icons/` — הופכים את הקישור הציבורי ל-PWA שמותקן במסך הבית.
 
 - כל משתמש שנכנס עם חשבון Claude מקבל נתונים פרטיים משלו (`data/users/<id>/`).

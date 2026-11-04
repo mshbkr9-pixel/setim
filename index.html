@@ -494,7 +494,7 @@ async function initPB(){
 async function syncFromCloud(){
   const cloud=await PB.pullAll(); const keys=Object.keys(cloud);
   if(keys.length){ Object.keys(S.logs).forEach(k=>delete S.logs[k]); keys.forEach(k=>{ applyDoc(k,cloud[k]); try{ localStorage.setItem('gt:'+k,JSON.stringify(cloud[k])); }catch(e){} }); }
-  else { const local=[]; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith('gt:')&&!['gt:auth','gt:hideBanner'].includes(k)) local.push(k.slice(3)); } }catch(e){} for(const k of local){ try{ await PB.push(k,JSON.parse(localStorage.getItem('gt:'+k))); }catch(e){} } }
+  else { const local=[]; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(/^gt:(profile|deck|yt|log-.+|today-.+)$/.test(k)) local.push(k.slice(3)); } }catch(e){} for(const k of local){ try{ await PB.push(k,JSON.parse(localStorage.getItem('gt:'+k))); }catch(e){} } }
   S.storageMode='pb'; if(!S.profile.name && PB.user?.name){ S.profile.name=PB.user.name.split(' ')[0]; save('profile',S.profile); }
   render();
 }
