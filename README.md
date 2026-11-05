@@ -32,6 +32,10 @@
 - כדי שחברים יוכלו לשמור אימונים, יש לשתף את הקישור ברמת **Contributor** (לא Viewer).
 - בלי חיבור, הנתונים נשמרים ב-localStorage של הדפדפן.
 
+## גיבוי
+- PocketBase מגבה לבד כל לילה ב-03:30 UTC (`settings.backups.cron`, שומר 14) ל-`/var/lib/pocketbase/backups/`. שחזור מממשק הניהול (Settings → Backups) או לפי ההוראות ב-`server/pb_backup_copy_setup.sh`.
+- שכבה שנייה (העתקה ל-`/var/backups/pocketbase`, timer של systemd): `server/pb_backup_copy_setup.sh`, להרצה ידנית כ-root.
+
 ## קרדיט ורישיון
 Exercise data by [RepDB (repdb.co)](https://repdb.co) — רישיון Free Tier, שימוש בתוך אפליקציה עם קרדיט גלוי. אין להפיץ את המאגר מחדש.
 
