@@ -1,6 +1,8 @@
 # סטים — אפליקציית מעקב אימונים
 
-**קישור ציבורי (GitHub Pages, מותקן כאפליקציה):** https://mshbkr9-pixel.github.io/setim/
+**הכתובת הרשמית:** https://getonekeyai.com/ (האפליקציה + הנתונים מהשרת srv1809211, Caddy, תעודת Let's Encrypt; DNS ב-Cloudflare, רשומות A במצב DNS-only).
+
+עותק ב-GitHub Pages (אותו קוד, API דרך sslip.io): https://mshbkr9-pixel.github.io/setim/
 
 ריפו: https://github.com/mshbkr9-pixel/setim · כל push ל-main מתפרסם אוטומטית.
 
@@ -9,6 +11,7 @@
 ## קבצים
 - `index.html` — הקובץ המפורסם. נבנה מ-`index.template.html` (ממשק, לוגיקה) + `articles.js` (המדריכים) + בלוקי הקטלוג (יצרנים/מכשירים/תוכניות) שנמצאים ב-`index.v1.html`. לעריכה: לשנות את הטמפלייט/המאמרים ולהרכיב מחדש (ראה build בסוף).
 - `index.v1.html` — הגרסה הראשונה (גיבוי).
+- `add_*.py` — הסקריפטים שבנו את הגרסאות (PWA, חשבונות, UX, תוכנית שבועית). `icons/og.png` תמונת תצוגה מקדימה לשיתוף, `icons/qr.png` QR של הכתובת.
 - `data/exercises.json` — 701 תרגילים (שמות בעברית ובאנגלית, שרירים, ציוד, הוראות, טיפים).
 - `data/img-<group>.json` — תמונות התרגילים (320px WebP, base64) לפי קבוצת שרירים, נטענות לפי צורך.
 - `img/` — תמונות המקור (512px) מ-RepDB. לא מתפרסמות, משמשות לבנייה בלבד.
@@ -17,6 +20,7 @@
 - `BRANDS_RESEARCH.md` — מחקר על יצרני מכשירי כושר והיבואנים שלהם בישראל.
 
 ## פרסום מחדש
+- לדומיין: `scp -r index.html manifest.json sw.js icons data root@2.24.161.2:/opt/setim/app/` (הגדרת Caddy: `server/caddy_domain.sh`).
 אחרי שינוי ב-`index.html`: לפרסם מחדש את הקובץ לאותו artifact (slug `0fc3b8d0-81e8-4911-bc1b-47d481ffff83`).
 
 ## נתונים ושיתוף
