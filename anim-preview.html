@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>anim preview</title>
+<style>
+:root{--bg:#0B0C10;--card:#15171E;--card2:#1E212B;--ink:#F3F4F8;--ink2:#A2A7B8;--ink3:#5E6476;--line2:rgba(255,255,255,.12);--accent:#FF6B4A}
+:root[data-theme="light"]{--bg:#F4F2EE;--card:#fff;--card2:#E9E6E0;--ink:#1B1C22;--ink2:#5B6070;--ink3:#8E93A3;--line2:rgba(0,0,0,.12);--accent:#E4572E}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,sans-serif;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.c{background:var(--card);border-radius:16px;overflow:hidden}
+.c .im{aspect-ratio:1;background:var(--card2)} .c svg{width:100%;height:100%;display:block}
+.c .t{padding:6px 8px;font-size:11px;color:var(--ink2);direction:ltr;text-align:left}
+h2{font-size:14px;color:var(--ink2);margin:18px 0 8px}
+button{position:fixed;top:8px;left:8px;z-index:9}
+</style></head><body>
+<button onclick="document.documentElement.toggleAttribute('data-theme')||document.documentElement.setAttribute('data-theme','light')">theme</button>
+<h2 id="h">archetypes</h2><div class="grid" id="g"></div>
+<h2>sample exercises (first per key)</h2><div class="grid" id="g2"></div>
+<script src="anim.js"></script>
+<script>
+const only=new URLSearchParams(location.search).get('k');
+const g=document.getElementById('g');
+Object.keys(EXANIM.ARCH).filter(k=>!only||only.split(',').includes(k)).forEach(k=>{
+  const a=EXANIM.ARCH[k]; const e={id:k,he:k,eq:'none',g:'chest',anim:k};
+  const svg=EXANIM.make(e); const c=document.createElement('div'); c.className='c'; const im=document.createElement('div'); im.className='im'; im.append(svg); const t=document.createElement('div'); t.className='t'; t.textContent=k+' · '+a.v+(a.mode?' · '+a.mode:''); c.append(im,t); g.append(c);
+});
+document.getElementById('h').textContent='archetypes: '+Object.keys(EXANIM.ARCH).length;
+fetch('data/exercises.json').then(r=>r.json()).then(d=>{
+  const seen=new Set(); const g2=document.getElementById('g2');
+  d.forEach(e=>{ const r=EXANIM.resolve(e); if(!r||seen.has(r.key+e.eq)) return; seen.add(r.key+e.eq); if(only&&!only.split(',').includes(r.key)) return;
+    const svg=EXANIM.make(e); const c=document.createElement('div'); c.className='c'; const im=document.createElement('div'); im.className='im'; im.append(svg); const t=document.createElement('div'); t.className='t'; t.textContent=e.id+' → '+r.key+' ['+e.eq+']'; c.append(im,t); g2.append(c); });
+});
+</script></body></html>

@@ -1,3 +1,4 @@
 img/
 batch*.json
 __pycache__/
+.claude/
