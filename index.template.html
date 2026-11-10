@@ -451,14 +451,14 @@ button.grid3{display:grid}
   --g-chest:#FF7A59; --g-back:#4DA3FF; --g-shoulders:#FFC145; --g-arms:#B58CFF; --g-legs:#3DDC97; --g-glutes:#FF8FC7; --g-core:#5EE3E6; --g-cardio:#FF5C7A; --g-stretch:#9BE15D; --g-full:#C9CEDA;
 }
 :root[data-theme="light"]{
-  --ink3:#666B7A; --accent-ink:#1A0C08; --accent-soft:color-mix(in srgb,var(--accent) 12%,transparent); --accent-t:#C2410C; --good-t:#166534; --warn-t:#92400E;
+  --ink3:#666B7A; --accent-ink:#1A0C08; --accent-soft:color-mix(in srgb,var(--accent) 12%,transparent); --accent-t:#B23A0A; --bad:#B91C1C; --good-t:#166534; --warn-t:#92400E;
   --g-chest:#C2410C; --g-back:#1D5FBF; --g-shoulders:#9A6700; --g-arms:#6D3FD0; --g-legs:#0F7A4B; --g-glutes:#B8317A; --g-core:#0B7C82; --g-cardio:#C81E45; --g-stretch:#4D7F14; --g-full:#5B6170;
 }
 :root[data-accent="ocean"]{--accent:#4D8DFF;--accent2:#6FD3FF;--accent-ink:#06132B}
 :root[data-accent="mint"]{--accent:#2FD08A;--accent2:#B6F36A;--accent-ink:#04200F}
 :root[data-accent="grape"]{--accent:#A07BFF;--accent2:#FF8FD0;--accent-ink:#150A2E}
 :root[data-theme="light"][data-accent="ocean"]{--accent-t:#1D5FBF}
-:root[data-theme="light"][data-accent="mint"]{--accent-t:#0F7A4B}
+:root[data-theme="light"][data-accent="mint"]{--accent-t:#0C6B41}
 :root[data-theme="light"][data-accent="grape"]{--accent-t:#6D3FD0}
 :root[data-font="round"]{--display:"Rubik","Heebo",-apple-system,sans-serif}
 html[data-big] .scroll,html[data-big] .sheet .body{zoom:1.12}
@@ -487,6 +487,7 @@ html[data-big] .scroll,html[data-big] .sheet .body{zoom:1.12}
 .dock{position:absolute;inset-inline:14px;bottom:calc(env(safe-area-inset-bottom) + 84px);z-index:25;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .dock>*{pointer-events:auto}
 .scroll.docked{padding-bottom:calc(env(safe-area-inset-bottom) + 190px)}
+.app{overflow:clip}   /* the closed sheet sits below the fold; without this a focus/scrollIntoView can scroll the whole shell */
 .app.focus .tabbar{display:none}
 .app.focus .dock{bottom:calc(env(safe-area-inset-bottom) + 12px)}
 .app.focus .scroll{padding-bottom:calc(env(safe-area-inset-bottom) + 130px)}
@@ -754,6 +755,11 @@ html[data-nav="back"]::view-transition-new(root){animation:vt-in-b .26s cubic-be
 .ob-b p{text-align:center}
 .ob-o{display:grid;gap:10px}
 .ob-o .typebtn{min-height:64px;font-size:17px;justify-content:center;text-align:center}
+/* layers above the full-screen overlays in #pop (finish screen, full-screen rest): sheets, toasts and the keypads must stay reachable from there */
+.scrim{z-index:52} .sheet{z-index:53} .toast{z-index:54} .np-scrim{z-index:55} .kbar,.npad{z-index:56}
+/* the close button sits opposite the title (top-left in Hebrew) so it never covers it */
+.sheet .close{inset-inline-start:auto;inset-inline-end:12px}
+.sheet .body h2:first-child,.sheet .body>div>h2:first-child{padding-inline-end:44px}
 </style>
 </head>
 <body>
@@ -1117,7 +1123,7 @@ function library(){
     const recent=Object.keys(S.logs).map(id=>({e:getEx(id),d:(lastSession(id)||{}).d||''})).filter(x=>x.e&&x.d).sort((a,b)=>b.d.localeCompare(a.d)).slice(0,8);
     if(recent.length){ results.append(h('div',{class:'sec',style:'margin-top:6px'},h('h2',{},'אחרונים'))); const strip=h('div',{class:'exstrip'}); recent.forEach(({e})=>strip.append(h('button',{class:'excard pressable',type:'button',onclick:()=>go('#ex-'+e.id)},h('div',{class:'im'},thumb(e,{still:true})),h('div',{class:'t'},e.he)))); results.append(strip); }
     const cats=h('div',{class:'grid2 stagger'});
-    cats.append(tile('popular','הכי נפוצים',S.ex.filter(e=>POPULAR.has(e.id)).length,'var(--accent)'));
+    cats.append(tile('popular','נפוצים',S.ex.filter(e=>POPULAR.has(e.id)).length,'var(--accent)'));
     GROUP_ORDER.forEach(g=>cats.append(tile(g,GROUPS[g],S.ex.filter(e=>e.g===g).length)));
     cats.append(tile('calis','קליסטניקס',S.ex.filter(isCalis).length,'var(--g-full)'));
     if(S.deck.custom?.length) cats.append(tile('custom','התרגילים שלי',S.deck.custom.length,'var(--accent2)'));
@@ -1315,7 +1321,7 @@ async function identifyFromPhoto(){
     try{ const lim=await S.sample.limits().catch(()=>({images:false})); if(!lim.images){ out.textContent='המודל בתצוגה הזו לא מקבל תמונות.'; return; } const blob=await (await fetch(await fileToDataUrl(f,1024,0.85))).blob();
       const prompt=`You see a photo from a gym. Identify (1) the equipment manufacturer/brand if visible or inferable (one of: ${BRANDS.map(b=>b.id).join(', ')} or "unknown"), (2) which generic machine types are visible, chosen ONLY from this list of ids: ${MACHINES.map(m=>m.id+'='+m.en).join('; ')}. Reply as strict JSON: {"brand":"<id or unknown>","brandName":"<as printed>","machines":["<id>",...],"note":"<one short sentence in Hebrew describing what you see>"}`;
       const res=await S.sample.json(prompt,{images:[blob],modelTier:'default'}); const b=BRANDS.find(x=>x.id===res.brand); const ms=(res.machines||[]).filter(id=>MACHINES.some(m=>m.id===id));
-      out.replaceChildren(h('div',{class:'banner blue',style:'margin:0 0 10px'},res.note||''),b?h('div',{class:'b'},`יצרן: ${b.name}${res.brandName?' ('+res.brandName+')':''}`):h('div',{class:'muted'},'לא זוהה יצרן בבירור'),ms.length?h('div',{style:'margin:8px 0'},'מכשירים שזוהו: ',ms.map(id=>MACHINES.find(m=>m.id===id).he).join(', ')):null,h('div',{class:'row',style:'gap:8px;margin-top:10px;flex-wrap:wrap'},b?h('button',{class:'btn',onclick:()=>applyBrand(b.id)},`הוסף את כל מכשירי ${b.name}`):null,ms.length?h('button',{class:'btn sec2',onclick:()=>{ const s=new Set(S.deck.machines||[]); ms.forEach(x=>s.add(x)); S.deck.machines=[...s]; save('deck',S.deck); Sheet.close(); render(); toast('המכשירים נוספו'); }},'הוסף רק את מה שזוהה'):null));
+      out.replaceChildren(h('div',{class:'banner blue',style:'margin:0 0 10px'},res.note||''),b?h('div',{class:'b'},`יצרן: ${b.name}${res.brandName?' ('+res.brandName+')':''}`):h('div',{class:'muted'},'לא זוהה יצרן בבירור'),ms.length?h('div',{style:'margin:8px 0'},'מכשירים שזוהו: ',ms.map(id=>MACHINES.find(m=>m.id===id).he).join(', ')):'',h('div',{class:'row',style:'gap:8px;margin-top:10px;flex-wrap:wrap'},b?h('button',{class:'btn',onclick:()=>applyBrand(b.id)},`הוסף את כל מכשירי ${b.name}`):null,ms.length?h('button',{class:'btn sec2',onclick:()=>{ const s=new Set(S.deck.machines||[]); ms.forEach(x=>s.add(x)); S.deck.machines=[...s]; save('deck',S.deck); Sheet.close(); render(); toast('המכשירים נוספו'); }},'הוסף רק את מה שזוהה'):null));
     }catch(e){ out.textContent = e?.code==='not_granted' ? 'לא ניתנה הרשאה לזיהוי.' : 'הזיהוי לא הצליח. אפשר לבחור יצרן ידנית.'; } });
   Sheet.show(body);
 }
@@ -1406,7 +1412,7 @@ function calories(){
   const target=goals[gi][2]; const prot=Math.round(m.w*(p.goal==='fatloss'?2.2:1.8)); const fat=Math.round(m.w*0.9); const carbs=Math.max(0,Math.round((target-prot*4-fat*9)/4)); const tot=prot*4+fat*9+carbs*4;
   const mac=h('div',{class:'macro'},h('i',{style:'width:0;background:var(--accent)'}),h('i',{style:'width:0;background:var(--accent2)'}),h('i',{style:'width:0;background:var(--blue)'}));
   requestAnimationFrame(()=>requestAnimationFrame(()=>{ const [a,b,c]=mac.children; a.style.width=(prot*4/tot*100)+'%'; b.style.width=(fat*9/tot*100)+'%'; c.style.width=(carbs*4/tot*100)+'%'; }));
-  wrap.append(h('div',{class:'sec'},h('h2',{},`חלוקת מאקרו · ${target.toLocaleString('he-IL')} קק״ל`)),h('div',{class:'card'},h('div',{class:'grid3'},h('div',{},h('div',{class:'num',style:'font-size:22px;color:var(--accent-t)'},prot,h('small',{class:'small muted'},' ג׳')),h('div',{class:'xs muted b'},'חלבון')),h('div',{},h('div',{class:'num',style:'font-size:22px;color:var(--accent2)'},fat,h('small',{class:'small muted'},' ג׳')),h('div',{class:'xs muted b'},'שומן')),h('div',{},h('div',{class:'num',style:'font-size:22px;color:var(--blue)'},carbs,h('small',{class:'small muted'},' ג׳')),h('div',{class:'xs muted b'},'פחמימות'))),mac,h('div',{class:'legend'},h('span',{},h('i',{style:'background:var(--accent)'}),'חלבון'),h('span',{},h('i',{style:'background:var(--accent2)'}),'שומן'),h('span',{},h('i',{style:'background:var(--blue)'}),'פחמימות')),h('p',{class:'small muted',style:'margin:12px 0 0;line-height:1.6'},`חלבון ${p.goal==='fatloss'?'2.2':'1.8'} ג׳ לק״ג גוף כדי לשמור ולבנות שריר, שומן כ-0.9 ג׳ לק״ג לאיזון הורמונלי, והשאר פחמימות שמזינות את האימונים. מקור המספרים: הנחיות ISSN לספורטאי כוח.`)));
+  wrap.append(h('div',{class:'sec'},h('h2',{},`חלוקת מאקרו · ${target.toLocaleString('he-IL')} קק״ל`)),h('div',{class:'card'},h('div',{class:'grid3'},h('div',{},h('div',{class:'num',style:'font-size:22px;color:var(--accent-t)'},prot,h('small',{class:'small muted'},' ג׳')),h('div',{class:'xs muted b'},'חלבון')),h('div',{},h('div',{class:'num',style:'font-size:22px;color:var(--warn-t)'},fat,h('small',{class:'small muted'},' ג׳')),h('div',{class:'xs muted b'},'שומן')),h('div',{},h('div',{class:'num',style:'font-size:22px;color:var(--blue)'},carbs,h('small',{class:'small muted'},' ג׳')),h('div',{class:'xs muted b'},'פחמימות'))),mac,h('div',{class:'legend'},h('span',{},h('i',{style:'background:var(--accent)'}),'חלבון'),h('span',{},h('i',{style:'background:var(--accent2)'}),'שומן'),h('span',{},h('i',{style:'background:var(--blue)'}),'פחמימות')),h('p',{class:'small muted',style:'margin:12px 0 0;line-height:1.6'},`חלבון ${p.goal==='fatloss'?'2.2':'1.8'} ג׳ לק״ג גוף כדי לשמור ולבנות שריר, שומן כ-0.9 ג׳ לק״ג לאיזון הורמונלי, והשאר פחמימות שמזינות את האימונים. מקור המספרים: הנחיות ISSN לספורטאי כוח.`)));
   wrap.append(h('div',{class:'card'},h('div',{class:'row'},ic('info'),h('div',{class:'grow small muted',style:'line-height:1.5'},'כל הנוסחאות הן הערכה. נשקלים פעם בשבוע באותו זמן, ואם המשקל לא זז במשך שבועיים, מוסיפים או מורידים 150 קק״ל. המידע אינו ייעוץ רפואי.'))));
   wrap.append(h('button',{class:'btn ghost',onclick:()=>go('#read-nutrition')},'למדריך המלא על תזונה לאימון'));
   return wrap;
@@ -1697,7 +1703,7 @@ function showOnboarding(){
   const Q=[{t:'מה המטרה?',k:'goal',o:[['hypertrophy','לבנות שריר'],['strength','להתחזק'],['fatloss','לרדת בשומן'],['general','כושר כללי']]},{t:'כמה פעמים בשבוע?',k:'weekly',o:[[2,'פעמיים'],[3,'שלוש פעמים'],[4,'ארבע פעמים'],[5,'חמש פעמים']]},{t:'איפה מתאמנים?',k:'place',o:[['gym','בחדר כושר'],['home','בבית']]}];
   const paint=()=>{
     body.replaceChildren(); dots.replaceChildren(...[0,1,2,3].map(k=>h('i',{class:k===step?'on':''})));
-    if(step===0){ body.append(mascot('wave','lg'),h('h1',{},'סטים'),h('p',{},'רושמים סטים ורואים התקדמות. שלוש שאלות קצרות, והשבוע הראשון מוכן.'),h('button',{class:'btn',type:'button',onclick:()=>{ step=1; paint(); }},'מתחילים'),(STANDALONE&&!PB.user)?h('button',{class:'btn sec2',type:'button',onclick:()=>{ finish(false); authSheet('login'); }},'יש לי כבר חשבון'):null); return; }
+    if(step===0){ body.append(mascot('wave','lg'),h('h1',{},'סטים'),h('p',{},'רושמים סטים ורואים התקדמות. שלוש שאלות קצרות, והשבוע הראשון מוכן.'),h('button',{class:'btn',type:'button',onclick:()=>{ step=1; paint(); }},'מתחילים'),(STANDALONE&&!PB.user)?h('button',{class:'btn sec2',type:'button',onclick:()=>{ finish(false); authSheet('login'); }},'יש לי כבר חשבון'):''); return; }
     const q=Q[step-1];
     body.append(h('h1',{},q.t),h('div',{class:'ob-o'},...q.o.map(([v,l])=>h('button',{class:'typebtn pressable'+(ans[q.k]===v?' on':''),type:'button',onclick:()=>{ ans[q.k]=v; if(step<3){ step++; paint(); } else finish(true); }},h('span',{},l)))),h('button',{class:'lnkline center',type:'button',onclick:()=>{ step--; paint(); }},'חזרה'));
   };
@@ -1891,7 +1897,7 @@ function calendar(){
   for(let i=0;i<lead;i++) grid.append(h('div',{class:'c out'}));
   let mSets=0,mVol=0,mDays=0,mx=1; for(let d=1;d<=nDays;d++){ const o=by[iso(new Date(y,m-1,d))]; if(o) mx=Math.max(mx,o.vol); }
   for(let d=1;d<=nDays;d++){ const k=iso(new Date(y,m-1,d)); const o=by[k]; const cls=['c']; let style='';
-    if(o){ const p=Math.round(45+55*Math.min(1,o.vol/mx)); cls.push('done',p>=62?'hi':'lo'); style=`--c:${sessCol(o.ss)};--p:${p}%`; mDays++; mSets+=o.sets; mVol+=o.vol; }
+    if(o){ const col=sessCol(o.ss); const [p,hi]=calTone(col,Math.round(45+55*Math.min(1,o.vol/mx))); cls.push('done',hi?'hi':'lo'); style=`--c:${col};--p:${p}%`; mDays++; mSets+=o.sets; mVol+=o.vol; }
     else if(k>=tk){ const p=planFor(k); if(p.rest) cls.push('off'); else if(p.ex.length){ cls.push('plan'); style=`--c:${dayCol(p.groups,p.ex.map(x=>x.id))}`; } }
     if(k===tk) cls.push('today'); if(k===calSel) cls.push('sel');
     grid.append(h('button',{class:cls.join(' '),type:'button',style,'aria-label':`${d} ב${MONTHS[m-1]}${o?', '+plural(o.ss.length,'תרגיל אחד','תרגילים'):''}`,onclick:()=>{ calSel=k; go('#day-'+k); }},h('span',{},String(d)))); }
@@ -2168,7 +2174,7 @@ function plateSheet(e,w){
     let svg='<svg viewBox="0 0 320 112" style="width:100%;height:auto;display:block" role="img" aria-label="הפלטות על המוט"><rect x="14" y="52" width="292" height="8" rx="4" fill="var(--ink3)"/><rect x="146" y="46" width="28" height="20" rx="5" fill="var(--card3)" stroke="var(--line2)"/>';
     let off=0; c.res.forEach(p=>{ const hh=HT[p], ww=WD[p]; [178+off,142-off-ww].forEach(x=>{ svg+=`<rect x="${x}" y="${56-hh/2}" width="${ww}" height="${hh}" rx="3" fill="${COL[p]}" stroke="rgba(0,0,0,.35)"/>`; }); off+=ww+2; });
     out.append(h('div',{class:'card',style:'padding:12px',html:svg+'</svg>'}),h('div',{class:'k',style:'font-size:17px;margin-top:4px'},c.res.length?`בכל צד: ${c.res.map(fmtW).join(' + ')} ק״ג`:'המוט בלבד, בלי פלטות'),
-      c.left>0?h('p',{class:'small muted',style:'margin:6px 0 0'},`${fmtW(c.left*2)} ק״ג לא נכנסים בפלטות רגילות. המשקל הקרוב ביותר הוא ${fmtW(w-c.left*2)} ק״ג.`):null);
+      c.left>0?h('p',{class:'small muted',style:'margin:6px 0 0'},`${fmtW(c.left*2)} ק״ג לא נכנסים בפלטות רגילות. המשקל הקרוב ביותר הוא ${fmtW(w-c.left*2)} ק״ג.`):'');
   };
   paint(); Sheet.show(h('div',{},h('h2',{},`${fmtW(w)} ק״ג על המוט`),seg,out));
 }
@@ -2292,6 +2298,15 @@ function mascot(kind,cls){
 }
 /* ---------- colours and numbers shared by journal, calendar and summaries ---------- */
 let calYear=false;
+/* calendar circle: pick dark or light digits from the real brightness of the mixed colour, and step past the narrow band where neither reads well */
+function calTone(col,p){
+  if(document.documentElement.getAttribute('data-theme')==='light') return [p,p>=62];
+  const cs=getComputedStyle(document.documentElement); const hex=v=>{ const m=/^#([0-9a-f]{6})$/i.exec(String(v).trim()); return m?[0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16)):null; };
+  const m=/var\((--[\w-]+)\)/.exec(col); const c=hex(m?cs.getPropertyValue(m[1]):col), b=hex(cs.getPropertyValue('--card2')); if(!c||!b) return [p,p>=62];
+  const lin=v=>{ v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4); }; const L=q=>{ const t=q/100, x=c.map((v,i)=>v*t+b[i]*(1-t)); return .2126*lin(x[0])+.7152*lin(x[1])+.0722*lin(x[2]); };
+  let l=L(p); while(l>.16&&l<.195&&p<100){ p+=2; l=L(p); }
+  return [Math.min(100,p),l>=.195];
+}
 function sessCol(ss){ const c={}; ss.forEach(s=>{ const e=getEx(s.id); if(!e) return; const sub=subOf(e); const g=isCardio(e)?'cardio':(sub&&SUB_BY_ID[sub]?SUB_BY_ID[sub].g:e.g); c[g]=(c[g]||0)+1; }); const top=Object.keys(c).sort((a,b)=>c[b]-c[a]); if(top.length>=4) return 'var(--g-full)'; return top[0]?gcol(top[0]):'var(--accent)'; }
 const volNum=v=>v>=10000?String(Math.round(v/100)/10):fmtK(v);
 const volUnit=v=>v>=10000?'טון':'ק״ג';
