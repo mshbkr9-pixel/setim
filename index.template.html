@@ -861,7 +861,7 @@ async function initPB(){
 }
 async function syncFromCloud(){
   const cloud=await PB.pullAll(); const keys=Object.keys(cloud);
-  if(keys.length){ Object.keys(S.logs).forEach(k=>delete S.logs[k]); keys.forEach(k=>{ applyDoc(k,cloud[k]); try{ localStorage.setItem('gt:'+k,JSON.stringify(cloud[k])); }catch(e){} }); }
+  if(keys.length){ Object.keys(S.logs).forEach(k=>delete S.logs[k]); keys.forEach(k=>{ applyDoc(k,cloud[k]); try{ localStorage.setItem('gt:'+k,JSON.stringify(cloud[k])); }catch(e){} }); applyLook(); onbSettle(); }
   else { const local=[]; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(/^gt:(profile|deck|yt|week|routines|days|prefs|log-.+|today-.+)$/.test(k)) local.push(k.slice(3)); } }catch(e){} for(const k of local){ try{ await PB.push(k,JSON.parse(localStorage.getItem('gt:'+k))); }catch(e){} } }
   S.storageMode='pb'; if(!S.profile.name && PB.user?.name){ S.profile.name=PB.user.name.split(' ')[0]; save('profile',S.profile); }
   render();
@@ -926,7 +926,9 @@ async function initCloud(){
     claude.use('assets').then(a=>{ S.assets=a; }).catch(()=>{});
     claude.use('sample').then(s=>{ S.sample=s; if(['gym','plans'].includes(route.page)) render(); }).catch(()=>{});
   }catch(e){}
-  clearTimeout(t); S.loaded=true; render();
+  clearTimeout(t); S.loaded=true; applyLook(); render();
+  if(Onb.wait){ Onb.wait=false; if(!onbSettle()) showOnboarding(); }
+  try{ checkAch(); }catch(e){}
 }
 
 /* ========================= helpers ========================= */
@@ -1689,13 +1691,17 @@ const ONB_SLIDES=[
  {t:'היומן זוכר הכול',p:'כל תרגיל, כל משקל, כל סט, לפי תאריך. מאיפה התחלת ועד איפה הגעת. התחברות עם חשבון שומרת את זה בכל מכשיר.',
   art:`<svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="og3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent2)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs><g fill="var(--card3)"><rect x="40" y="130" width="26" height="50" rx="7"/><rect x="80" y="110" width="26" height="70" rx="7"/><rect x="120" y="120" width="26" height="60" rx="7"/><rect x="160" y="90" width="26" height="90" rx="7"/><rect x="200" y="100" width="26" height="80" rx="7"/></g><rect x="240" y="50" width="26" height="130" rx="7" fill="url(#og3)"/><g font-family="Heebo" font-weight="900" font-size="14" fill="var(--good)"><text x="253" y="40" text-anchor="middle">+18%</text></g><path d="M40 190H290" stroke="var(--line2)"/></svg>`},
 ];
-const Onb={el:null,i:0,W:0,x:0,anim:null};
+const Onb={el:null,i:0,W:0,x:0,anim:null,wait:false};
+/* someone with a plan or a history is not new: never show them the opening questions, and never let those questions replace their week */
+function hasUserData(){ return Object.keys(S.logs).length>0||Object.keys((S.days&&S.days.map)||{}).length>0||Object.values((S.week&&S.week.days)||{}).some(d=>d&&d.ex&&d.ex.length); }
+function onbSettle(){ if(!hasUserData()) return false; try{ localStorage.setItem('gt:onboarded','1'); }catch(e){} if(Onb.el){ Onb.el.remove(); Onb.el=null; } return true; }
 function showOnboarding(){
   if(Onb.el) return;
   const ans={goal:S.profile.goal||'hypertrophy',weekly:S.profile.weekly||3,place:S.profile.place||'gym'}; let step=0;
   const el=h('div',{class:'onb'}); const body=h('div',{class:'ob-b'}); const dots=h('div',{class:'dots'});
   const finish=plan=>{
     try{ localStorage.setItem('gt:onboarded','1'); }catch(e){}
+    if(plan&&hasUserData()) plan=false;
     if(plan){ const p=S.profile; p.goal=ans.goal; p.weekly=ans.weekly; p.place=ans.place; p.program=ans.weekly<=3?'full':ans.weekly===4?'ul':'ppl'; save('profile',p); autoFillWeek(new Date(todayKey()).getDay()); }
     el.classList.remove('on'); setTimeout(()=>{ el.remove(); Onb.el=null; },300); homeDay=null; homeWeek=0;
     if(route.page!=='home') go('#home'); else render(); if(plan) toast('השבוע מוכן. אפשר להתחיל.');
@@ -2551,7 +2557,7 @@ function cacheExMini(){ try{ const ids=new Set(Object.keys(S.logs)); Object.valu
 /* ========================= boot ========================= */
 (async function boot(){
   loadLocal(); loadExMini(); applyTheme(); applyLook(); woSweep(); if(woActive()) Wake.on(); const r=parseHash(); route.page=r.page; route.param=r.param; render();
-  let onboarded=false; try{ onboarded=!!localStorage.getItem('gt:onboarded'); }catch(e){} if(!onboarded) setTimeout(showOnboarding,250);
+  let onboarded=false; try{ onboarded=!!localStorage.getItem('gt:onboarded'); }catch(e){} if(!onboarded&&!onbSettle()){ if(STANDALONE) setTimeout(showOnboarding,250); else Onb.wait=true; }
   try{ const res=await fetch('data/exercises.json'); S.ex=(await res.json()).concat(EXTRA_EX); S.ex.forEach(e=>S.byId[e.id]=e); cacheExMini(); }catch(e){ $('#view').prepend(h('div',{class:'banner'},'לא הצלחתי לטעון את מאגר התרגילים.')); }
   render();
   if(!STANDALONE) initCloud(); else { S.loaded=true; render(); initPB(); if('serviceWorker' in navigator){ try{ const had=!!navigator.serviceWorker.controller; navigator.serviceWorker.register('sw.js'); navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(had) toastAct('יש גרסה חדשה של סטים','רענון',()=>location.reload()); }); }catch(e){} } try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){} checkAch(); }
