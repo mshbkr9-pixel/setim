@@ -3,3 +3,4 @@ batch*.json
 __pycache__/
 .claude/
 video/out/
+tests/out/

@@ -360,7 +360,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 
 .sheet .close{position:absolute;top:10px;inset-inline-start:12px;width:32px;height:32px;border-radius:50%;background:var(--card2);color:var(--ink2);display:grid;place-items:center;z-index:2}
 .sheet .close svg.i{width:16px;height:16px;stroke-width:2.4}
-.toast span{pointer-events:auto;display:inline-flex;align-items:center;gap:12px}
+.toast span{display:inline-flex;align-items:center;gap:12px}
+.toast span.on{pointer-events:auto}      /* only while it shows: a faded toast must not swallow taps on the button under it */
 .toast span button{color:var(--accent2);font-weight:900}
 .rowx{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--ink3);flex:none;margin-inline-start:-4px}
 .rowx svg.i{width:15px;height:15px;stroke-width:2.4}
@@ -760,6 +761,136 @@ html[data-nav="back"]::view-transition-new(root){animation:vt-in-b .26s cubic-be
 /* the close button sits opposite the title (top-left in Hebrew) so it never covers it */
 .sheet .close{inset-inline-start:auto;inset-inline-end:12px}
 .sheet .body h2:first-child,.sheet .body>div>h2:first-child{padding-inline-end:44px}
+/* ========================= v12: goals and achievements, logging by voice ========================= */
+/* two wide boxes frame the hub: the goal on top, voice at the bottom */
+.hubbox.wide{grid-column:1/-1;min-height:0;flex-direction:row;align-items:center;gap:14px;padding:16px}
+.hubbox.wide .ic{margin:0;flex:none}
+.hubbox.wide .s{margin-top:1px}
+.hubbox.wide .chev{color:var(--ink3);transform:scaleX(-1);flex:none}
+.hubbox.wide .gp{height:6px;border-radius:var(--r-s);background:var(--card3);overflow:hidden;margin-top:9px}
+.hubbox.wide .gp i{display:block;height:100%;border-radius:var(--r-s);background:var(--c,var(--accent))}
+
+/* the goal itself: what it is, how far, by when */
+.ghero{background:linear-gradient(160deg,var(--card3),var(--card) 70%);border:1px solid var(--line2);border-radius:var(--r-xl);padding:16px;margin:0 0 12px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.ghero::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--c,var(--accent)) 20%,transparent),transparent);inset:-110px auto auto -90px;pointer-events:none}
+.ghero>*{position:relative;z-index:1}
+.gk{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-2);font-weight:800;color:var(--c,var(--accent-t))}
+.gk svg.i{width:18px;height:18px}
+.gt{font-family:var(--display);font-weight:900;font-size:26px;line-height:1.15;margin:6px 0 12px;text-wrap:balance}
+.gring{width:96px;height:96px;position:relative;flex:none}
+.gring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gring circle.p{transition:stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1)}
+.gring .v{position:absolute;inset:0;display:grid;place-items:center;font-weight:900;font-size:28px;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;direction:ltr}
+.gring .v small{font-size:var(--fs-2);color:var(--ink2);font-weight:800;letter-spacing:0;margin-inline-start:1px}
+.gnum{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;font-size:var(--fs-4);font-weight:700;color:var(--ink2);line-height:1.25}
+.gnum b{font-size:var(--fs-5);font-weight:900;color:var(--ink);letter-spacing:-.02em}
+.gnum .arr{color:var(--ink3);font-weight:900}
+.gmeta{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:var(--fs-2);font-weight:700;color:var(--ink2)}
+.gst{display:inline-flex;align-items:center;padding:3px 10px;border-radius:var(--r-xl);font-size:var(--fs-1);font-weight:800;background:var(--card2);color:var(--ink2)}
+.gst.good{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good-t)}
+.gst.late{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn-t)}
+.gspark{display:block;width:100%;height:64px;margin-top:14px}
+.gspark .ln{fill:none;stroke:var(--c,var(--accent));stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.gspark .tg{stroke:var(--ink3);stroke-width:1.5;stroke-dasharray:3 5}
+.gspark .pt{fill:var(--c,var(--accent))}
+.gspark text{font:700 11px var(--font);fill:var(--ink2)}
+
+/* what to do now */
+.gnow .gn-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
+.gnow .gn-h .k{font-size:var(--fs-2);letter-spacing:.06em;color:var(--ink2);font-weight:700}
+.gnow .gn-t{font-weight:900;font-size:var(--fs-5);line-height:1.2;letter-spacing:-.01em}
+.gtodo{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.gtodo li{display:flex;align-items:flex-start;gap:10px;font-size:var(--fs-3);line-height:1.45;font-weight:600}
+.gtodo li svg.i{width:18px;height:18px;margin-top:2px;color:var(--accent-t);stroke-width:2.6}
+.gwhy{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:var(--fs-2);color:var(--ink2);line-height:1.6}
+
+/* the week in words */
+.gweek{border-color:var(--line2)}
+.gweek.good{background:linear-gradient(135deg,color-mix(in srgb,var(--good) 10%,var(--card)),var(--card))}
+.gweek .gw-h{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.gweek .gw-h>svg.i{width:26px;height:26px;color:var(--accent-t)}
+.gweek.good .gw-h>svg.i{color:var(--good-t)}
+.gweek .gw-h .k{font-size:var(--fs-4);line-height:1.25}
+.gweek p{margin:0 0 6px;font-size:var(--fs-3);line-height:1.55}
+.gweek p:last-child{margin:8px 0 0}
+
+/* the stages, as one road */
+.stgs{overflow:hidden}
+.stg{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;position:relative;text-align:start;min-height:64px}
+.stg::before{content:"";position:absolute;inset-inline-start:27px;top:0;bottom:0;width:2px;background:var(--line2)}
+.stg:first-child::before{top:50%}
+.stg:last-child::before{bottom:50%}
+.stg:only-child::before{display:none}
+.stg .dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--card3);color:var(--ink2);font-weight:900;font-size:var(--fs-2);flex:none;position:relative;z-index:1;box-shadow:0 0 0 4px var(--card)}
+.stg .dot svg.i{width:16px;height:16px;stroke-width:3}
+.stg.done .dot{background:var(--good);color:#06240F}
+.stg.cur .dot{background:var(--accent);color:var(--accent-ink)}
+.stg .t{display:block;font-weight:800;font-size:var(--fs-3);line-height:1.3}
+.stg .s{display:block;font-size:var(--fs-2);color:var(--ink2);line-height:1.35}
+.stg .d{display:block;font-size:var(--fs-1);color:var(--ink2);font-weight:700;margin-top:2px}
+.stg.done .t{color:var(--ink2)}
+.stg.cur{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.stg .chev{color:var(--ink3);transform:scaleX(-1)}
+
+/* medals, in one line */
+.achstrip{display:flex;align-items:center;gap:12px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px;margin:14px 0 12px;text-align:start;min-height:64px}
+.achstrip .as-i{display:flex;flex:none}
+.achstrip .m{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--card2);color:var(--ink3);box-shadow:0 0 0 2px var(--card)}
+.achstrip .m+.m{margin-inline-start:-14px}
+.achstrip .m.on{background:linear-gradient(135deg,#FFD66B,#FFB347);color:#2A1600}
+.achstrip .k{font-size:var(--fs-4)}
+.achstrip .chev{color:var(--ink3);transform:scaleX(-1)}
+
+/* taking in a new goal */
+.gw-dots{display:flex;gap:6px;margin:2px 0 14px}
+.gw-dots i{width:6px;height:6px;border-radius:var(--r-s);background:var(--card3);transition:width .3s,background .3s}
+.gw-dots i.on{width:22px;background:var(--accent)}
+.gw-dots i.was{background:var(--ink3)}
+.gwiz textarea{min-height:76px;font-size:var(--fs-4);line-height:1.4;resize:none}
+.gwiz .btn{margin-top:4px}
+.gwiz .fld .typegrid{margin-top:2px}
+.gwiz .fld input[type=date]{margin-top:8px}
+.gwiz .typegrid.one{grid-template-columns:1fr}
+.gtiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gtile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:112px;padding:14px 12px 12px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--shadow);text-align:start}
+.gtile .ic{width:40px;height:40px;border-radius:var(--r-m);display:grid;place-items:center;background:color-mix(in srgb,var(--c,var(--accent)) 18%,transparent);color:var(--c,var(--accent));margin-bottom:8px}
+.gtile .t{font-weight:900;font-size:var(--fs-3);line-height:1.25}
+.gtile .s{font-size:var(--fs-2);color:var(--ink2);line-height:1.35;font-weight:600}
+.gban{background:linear-gradient(135deg,#8CF0B4,#4ADE80);color:#06240F}
+
+/* a message that pops up while a page has its main button docked sits above the button, not on it */
+.scroll.docked~.toast{bottom:calc(env(safe-area-inset-bottom) + 160px)}
+
+/* voice */
+.vbox{background:var(--card);border:1px solid var(--line2);border-radius:var(--r-l);box-shadow:var(--shadow);padding:14px}
+.vrow{display:flex;align-items:center;gap:10px}
+.vrow .btn.sm{flex:none}
+.vtop{display:flex;flex-direction:column;align-items:center;gap:8px;margin:4px 0 14px}
+.vmic{width:76px;height:76px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-t);transition:background .2s,color .2s}
+.vmic svg.i{width:34px;height:34px}
+.vmic.on{background:var(--accent);color:var(--accent-ink);animation:vpulse 1.3s ease-in-out infinite}
+@keyframes vpulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent)}50%{box-shadow:0 0 0 12px transparent}}
+.vheard{margin-top:12px;font-size:var(--fs-4);font-weight:700;color:var(--ink2);min-height:26px;line-height:1.4}
+.vres{margin-top:12px;padding:12px 14px;border-radius:var(--r-m);background:var(--card2)}
+.vres .q{font-size:var(--fs-2);color:var(--ink2);margin-bottom:6px;line-height:1.4}
+.vres .a{display:flex;align-items:flex-start;gap:10px;font-size:var(--fs-4);font-weight:700;line-height:1.45}
+.vres .a svg.i{margin-top:3px}
+.vres.ok .a svg.i{color:var(--good-t);stroke-width:2.6}
+.vres.no .a svg.i{color:var(--warn-t)}
+.vcard .vc-h{display:flex;align-items:center;gap:12px}
+.vcard .vc-i{width:44px;height:44px;border-radius:var(--r-m);display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-t);flex:none}
+.vcard .k{font-size:var(--fs-4)}
+.vsteps{list-style:none;counter-reset:vs;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:14px}
+.vsteps>li{counter-increment:vs;display:flex;gap:12px;align-items:flex-start}
+.vsteps>li::before{content:counter(vs);width:28px;height:28px;border-radius:50%;background:var(--card3);color:var(--ink);font-weight:900;font-size:var(--fs-2);display:grid;place-items:center;flex:none}
+.vsteps .st{font-weight:800;font-size:var(--fs-3);line-height:1.35}
+.vsteps .sd{font-size:var(--fs-2);color:var(--ink2);line-height:1.5;margin-top:2px}
+.vsteps .btn{margin-top:8px}
+.vkey{display:flex;align-items:center;gap:4px;margin-top:8px;background:var(--card2);border-radius:var(--r-m);padding:4px;padding-inline-start:12px}
+.vkey code{flex:1;min-width:0;direction:ltr;text-align:left;font:600 13px ui-monospace,Menlo,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vkey button{flex:none;font-size:var(--fs-2);font-weight:800;color:var(--accent-t);padding:8px 10px;min-height:40px}
+.ltr{direction:ltr;unicode-bidi:isolate}
+
 </style>
 </head>
 <body>
@@ -938,9 +1069,10 @@ async function initPB(){
 async function syncFromCloud(){
   const cloud=await PB.pullAll(); const keys=Object.keys(cloud);
   if(keys.length){ Object.keys(S.logs).forEach(k=>delete S.logs[k]); keys.forEach(k=>{ applyDoc(k,cloud[k]); try{ localStorage.setItem('gt:'+k,JSON.stringify(cloud[k])); }catch(e){} }); applyLook(); onbSettle(); }
-  else { const local=[]; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(/^gt:(profile|deck|yt|week|routines|days|prefs|log-.+|today-.+)$/.test(k)) local.push(k.slice(3)); } }catch(e){} for(const k of local){ try{ await PB.push(k,JSON.parse(localStorage.getItem('gt:'+k))); }catch(e){} } }
+  else { const local=[]; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(/^gt:(profile|deck|yt|week|routines|days|prefs|goals|body|vdone|log-.+|today-.+)$/.test(k)) local.push(k.slice(3)); } }catch(e){} for(const k of local){ try{ await PB.push(k,JSON.parse(localStorage.getItem('gt:'+k))); }catch(e){} } }
   S.storageMode='pb'; if(!S.profile.name && PB.user?.name){ S.profile.name=PB.user.name.split(' ')[0]; save('profile',S.profile); }
   render();
+  try{ voiceIntake(); goalsSoon(); }catch(e){}
 }
 function authSheet(mode='login'){
   const body=h('div'); let m=mode;
@@ -961,6 +1093,7 @@ const todayKey = () => iso(new Date());
 function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 const writeQ = {};
 async function save(key,obj){
+  if(key==='body'||key.startsWith('log-')) goalsSoon();
   try{ localStorage.setItem('gt:'+key, JSON.stringify(obj)); }catch(e){ if(!save.warned){ save.warned=true; toast('האחסון במכשיר מלא. כדאי לייצא גיבוי בהגדרות.'); } }
   if(STANDALONE){ if(!PB.user) return;
     const run=async()=>{ try{ await PB.push(key,obj); delete SYNC.pending[key]; if(!Object.keys(SYNC.pending).length) syncState('ok'); }
@@ -983,6 +1116,10 @@ function applyDoc(key,data){
   else if(key==='days') S.days={map:{},...data};
   else if(key==='prefs') S.prefs={ex:{},ach:{},seen:{},...data};
   else if(key==='wo') S.wo=data;
+  else if(key==='goals') S.goals={list:[],...data};
+  else if(key==='body') S.body={w:[],...data};
+  else if(key==='vinbox') S.vinbox={items:[],...data};
+  else if(key==='vdone') S.vdone={ids:{},last:[],...data};
   else if(key.startsWith('log-')) S.logs[key.slice(4)]=data;
   else if(key.startsWith('today-')){ if(key.slice(6)===todayKey()) S.today={...S.today,...data}; }
 }
@@ -1004,7 +1141,7 @@ async function initCloud(){
   }catch(e){}
   clearTimeout(t); S.loaded=true; applyLook(); render();
   if(Onb.wait){ Onb.wait=false; if(!onbSettle()) showOnboarding(); }
-  try{ checkAch(); }catch(e){}
+  try{ checkAch(); goalsSoon(); }catch(e){}
 }
 
 /* ========================= helpers ========================= */
@@ -1066,7 +1203,7 @@ Sheet.scrim.addEventListener('click',()=>Sheet.close());
 
 /* ========================= router ========================= */
 const route = {page:'home',param:null};
-function parseHash(){ const hsh=(location.hash||'#home').slice(1); for(const p of ['dayex','day','ex','machine','group','read']){ if(hsh.startsWith(p+'-')) return {page:p,param:hsh.slice(p.length+1)}; } return {page:hsh,param:null}; }
+function parseHash(){ const hsh=(location.hash||'#home').slice(1); for(const p of ['dayex','day','ex','machine','group','read','goal','voice']){ if(hsh.startsWith(p+'-')) return {page:p,param:hsh.slice(p.length+1)}; } return {page:hsh,param:null}; }
 function go(hash){ if(Sheet.popPending){ Sheet.afterPop=()=>go(hash); return; } if((location.hash||'#home')===hash){ render(); return; } location.hash=hash; }
 function goTab(hash){
   if(Sheet.popPending){ Sheet.afterPop=()=>goTab(hash); return; }
@@ -1152,7 +1289,7 @@ function home(){
   wrap.append(strip);
   swipeNav(wrap,dir=>{ let k=homeDay+dir; if(k>6){ k=0; homeWeek++; } else if(k<0){ k=6; homeWeek--; } homeDay=k; editMode=false; render(); });
   if(!isToday){ homeOther(wrap,selDate,sel,cur,byDate[selDate]||[]); return wrap; }
-  const rc=recapCard(); if(rc) wrap.append(rc); const nd=installNudge(); if(nd) wrap.append(nd);
+  const gc=goalCard(), rc=gc?null:recapCard(), nd=(gc||rc)?null:installNudge(); [gc,rc,nd].forEach(c=>{ if(c) wrap.append(c); });      // one card at a time: the goal, then the recap, then the install hint
   const d=wkDay(sel); const ids=todayList(); const strk=weekStreak();
   const streakEl=strk.n>=2?h('div',{class:'streak'},ic('flame'),h('span',{},`${hcount(strk.n,'שבוע','שבועות')} ברצף`)):null;
   if(d.rest&&!ids.length){
@@ -1490,9 +1627,10 @@ function profile(){
     wrap.append(h('button',{class:'card pressable',style:'width:100%',onclick:()=>go('#calories')},h('div',{class:'row'},h('div',{class:'grow'},h('div',{class:'k'},'קלוריות ותזונה'),h('div',{class:'small muted'},`במנוחה ${m.bmr.toLocaleString('he-IL')} · תחזוקה ${m.tdee.toLocaleString('he-IL')} קק״ל ביום`)),ic('chev')))); }
   else wrap.append(h('button',{class:'card pressable',style:'width:100%',onclick:editBodySheet},h('div',{class:'row'},h('div',{class:'ic',style:'width:44px;height:44px;border-radius:var(--r-m);background:var(--accent-soft);color:var(--accent-t);display:grid;place-items:center'},ic('scale')),h('div',{class:'grow'},h('div',{class:'k'},'מוסיפים משקל, גובה וגיל'),h('div',{class:'small muted'},'כדי לחשב קלוריות ולהתאים את ההמלצות')),ic('chev'))));
   wrap.append(h('div',{class:'sec'},h('h2',{},'מטרה ויעד')));
-  const goal=h('select',{},...Object.entries(GOALS).map(([k,v])=>h('option',{value:k,selected:p.goal===k},v))); goal.addEventListener('change',()=>{ p.goal=goal.value; save('profile',p); toast('המטרה עודכנה'); });
+  wrap.append(goalProfileRow());
+  const goal=h('select',{},...Object.entries(GOALS).map(([k,v])=>h('option',{value:k,selected:p.goal===k},v))); goal.addEventListener('change',()=>{ p.goal=goal.value; save('profile',p); toast('הדגש עודכן'); });
   const weekly=h('select',{},...[2,3,4,5,6].map(n=>h('option',{value:n,selected:(p.weekly||3)===n},n+' אימונים בשבוע'))); weekly.addEventListener('change',()=>{ p.weekly=+weekly.value; save('profile',p); });
-  wrap.append(h('div',{class:'card'},h('div',{class:'fld'},h('label',{},'מטרה'),goal),h('div',{class:'fld',style:'margin:0'},h('label',{},'יעד שבועי'),weekly)));
+  wrap.append(h('div',{class:'card'},h('div',{class:'fld'},h('label',{},'דגש באימונים'),goal),h('div',{class:'fld',style:'margin:0'},h('label',{},'יעד שבועי'),weekly)));
   wrap.append(h('div',{class:'credit',html:'הנתונים נשמרים בפרופיל הפרטי שלך. המידע אינו ייעוץ רפואי.'}));
   return wrap;
 }
@@ -1859,12 +1997,14 @@ function more(){
   const m=bodyMetrics(p); const brand=BRANDS.find(b=>b.id===p.brand); const nR=(S.routines.list||[]).length, nM=(S.deck.machines||[]).length;
   const box=(icn,t,sub,hash,col)=>h('button',{class:'hubbox pressable',type:'button',style:`--c:var(--g-${col})`,onclick:()=>go(hash)},h('div',{class:'ic'},ic(icn)),h('div',{class:'t'},t),h('div',{class:'s'},sub));
   wrap.append(h('div',{class:'hub stagger'},
+    goalHubBox(),
     box('lib','תרגילים',`${fmtK(allEx().length)} תרגילים עם הדגמה`,'#library','back'),
     box('plan','תוכניות',nR?plural(nR,'אימון קבוע אחד','אימונים קבועים'):'מילוי השבוע בלחיצה','#plans','arms'),
     box('gym','המכון שלי',brand?brand.name:(nM?plural(nM,'מכשיר אחד','מכשירים'):'המכשירים שיש לך'),'#gym','shoulders'),
     box('book','מדריכים',`${ARTICLES.length} מדריכים קצרים`,'#guides','legs'),
     box('flame','קלוריות',m?`תחזוקה ${m.tdee.toLocaleString('he-IL')} קק״ל`:'לפי משקל, גובה וגיל','#calories','cardio'),
-    box('gear','הגדרות',S.prefs.seen.backup?`גיבוי אחרון ${fmtDate(S.prefs.seen.backup)}`:'צליל, מראה, גיבוי','#settings','full')));
+    box('gear','הגדרות',S.prefs.seen.backup?`גיבוי אחרון ${fmtDate(S.prefs.seen.backup)}`:'צליל, מראה, גיבוי','#settings','full'),
+    STANDALONE?voiceHubBox():null));
   wrap.append(h('div',{class:'credit',html:'סטים · Exercise data by <a href="https://repdb.co" rel="nofollow" target="_blank">RepDB</a>. לא ייעוץ רפואי.'}));
   return wrap;
 }
@@ -1904,8 +2044,8 @@ function settings(){
   wrap.append(h('div',{class:'credit',html:'סטים · Exercise data by <a href="https://repdb.co" rel="nofollow" target="_blank">RepDB</a>. לא ייעוץ רפואי.'}));
   return wrap;
 }
-function exportSheet(){ const data={profile:S.profile,deck:S.deck,logs:S.logs,yt:S.yt,week:S.week,routines:S.routines,days:S.days}; const ta=h('textarea',{style:'width:100%;min-height:160px;font-size:12px',readonly:true}); ta.value=JSON.stringify(data); Sheet.show(h('div',{},h('h2',{},'גיבוי הנתונים'),h('p',{class:'small muted'},'מעתיקים את הטקסט ושומרים אותו במקום בטוח.'),ta,h('button',{class:'btn',style:'margin-top:10px',onclick:async()=>{ try{ await navigator.clipboard.writeText(ta.value); toast('הועתק'); }catch(e){ ta.select(); } }},'העתק'))); }
-function restoreSheet(){ const ta=h('textarea',{style:'width:100%;min-height:120px;font-size:12px',placeholder:'מדביקים כאן גיבוי'}); Sheet.show(h('div',{},h('h2',{},'שחזור מגיבוי'),ta,h('button',{class:'btn',style:'margin-top:10px',onclick:()=>{ try{ const d=JSON.parse(ta.value); if(d.profile){ S.profile={...S.profile,...d.profile}; save('profile',S.profile); } if(d.deck){ S.deck=d.deck; save('deck',S.deck); } if(d.yt){ S.yt=d.yt; save('yt',{map:S.yt}); } if(d.week){ S.week={days:{},...d.week}; save('week',S.week); } if(d.routines){ S.routines={list:[],...d.routines}; save('routines',S.routines); } if(d.days){ S.days={map:{},...d.days}; save('days',S.days); } if(d.logs){ Object.entries(d.logs).forEach(([k,v])=>{ S.logs[k]=v; save('log-'+k,v); }); } Sheet.close(); render(); toast('שוחזר'); }catch(e){ toast('הגיבוי לא תקין'); } }},'שחזר'))); }
+function exportSheet(){ const data={profile:S.profile,deck:S.deck,logs:S.logs,yt:S.yt,week:S.week,routines:S.routines,days:S.days,goals:S.goals,body:S.body}; const ta=h('textarea',{style:'width:100%;min-height:160px;font-size:12px',readonly:true}); ta.value=JSON.stringify(data); Sheet.show(h('div',{},h('h2',{},'גיבוי הנתונים'),h('p',{class:'small muted'},'מעתיקים את הטקסט ושומרים אותו במקום בטוח.'),ta,h('button',{class:'btn',style:'margin-top:10px',onclick:async()=>{ try{ await navigator.clipboard.writeText(ta.value); toast('הועתק'); }catch(e){ ta.select(); } }},'העתק'))); }
+function restoreSheet(){ const ta=h('textarea',{style:'width:100%;min-height:120px;font-size:12px',placeholder:'מדביקים כאן גיבוי'}); Sheet.show(h('div',{},h('h2',{},'שחזור מגיבוי'),ta,h('button',{class:'btn',style:'margin-top:10px',onclick:()=>{ try{ const d=JSON.parse(ta.value); if(d.profile){ S.profile={...S.profile,...d.profile}; save('profile',S.profile); } if(d.deck){ S.deck=d.deck; save('deck',S.deck); } if(d.yt){ S.yt=d.yt; save('yt',{map:S.yt}); } if(d.week){ S.week={days:{},...d.week}; save('week',S.week); } if(d.routines){ S.routines={list:[],...d.routines}; save('routines',S.routines); } if(d.days){ S.days={map:{},...d.days}; save('days',S.days); } if(d.goals){ S.goals={list:[],...d.goals}; save('goals',S.goals); } if(d.body){ S.body={w:[],...d.body}; save('body',S.body); } if(d.logs){ Object.entries(d.logs).forEach(([k,v])=>{ S.logs[k]=v; save('log-'+k,v); }); } Sheet.close(); render(); toast('שוחזר'); }catch(e){ toast('הגיבוי לא תקין'); } }},'שחזר'))); }
 
 /* ========================= UX: theme, onboarding, checklist, rest timer ========================= */
 function applyTheme(){ let t=''; try{ t=localStorage.getItem('gt:theme')||''; }catch(e){} const root=document.documentElement; if(t==='light'||t==='dark'){ root.setAttribute('data-theme',t); } else if(STANDALONE){ root.setAttribute('data-theme', matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'); } }
@@ -2753,7 +2893,7 @@ async function saveFile(name,text,type){
   try{ if(file&&navigator.canShare&&navigator.canShare({files:[file]})&&/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){ await navigator.share({files:[file],title:name}); return true; } }catch(e){ if(e&&e.name==='AbortError') return false; }
   const a=h('a',{href:URL.createObjectURL(blob),download:name,style:'display:none'}); document.body.append(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000); return true;
 }
-function exportBackup(){ const data={app:'setim',v:11,at:new Date().toISOString(),profile:S.profile,deck:S.deck,logs:S.logs,yt:S.yt,week:S.week,routines:S.routines,days:S.days,prefs:S.prefs}; saveFile(`setim-backup-${todayKey()}.json`,JSON.stringify(data),'application/json').then(ok=>{ if(!ok) return; S.prefs.seen.backup=todayKey(); save('prefs',S.prefs); toast('הגיבוי נשמר כקובץ'); if(route.page==='settings') render(); }); }
+function exportBackup(){ const data={app:'setim',v:11,at:new Date().toISOString(),profile:S.profile,deck:S.deck,logs:S.logs,yt:S.yt,week:S.week,routines:S.routines,days:S.days,prefs:S.prefs,goals:S.goals,body:S.body}; saveFile(`setim-backup-${todayKey()}.json`,JSON.stringify(data),'application/json').then(ok=>{ if(!ok) return; S.prefs.seen.backup=todayKey(); save('prefs',S.prefs); toast('הגיבוי נשמר כקובץ'); if(route.page==='settings') render(); }); }
 function exportCsv(){
   const rows=[]; Object.entries(S.logs).forEach(([id,l])=>{ const e=getEx(id); (l.sessions||[]).forEach(s=>s.sets.forEach((x,i)=>rows.push([s.d,e?e.he:id,e?(e.en||''):'',i+1,x.w,x.r,x.k==='w'?'חימום':x.k==='d'?'דרופ':'',x.t?'כן':'']))); });
   rows.sort((a,b)=>String(a[0]).localeCompare(String(b[0]))); rows.unshift(['תאריך','תרגיל','Exercise','סט','ק״ג','חזרות','סוג','בוצע']);
@@ -2764,6 +2904,7 @@ function restoreFrom(d){
   if(d.profile){ S.profile={...S.profile,...d.profile}; save('profile',S.profile); } if(d.deck){ S.deck=d.deck; save('deck',S.deck); } if(d.yt){ S.yt=d.yt; save('yt',{map:S.yt}); }
   if(d.week){ S.week={days:{},...d.week}; save('week',S.week); } if(d.routines){ S.routines={list:[],...d.routines}; save('routines',S.routines); } if(d.days){ S.days={map:{},...d.days}; save('days',S.days); }
   if(d.prefs){ S.prefs={ex:{},ach:{},seen:{},...d.prefs}; save('prefs',S.prefs); } if(d.logs){ Object.entries(d.logs).forEach(([k,v])=>{ S.logs[k]=v; save('log-'+k,v); }); }
+  if(d.goals){ S.goals={list:[],...d.goals}; save('goals',S.goals); } if(d.body){ S.body={w:[],...d.body}; save('body',S.body); }
   applyLook();
 }
 function importBackup(){
@@ -2781,13 +2922,1398 @@ function loadExMini(){ try{ const a=JSON.parse(localStorage.getItem('gtc:ex')||'
 function cacheExMini(){ try{ const ids=new Set(Object.keys(S.logs)); Object.values(S.week.days||{}).forEach(d=>(d.ex||[]).forEach(x=>ids.add(x.id))); (S.routines.list||[]).forEach(r=>(r.ex||[]).forEach(x=>ids.add(x.id))); const out=[]; ids.forEach(id=>{ const e=S.byId[id]; if(e&&!e.custom) out.push({id:e.id,he:e.he,en:e.en,g:e.g,eq:e.eq,cat:e.cat,bw:e.bw,uni:e.uni,pm:e.pm,sm:e.sm,mech:e.mech,img:e.img}); }); localStorage.setItem('gtc:ex',JSON.stringify(out.slice(0,220))); }catch(e){} }
 /*__V11_END__*/
 
+/* VoiceLog: turns one spoken sentence into a logged set, and into the sentence the assistant says back.
+   "בנץ' סט 1, 10 חזרות, 20 קילו"  /  "bench press, set one, ten reps, twenty kilos"
+   The same file runs in three places, so it is written in plain ES5 with no DOM and no globals:
+   in the app (injected by build.py), in the PocketBase hook on the server (require), and in the tests (node). */
+var VoiceLog=(function(){
+  var FINALS={'ך':'כ','ם':'מ','ן':'נ','ף':'פ','ץ':'צ'};
+  /* same idea as the app's norm(): one spelling for a name, however it was typed or dictated */
+  function norm(s){
+    return String(s==null?'':s).toLowerCase()
+      .replace(/[֑-ׇ]/g,'')
+      .replace(/[‎‏‪-‮⁦-⁩]/g,'')
+      .replace(/[ךםןףץ]/g,function(c){ return FINALS[c]; })
+      .replace(/["'׳״`‘’“”\-־–—.,()\/\\:;!?]/g,' ')
+      .replace(/וו/g,'ו').replace(/יי/g,'י').replace(/\s+/g,' ').trim();
+  }
+  function isHe(s){ return /[א-ת]/.test(String(s||'')); }
+  function round(v,step){ return Math.round(v/step)*step; }
+  function r2(v){ return Math.round(v*100)/100; }
+  function has(o,k){ return Object.prototype.hasOwnProperty.call(o,k); }
+
+  /* ---------- number words ---------- */
+  var NUM={};      // normalized word -> [value, kind]   kind: u unit 1-9, t ten..nineteen, T tens, H hundred, h hundreds word, f fraction
+  function addNum(v,kind,words){ words.split(' ').forEach(function(w){ NUM[norm(w)]=[v,kind]; }); }
+  addNum(0,'z','אפס zero');
+  addNum(1,'u','אחד אחת one'); addNum(2,'u','שניים שתיים שנים שתים שני שתי two'); addNum(3,'u','שלוש שלושה three');
+  addNum(4,'u','ארבע ארבעה four'); addNum(5,'u','חמש חמישה חמשה five'); addNum(6,'u','שש שישה ששה six');
+  addNum(7,'u','שבע שבעה seven'); addNum(8,'u','שמונה eight'); addNum(9,'u','תשע תשעה nine');
+  addNum(10,'t','עשר עשרה ten'); addNum(11,'t','eleven'); addNum(12,'t','twelve'); addNum(13,'t','thirteen'); addNum(14,'t','fourteen');
+  addNum(15,'t','fifteen'); addNum(16,'t','sixteen'); addNum(17,'t','seventeen'); addNum(18,'t','eighteen'); addNum(19,'t','nineteen');
+  addNum(20,'T','עשרים twenty'); addNum(30,'T','שלושים thirty'); addNum(40,'T','ארבעים forty fourty'); addNum(50,'T','חמישים חמשים fifty');
+  addNum(60,'T','שישים ששים sixty'); addNum(70,'T','שבעים seventy'); addNum(80,'T','שמונים eighty'); addNum(90,'T','תשעים ninety');
+  addNum(100,'H','מאה hundred'); addNum(200,'h','מאתיים'); addNum(100,'x','מאות'); addNum(1000,'K','אלף thousand');
+  addNum(0.5,'f','חצי half'); addNum(0.25,'f','רבע quarter');
+  var ORD={};
+  function addOrd(v,words){ words.split(' ').forEach(function(w){ ORD[norm(w)]=v; }); }
+  addOrd(1,'ראשון ראשונה first'); addOrd(2,'שנייה שניה second'); addOrd(3,'שלישי שלישית third'); addOrd(4,'רביעי רביעית fourth');
+  addOrd(5,'חמישי חמישית fifth'); addOrd(6,'שישי שישית sixth'); addOrd(7,'שביעי שביעית seventh'); addOrd(8,'שמיני שמינית eighth');
+  addOrd(9,'תשיעי תשיעית ninth'); addOrd(10,'עשירי עשירית tenth');
+
+  /* ---------- vocabulary ---------- */
+  function setOf(words){ var o={}; words.split(' ').forEach(function(w){ if(w) o[norm(w)]=1; }); return o; }
+  var U_KG=setOf('קילו קילוגרם קילוגרמים קג קילוגרמ kg kgs kilo kilos kilogram kilograms');
+  var U_LB=setOf('פאונד פאונדים ליברה ליברות lb lbs pound pounds');
+  var U_REP=setOf('חזרות חזרה rep reps repetition repetitions');
+  var U_SET=setOf('סט סטים set sets'); var U_SETS=setOf('סטים sets');
+  var U_MIN=setOf('דקות דקה דק minute minutes min mins');
+  var U_SEC=setOf('שניות שנייה שניה sec secs seconds');
+  var U_HOUR=setOf('שעה שעות hour hours hr hrs');
+  var U_KM=setOf('קילומטר קילומטרים קמ km kms kilometer kilometers kilometre kilometres');
+  var U_M=setOf('מטר מטרים meter meters metre metres');
+  var U_MILE=setOf('מייל מיילים mile miles');
+  var K_WEIGHT=setOf('משקל weight'); var K_NUMBER=setOf('מספר number');
+  var C_X=setOf('x כפול by'); var C_ON=setOf('על'); var C_OF=setOf('של of'); var C_AT=setOf('עם at with ב');
+  var TIMES=setOf('פעמים times');
+  var FILL=setOf('תוסיפי תוסיף תוסיפו הוסף הוסיפי תרשום תרשמי תרשמו רשום רשמי לרשום להוסיף תכתוב תכתבי כתוב לי עכשיו בבקשה עשיתי סיימתי ביצעתי הרמתי את אני גם ואז אז זה זאת היה היו כל לכל היום כרגע ו ה ל ש כן טוב אוקיי אוקי היי הי סירי גוגל ג׳מיני ג׳מיניי סטים של עם על ב אחרי ועוד ' +
+    'add log record save write please i did have done just now finished completed a an the my to and then me for it is was in on hey siri google gemini ok okay each per hand hands today so with at of app');
+  var UNDO=setOf('בטל תבטל תבטלי בטלי ביטול מחק תמחק תמחקי מחקי למחוק לבטל undo cancel delete remove scratch');
+  var UNDO_TAIL=setOf('האחרון האחרונה הרישום הסט last that entry one previous אחרון אחרונה רישום');
+  var AGAIN=setOf('עוד שוב נוסף same again another אותו כנל');
+  var Q_TODAY=['מה עשיתי','מה רשמתי','מה נרשם','סיכום','what did i','summary','what have i'];
+
+  /* spoken slang and English names as Hebrew dictation writes them -> words that exist in the exercise names */
+  var ALIAS=[
+    ['בנצ פרס','לחיצת חזה'],['בנצ','לחיצת חזה'],['bench press','לחיצת חזה'],['bench','לחיצת חזה'],['ספסל','לחיצת חזה'],
+    ['כריעות','סקוואט'],['כריעה','סקוואט'],['squats','סקוואט'],['squat','סקוואט'],['סקווט','סקוואט'],['סקואט','סקוואט'],
+    ['דד ליפט','דדליפט'],['deadlifts','דדליפט'],['deadlift','דדליפט'],['הרמה מהרצפה','דדליפט'],
+    ['עליות מתח','פול אפ'],['מתח','פול אפ'],['פולאפ','פול אפ'],['pull ups','פול אפ'],['pull up','פול אפ'],['pullups','פול אפ'],['pullup','פול אפ'],
+    ['סנטר','צ ינ אפ'],['chin ups','צ ינ אפ'],['chin up','צ ינ אפ'],
+    ['שכיבות שמיכה','שכיבות סמיכה'],['שכיבות','שכיבות סמיכה'],['פושאפ','שכיבות סמיכה'],['פוש אפ','שכיבות סמיכה'],['push ups','שכיבות סמיכה'],['push up','שכיבות סמיכה'],['pushups','שכיבות סמיכה'],
+    ['מקבילימ','דיפס'],['dips','דיפס'],['dip','דיפס'],
+    ['פרפר','פלאי'],['פליי','פלאי'],['flies','פלאי'],['flyes','פלאי'],['fly','פלאי'],
+    ['שולדר פרס','לחיצת כתפימ'],['shoulder press','לחיצת כתפימ'],['אוברהד פרס','לחיצת כתפימ'],['overhead press','לחיצת כתפימ'],['military press','לחיצת כתפימ'],['לחיצת כתפ','לחיצת כתפימ'],
+    ['פולי עליונ','לאט פולדאונ'],['פולדאונ','לאט פולדאונ'],['lat pulldown','לאט פולדאונ'],['pulldown','לאט פולדאונ'],['pull down','לאט פולדאונ'],
+    ['רואו','חתירה'],['rows','חתירה'],['row','חתירה'],
+    ['קרל','כפיפת מרפקימ'],['curls','כפיפת מרפקימ'],['curl','כפיפת מרפקימ'],['יד קדמית','כפיפת מרפקימ'],['ביצפס','כפיפת מרפקימ'],['דו ראשי','כפיפת מרפקימ'],
+    ['יד אחורית','טריצפס'],['תלת ראשי','טריצפס'],['פושדאונ','טריצפס'],['pushdown','טריצפס'],['triceps','טריצפס'],['tricep','טריצפס'],
+    ['לחיצת רגלימ','לג פרס'],['leg press','לג פרס'],
+    ['מכרעימ','לאנג'],['מכרע','לאנג'],['lunges','לאנג'],['lunge','לאנג'],
+    ['טראסט','היפ ת ראסט'],['hip thrust','היפ ת ראסט'],['גשר','גלוט ברידג'],
+    ['הרמות צד','הרמות צד'],['lateral raise','הרמות צד'],['side raise','הרמות צד'],
+    ['פלנק','פלאנק'],['plank','פלאנק'],
+    ['בטנ','קרנצ'],['כפיפות בטנ','קרנצ'],['crunches','קרנצ'],['crunch','קרנצ'],['קראנצ','קרנצ'],
+    ['רצתי','ריצה'],['לרוצ','ריצה'],['run','ריצה'],['running','ריצה'],['ran','ריצה'],['jog','ריצה'],
+    ['הלכתי','הליכה'],['walk','הליכה'],['walking','הליכה'],['walked','הליכה'],
+    ['רכבתי','רכיבה על אופנימ'],['אופנימ','רכיבה על אופנימ'],['bike','רכיבה על אופנימ'],['cycling','רכיבה על אופנימ'],['cycled','רכיבה על אופנימ'],
+    ['שחיתי','שחיה'],['swim','שחיה'],['swimming','שחיה'],['swam','שחיה'],
+    ['הליכונ','ריצה על הליכונ'],['treadmill','ריצה על הליכונ'],
+    ['leg extension','פשיטת ברכימ'],['leg curl','כפיפת ברכימ'],['calf raise','הרמות תאומימ'],['תאומימ','הרמות תאומימ']
+  ];
+  ALIAS=ALIAS.map(function(a){ return [norm(a[0]),norm(a[1])]; });
+
+  /* ---------- sentence -> tokens ---------- */
+  function tokens(text){
+    var s=String(text||'').toLowerCase();
+    s=s.replace(/[֑-ׇ]/g,'').replace(/[‎‏‪-‮⁦-⁩]/g,'');
+    s=s.replace(/(\d)[.,](\d)/g,'$1\u0001$2');
+    s=s.replace(/[×*]/g,' x ');
+    s=s.replace(/[.,;:!?()\[\]{}…|\-–—־\/\\+=]/g,' ');
+    s=s.replace(/["'׳״`‘’“”]/g,'');
+    s=s.replace(/\u0001/g,'.');
+    s=s.replace(/(\d)([^\d\s.])/g,'$1 $2').replace(/([^\d\s.])(\d)/g,'$1 $2');
+    var out=[]; s.split(/\s+/).forEach(function(t){ if(t) out.push(t); });
+    return out;
+  }
+  /* a leading "ו" (and) glued to a known word: "ועשרים", "וחצי", "ועשיתי" */
+  function known(n){ return has(NUM,n)||has(FILL,n)||has(U_KG,n)||has(U_REP,n)||has(U_SET,n)||has(U_MIN,n)||has(U_SEC,n)||has(U_KM,n)||has(U_HOUR,n)||has(K_WEIGHT,n)||has(ORD,n); }
+  function lex(text){
+    var raw=tokens(text), out=[];
+    raw.forEach(function(t){
+      if(/^\d+(\.\d+)?$/.test(t)){ out.push({k:'n',v:parseFloat(t),raw:t,dig:true}); return; }
+      var n=norm(t); if(!n) return; var and=false;
+      if(n.length>1&&n.charAt(0)==='ו'&&!known(n)&&known(n.slice(1))){ n=n.slice(1); and=true; }
+      else if(n.length>2&&'בלכמש'.indexOf(n.charAt(0))>=0&&!known(n)&&has(NUM,n.slice(1))) n=n.slice(1);
+      else if(n==='and'){ out.push({k:'and'}); return; }
+      if(n.length>2&&n.charAt(0)==='ה'&&!known(n)&&(has(ORD,n.slice(1))||has(U_SET,n.slice(1)))) n=n.slice(1);
+      out.push({k:'w',n:n,raw:t,and:and});
+    });
+    return out;
+  }
+  /* number words -> numbers, joined the way they are spoken: "מאה עשרים וחמש", "twenty five", "שתיים וחצי", "אחת עשרה" */
+  function numbers(L){
+    var out=[], i=0;
+    function numAt(j){ var t=L[j]; if(!t||t.k!=='w') return null; return has(NUM,t.n)?NUM[t.n]:null; }
+    while(i<L.length){
+      var t=L[i];
+      if(t.k==='and'){ i++; continue; }
+      if(t.k==='n'){
+        var v=t.v, raw=t.raw, j=i+1;
+        var skipAnd=(L[j]&&L[j].k==='and')?1:0; var nx=numAt(j+skipAnd); var nt=L[j+skipAnd];
+        var a=nt&&nt.k==='w'&&nt.n==='a'&&numAt(j+skipAnd+1)&&numAt(j+skipAnd+1)[1]==='f';
+        if(a){ v+=numAt(j+skipAnd+1)[0]; j=j+skipAnd+2; }
+        else if(nx&&nx[1]==='f'&&(skipAnd||nt.and)){ v+=nx[0]; j=j+skipAnd+1; }
+        out.push({k:'n',v:v,raw:raw,dig:true}); i=j; continue;
+      }
+      var q=numAt(i);
+      if(!q){ out.push(t); i++; continue; }
+      var total=0, last='', first=t.n, used=0, k=i, started=false;
+      while(k<L.length){
+        var c=L[k]; var andTok=false;
+        if(c.k==='and'){ if(!started) break; andTok=true; c=L[k+1]; if(!c) break; }
+        if(c.k==='w'&&c.n==='a'&&started){ var h=numAt(k+(andTok?2:1)); if(h&&h[1]==='f'&&andTok){ total+=h[0]; k+=andTok?3:2; last='f'; break; } }
+        if(c.k!=='w'||!has(NUM,c.n)) break;
+        var val=NUM[c.n][0], kind=NUM[c.n][1], joined=andTok||c.and, he=isHe(c.n);
+        if(!started){ total=val; last=kind; started=true; k++; continue; }
+        if(kind==='f'){ if(!joined) break; total+=val; last='f'; k+=andTok?2:1; break; }
+        if(kind==='t'&&last==='u'&&val===10&&he&&!joined){ total+=10; last='t'; k++; continue; }        // שלוש עשרה
+        if(kind==='x'&&last==='u'){ total=total*100; last='H'; k++; continue; }                          // שלוש מאות
+        if(kind==='H'&&last==='u'&&!he){ total=total*100; last='H'; k+=andTok?2:1; continue; }           // two hundred
+        if(kind==='K'&&(last==='u'||last==='t'||last==='T')){ total=total*1000; last='K'; k+=andTok?2:1; continue; }
+        if((last==='H'||last==='h'||last==='K')&&(kind==='T'||((kind==='t'||kind==='u')&&(joined||!he)))){ total+=val; last=kind; k+=andTok?2:1; continue; }
+        if(last==='T'&&kind==='u'&&(joined||!he)){ total+=val; last='u2'; k+=andTok?2:1; continue; }     // עשרים וחמש / twenty five
+        break;
+      }
+      used=k-i; if(used<1) used=1;
+      out.push({k:'n',v:total,raw:first,dig:false,one:(used===1&&first===norm('אחד')),and:!!t.and});
+      i+=used;
+    }
+    return out;
+  }
+
+  /* ---------- tokens -> what was said ---------- */
+  function parse(text){
+    var he=isHe(text); var L=numbers(lex(String(text||'').replace(/[לב]כל יד/g,' ').replace(/(per|each|in each) hand/gi,' ')));
+    var F={lang:he?'he':'en',text:String(text||''),reps:null,weight:null,idx:0,count:0,min:null,sec:null,km:null,loose:[],query:'',cmd:'',again:false,hasNum:false};
+    var plain=norm(text);
+    for(var qi=0;qi<Q_TODAY.length;qi++){ if(plain.indexOf(norm(Q_TODAY[qi]))===0){ F.cmd='today'; return F; } }
+    var words=L.filter(function(t){ return t.k==='w'; });
+    if(words.length&&has(UNDO,words[0].n)&&!L.some(function(t){ return t.k==='n'; })){
+      var rest=words.slice(1).filter(function(t){ return !has(UNDO_TAIL,t.n)&&!has(FILL,t.n)&&!has(U_SET,t.n); });
+      if(!rest.length){ F.cmd='undo'; return F; }
+    }
+    var used=[], i; for(i=0;i<L.length;i++) used.push(false);
+    function w(j){ var t=L[j]; return (t&&t.k==='w'&&!used[j])?t.n:''; }
+    function isN(j){ return !!(L[j]&&L[j].k==='n'); }
+    function addMin(m){ F.min=(F.min||0)+m; }
+    /* "דקה וחצי", "5 קילומטר וחצי": a half or a quarter said after the unit belongs to it */
+    function fracAt(j){ var t=L[j]; if(t&&t.k==='n'&&t.and&&t.v>0&&t.v<1&&!used[j]){ used[j]=true; return t.v; } return 0; }
+    // pass 1: a number with the unit right after it, or the keyword right before it
+    for(i=0;i<L.length;i++){
+      if(!isN(i)||used[i]) continue; F.hasNum=true; var v=L[i].v, a=w(i+1), b=w(i-1), b2=w(i-2), done=true;
+      if(a&&(has(U_KG,a)||has(U_MIN,a)||has(U_HOUR,a)||has(U_KM,a))) v+=fracAt(i+2);
+      if(a&&has(U_KG,a)){ F.weight=v; used[i+1]=true; }
+      else if(a&&has(U_LB,a)){ F.weight=round(v*0.45359237,0.5); used[i+1]=true; }
+      else if(a&&has(U_REP,a)){ F.reps=v; used[i+1]=true; }
+      else if(a&&has(U_SET,a)){ F.count=v; used[i+1]=true; }
+      else if(a&&has(U_MIN,a)){ addMin(v); used[i+1]=true; }
+      else if(a&&has(U_HOUR,a)){ addMin(v*60); used[i+1]=true; }
+      else if(a&&has(U_SEC,a)){ F.sec=(F.sec||0)+v; used[i+1]=true; }
+      else if(a&&has(U_KM,a)){ F.km=(F.km||0)+v; used[i+1]=true; }
+      else if(a&&has(U_M,a)){ F.km=(F.km||0)+v/1000; used[i+1]=true; }
+      else if(a&&has(U_MILE,a)){ F.km=(F.km||0)+r2(v*1.609344); used[i+1]=true; }
+      else if(a&&has(TIMES,a)&&!isN(i+2)){ F.reps=v; used[i+1]=true; }
+      else if(b&&has(U_SET,b)){ if(L[i].one) F.count=1; else F.idx=v; used[i-1]=true; }
+      else if(b&&has(K_NUMBER,b)&&b2&&has(U_SET,b2)){ F.idx=v; used[i-1]=true; used[i-2]=true; }
+      else if(b&&has(K_WEIGHT,b)){ F.weight=v; used[i-1]=true; }
+      else if(b&&has(U_REP,b)){ F.reps=v; used[i-1]=true; }
+      else done=false;
+      if(done) used[i]=true;
+    }
+    // ordinals next to the word "set": "סט שני", "first set"
+    for(i=0;i<L.length;i++){
+      var o=w(i); if(!o||!has(ORD,o)) continue; var ov=ORD[o];
+      if(has(U_SET,w(i-1))){ F.idx=ov; used[i]=true; used[i-1]=true; }
+      else if(has(U_SET,w(i+1))){ F.idx=ov; used[i]=true; used[i+1]=true; }
+    }
+    // unit words that stand alone: "שעה", "חצי שעה" was a number; "דקה" alone is one minute
+    for(i=0;i<L.length;i++){
+      var u=w(i); if(!u) continue;
+      if(has(U_HOUR,u)&&!isN(i-1)){ addMin(60*(1+fracAt(i+1))); used[i]=true; F.hasNum=true; }
+      else if(u===norm('שעתיים')){ addMin(120); used[i]=true; F.hasNum=true; }
+      else if(u===norm('דקה')&&!isN(i-1)){ addMin(1+fracAt(i+1)); used[i]=true; F.hasNum=true; }
+    }
+    // pass 2: two free numbers joined by a word: "3 על 10", "3 סטים של 10", "10 עם 20", "60 x 5"
+    for(i=0;i<L.length;i++){
+      if(!isN(i)||used[i]) continue; var c=w(i+1); if(!c||!isN(i+2)||used[i+2]) continue; var A=L[i].v, B=L[i+2].v, hit=true;
+      var whole=function(x){ return Math.floor(x)===x; };
+      if(has(C_OF,c)){ F.count=A; F.reps=B; }
+      else if(has(C_AT,c)){ F.reps=A; F.weight=B; }
+      else if(has(C_ON,c)){ if(A<=5&&B<=20&&whole(B)&&whole(A)){ F.count=A; F.reps=B; } else { F.reps=A; F.weight=B; } }
+      else if(has(C_X,c)||has(TIMES,c)){ if(A>12||!whole(A)){ F.weight=A; F.reps=B; } else if(A<=6&&B<=30){ F.count=A; F.reps=B; } else { F.reps=A; F.weight=B; } }
+      else hit=false;
+      if(hit){ used[i]=used[i+1]=used[i+2]=true; }
+    }
+    // "3 סטים של 10": the count is bound, the 10 is still free and follows "של"
+    for(i=0;i<L.length;i++){ if(isN(i)&&!used[i]&&has(C_OF,w(i-1))&&F.reps==null&&F.count){ F.reps=L[i].v; used[i]=true; } }
+    for(i=0;i<L.length;i++){ if(isN(i)&&!used[i]) F.loose.push(L[i].v); }
+    var q=[];
+    for(i=0;i<L.length;i++){
+      var t=L[i]; if(t.k!=='w'||used[i]) continue; var n=t.n;
+      if(has(AGAIN,n)){ F.again=true; continue; }
+      if(has(FILL,n)||has(U_KG,n)||has(U_LB,n)||has(U_REP,n)||has(U_SET,n)||has(U_MIN,n)||has(U_SEC,n)||has(U_KM,n)||has(U_M,n)||has(U_HOUR,n)||has(K_WEIGHT,n)||has(K_NUMBER,n)||has(C_X,n)||has(TIMES,n)) continue;
+      q.push(n);
+    }
+    F.query=q.join(' ');
+    return F;
+  }
+
+  /* ---------- exercise kinds (the same tests the app uses) ---------- */
+  var TIMED_RX=/plank|hold|isometric|wall-sit|dead-hang|l-sit|hollow|flexed-arm-hang/;
+  function isCardio(e){ return !!e&&(e.g==='cardio'||e.cat==='cardio'); }
+  function isTimed(e){ return !!e&&!isCardio(e)&&(e.cat==='stretching'||TIMED_RX.test(e.id||'')); }
+  var BW_EQ={none:1,pull_up_bar:1,dip_station:1,rings:1,suspension_trainer:1,plyo_box:1,jump_rope:1};
+  function isBw(e){ return !!e&&(!!e.bw||(!e.custom&&BW_EQ[e.eq]===1)); }
+
+  /* ---------- finding the exercise ---------- */
+  function buildIndex(list){
+    var ix={list:[],byId:{}};
+    (list||[]).forEach(function(e){ if(!e||!e.id) return; var he=norm(e.he), en=norm(e.en||''); var x={e:e,he:he,en:en,hw:he?he.split(' '):[],ew:en?en.split(' '):[]}; ix.list.push(x); ix.byId[e.id]=e; });
+    return ix;
+  }
+  function lev1(a,b){ if(a===b) return true; var la=a.length, lb=b.length; if(Math.abs(la-lb)>1) return false; var i=0,j=0,ed=0; while(i<la&&j<lb){ if(a.charAt(i)===b.charAt(j)){ i++; j++; continue; } if(++ed>1) return false; if(la>lb) i++; else if(lb>la) j++; else { i++; j++; } } return ed+(la-i)+(lb-j)<=1; }
+  function wordIn(wd,arr){ for(var i=0;i<arr.length;i++){ var x=arr[i]; if(x===wd||x===wd+'s'||x+'s'===wd) return 2; } if(wd.length>=4){ for(var j=0;j<arr.length;j++){ var y=arr[j]; if(lev1(y,wd)||(y.length>wd.length&&lev1(y.slice(0,wd.length),wd))) return 1; } } return 0; }
+  function textScore(t,x){
+    if(!t) return 0;
+    if(x.he===t||x.en===t) return 100;
+    var tw=t.split(' ');
+    if(x.he.indexOf(t+' ')===0) return 90-Math.min(8,x.hw.length-tw.length);
+    if(x.en.indexOf(t+' ')===0) return 86-Math.min(8,x.ew.length-tw.length);
+    var exactH=0, softH=0, exactE=0, softE=0;
+    tw.forEach(function(wd){ var a=wordIn(wd,x.hw), b=wordIn(wd,x.ew); if(a===2) exactH++; if(a) softH++; if(b===2) exactE++; if(b) softE++; });
+    if(exactH===tw.length) return 80-Math.min(10,2*(x.hw.length-tw.length));
+    if(exactE===tw.length) return 78-Math.min(10,2*(x.ew.length-tw.length));
+    if(softH===tw.length) return 58-Math.min(8,x.hw.length-tw.length);
+    if(softE===tw.length) return 56-Math.min(8,x.ew.length-tw.length);
+    var mixed=0; tw.forEach(function(wd){ if(wordIn(wd,x.hw)||wordIn(wd,x.ew)) mixed++; });
+    if(mixed===tw.length) return 54;
+    if(tw.length>=2&&mixed>=tw.length-1&&mixed>=1) return 34;
+    return 0;
+  }
+  /* env.plan: ids planned for today; env.logs: {id:{sessions}}; env.stars, env.popular: {id:1} */
+  function match(query,ix,env){
+    var q=norm(query); if(!q) return null; env=env||{};
+    var terms=[[q,1]];
+    ALIAS.forEach(function(a){
+      var k=a[0], pos=(' '+q+' ').indexOf(' '+k+' ');
+      if(pos<0) return; var alt=norm((' '+q+' ').replace(' '+k+' ',' '+a[1]+' '));
+      if(alt&&!terms.some(function(t){ return t[0]===alt; })) terms.push([alt,0.95]);
+    });
+    var plan={}, logs=env.logs||{}, stars=env.stars||{}, pop=env.popular||{}, today=env.date||'';
+    (env.plan||[]).forEach(function(id){ plan[id]=1; });
+    var scored=[];
+    ix.list.forEach(function(x){
+      var ts=0; terms.forEach(function(t){ var s=textScore(t[0],x)*t[1]; if(s>ts) ts=s; });
+      if(!ts) return;
+      var id=x.e.id, pr=0, l=logs[id], ss=(l&&l.sessions)||[];
+      if(plan[id]) pr+=25;
+      if(ss.length){ pr+=5; var lastD=ss[ss.length-1].d; if(lastD===today) pr+=12; else if(today&&daysBetween(lastD,today)<=30) pr+=8; }
+      if(stars[id]) pr+=3; if(pop[id]) pr+=4; if(x.e.custom) pr+=2;
+      scored.push({id:id,text:ts,score:ts+pr});
+    });
+    if(!scored.length) return null;
+    scored.sort(function(a,b){ return b.score-a.score||b.text-a.text; });
+    var best=scored[0]; if(best.text<50&&!(best.text>=34&&best.score-best.text>=25)) return null;
+    var alt=scored.slice(1,4).filter(function(s){ return s.score>=best.score-12; }).map(function(s){ return s.id; });
+    return {id:best.id,text:best.text,score:best.score,conf:best.text>=78?'high':(best.text>=54?'mid':'low'),alt:alt};
+  }
+  function daysBetween(a,b){ var x=Date.parse(a+'T00:00:00Z'), y=Date.parse(b+'T00:00:00Z'); if(isNaN(x)||isNaN(y)) return 9999; return Math.round((y-x)/86400000); }
+
+  /* ---------- the log ---------- */
+  function workSets(sess){ return ((sess&&sess.sets)||[]).filter(function(x){ return x.k!=='w'; }); }
+  function sessOn(log,d){ var ss=(log&&log.sessions)||[]; for(var i=0;i<ss.length;i++) if(ss[i].d===d) return ss[i]; return null; }
+  function prevSess(log,d){ var ss=(log&&log.sessions)||[], out=null; for(var i=0;i<ss.length;i++){ var s=ss[i]; if(s.d<d&&workSets(s).some(function(x){ return (+x.r>0)||(+x.w>0); })) out=s; } return out; }
+  /* writes the item into the log (same shape the app writes) and says which set it became */
+  function applyItem(log,item){
+    log=log||{sessions:[]}; if(!log.sessions) log.sessions=[];
+    var s=sessOn(log,item.d), fresh=!s; if(!s){ s={d:item.d,sets:[]}; log.sessions.push(s); log.sessions.sort(function(a,b){ return a.d<b.d?-1:(a.d>b.d?1:0); }); }
+    var sets=item.sets||[], replaced=false, setNo=0;
+    sets.forEach(function(x){
+      var w=workSets(s), slot=-1, j;
+      if(item.idx&&sets.length===1&&item.idx<=w.length) slot=item.idx-1;
+      else { for(j=0;j<w.length;j++){ if(!w[j].t){ slot=j; break; } } }
+      if(slot>=0){ var t=w[slot]; if(t.t) replaced=true; t.r=x.r; t.w=x.w; t.t=true; setNo=slot+1; }
+      else { s.sets.push({r:x.r,w:x.w,t:true}); setNo=workSets(s).length; }
+    });
+    if(log.sessions.length>80) log.sessions=log.sessions.slice(-80);
+    return {log:log,setNo:setNo,replaced:replaced,fresh:fresh,count:sets.length};
+  }
+  function clone(o){ return JSON.parse(JSON.stringify(o||null)); }
+  function e1rm(w,r){ return r>0?w*(1+r/30):w; }
+
+  /* ---------- numbers -> a set, for this kind of exercise ---------- */
+  function resolve(F,e,log,date){
+    var cardio=isCardio(e), timed=isTimed(e), loose=F.loose.slice();
+    var todayS=sessOn(log,date), todayW=todayS?workSets(todayS).filter(function(x){ return x.t; }):[], prev=prevSess(log,date), prevW=prev?workSets(prev):[];
+    var inherit={};
+    if(cardio){
+      var min=F.min, km=F.km; if(F.sec) min=(min||0)+F.sec/60;
+      if(min==null&&loose.length) min=loose.shift();
+      if(km==null&&loose.length) km=loose.shift();
+      if(min==null&&km==null){ if(F.again&&(todayW.length||prevW.length)){ var c0=todayW.length?todayW[todayW.length-1]:prevW[prevW.length-1]; min=c0.r; km=c0.w; inherit.all=1; } else return {err:'nonum'}; }
+      min=r2(min||0); km=r2(km||0);
+      if(min<0||min>900||km<0||km>400) return {err:'range'};
+      return {sets:[{r:min,w:km}],idx:0,inherit:inherit,kind:'cardio'};
+    }
+    if(timed){
+      var sec=F.sec; if(F.min) sec=(sec||0)+F.min*60; if(sec==null&&F.reps!=null) sec=F.reps; if(sec==null&&loose.length) sec=loose.shift();
+      if(sec==null){ var t0=todayW.length?todayW[todayW.length-1]:(prevW.length?prevW[prevW.length-1]:null); if(t0&&(F.again||F.count)){ sec=t0.r; inherit.r=1; } else return {err:'nonum'}; }
+      sec=Math.round(sec); if(sec<1||sec>7200) return {err:'range'};
+      var tw=F.weight!=null?F.weight:0; var tn=Math.max(1,Math.min(10,Math.round(F.count||1))); var ts=[]; for(var a=0;a<tn;a++) ts.push({r:sec,w:tw});
+      return {sets:ts,idx:tn===1?(F.idx||0):0,inherit:inherit,kind:'timed'};
+    }
+    var reps=F.reps, weight=F.weight, count=F.count||0;
+    if(loose.length>=3&&reps==null&&weight==null&&!count&&loose[0]<=10&&Math.floor(loose[0])===loose[0]){ count=loose[0]; reps=loose[1]; weight=loose[2]; loose=loose.slice(3); }   // "5 5 100"
+    if(loose.length>=2&&reps==null&&weight==null){
+      var A=loose[0], B=loose[1], frac=function(x){ return Math.floor(x)!==x; };
+      if((frac(A)||A>30)&&!frac(B)){ weight=A; reps=B; } else { reps=A; weight=B; }
+      loose=loose.slice(2);
+    }
+    if(loose.length&&reps==null){ reps=loose.shift(); }
+    if(loose.length&&weight==null){ weight=loose.shift(); }
+    var nextNo=todayW.length+1; var ref=null;
+    if(todayW.length) ref=todayW[todayW.length-1]; else if(prevW.length) ref=prevW[Math.min(prevW.length,nextNo)-1];
+    if(reps==null){ if(ref&&+ref.r>0){ reps=+ref.r; inherit.r=1; } else return {err:'noreps'}; }
+    var bw=isBw(e);
+    if(weight==null){ if(bw&&!(ref&&+ref.w>0)) weight=0; else if(ref){ weight=+ref.w||0; if(weight) inherit.w=1; } else if(bw) weight=0; else return {err:'noweight'}; }
+    reps=Math.round(reps); weight=r2(weight);
+    if(reps<1||reps>300||weight<0||weight>600) return {err:'range'};
+    var n=Math.max(1,Math.min(10,Math.round(count||1))); var sets=[]; for(var i=0;i<n;i++) sets.push({r:reps,w:weight});
+    return {sets:sets,idx:n===1?(F.idx||0):0,inherit:inherit,kind:'lift'};
+  }
+
+  /* ---------- how does it compare ---------- */
+  function judge(before,item,e,res){
+    var d=item.d, s=item.sets[0], r=+s.r, w=+s.w;
+    if(isCardio(e)){
+      var pc=prevSess(before,d); if(!pc) return {k:'first'};
+      var pw=workSets(pc), pk=0, pm=0; pw.forEach(function(x){ pk+=+x.w||0; pm+=+x.r||0; });
+      if(w>0&&pk>0){ if(w>pk+0.05) return {k:'upd',d:r2(w-pk)}; if(w<pk-0.05) return {k:'down'}; }
+      if(r>pm) return {k:'upt',d:r2(r-pm),u:'min'}; if(r===pm) return {k:'same'}; return {k:'down'};
+    }
+    var maxW=0, maxE=0, n=0, repsAt={};
+    var take=function(x){ if(x.k==='w'||!(+x.r>0)) return false; var xw=+x.w||0, xr=+x.r||0; if(xw>maxW) maxW=xw; var ee=e1rm(xw,xr); if(ee>maxE) maxE=ee; var key=String(xw); if(!(repsAt[key]>=xr)) repsAt[key]=xr; return true; };
+    ((before&&before.sessions)||[]).forEach(function(ss){ if(ss.d>=d) return; var any=false; ss.sets.forEach(function(x){ if(take(x)) any=true; }); if(any) n++; });
+    var todayS=sessOn(before,d), slot=res?res.setNo-1:-1, earlier=todayS?workSets(todayS).filter(function(x,i){ return x.t&&i!==slot; }):[];
+    earlier.forEach(take);
+    if(!n&&!earlier.length) return {k:'first'};
+    if(!n) return {k:'ok'};
+    var timed=isTimed(e);
+    if(!timed&&w>0&&maxW>0&&w>maxW) return {k:'prw',d:r2(w-maxW)};
+    var at=repsAt[String(w)]; if(at!=null&&r>at) return timed?{k:'upt',d:r-at,u:'sec'}:{k:w>0?'prr':'prr0',d:r-at};
+    if(!timed&&w>0&&e1rm(w,r)>maxE+0.01) return {k:'pre'};
+    var prev=prevSess(before,d), pwk=prev?workSets(prev):[]; var no=(res&&res.setNo)||(earlier.length+1); var p=pwk.length?pwk[Math.min(pwk.length,no)-1]:null;
+    if(!p) return {k:'ok'};
+    var pW=+p.w||0, pR=+p.r||0;
+    if(w>pW) return {k:'upw',d:r2(w-pW)}; if(w===pW&&r>pR) return timed?{k:'upt',d:r-pR,u:'sec'}:{k:'upr',d:r-pR}; if(w===pW&&r===pR) return {k:'same'};
+    return {k:'down'};
+  }
+
+  /* ---------- the sentence that is spoken back ---------- */
+  function fmtN(v){ var x=Math.round(v*100)/100; return String(x); }
+  function spokenName(e,lang){ var n=(lang==='en'&&e.en)?e.en:(e.he||e.en||''); return String(n).replace(/\s*\([^)]*\)/g,'').replace(/\s+/g,' ').trim(); }
+  var HE={
+    reps:function(n){ return n===1?'חזרה אחת':n+' חזרות'; }, kg:function(w){ return fmtN(w)+' קילו'; }, sec:function(n){ return n+' שניות'; },
+    min:function(n){ return n===1?'דקה':fmtN(n)+' דקות'; }, km:function(n){ return n===1?'קילומטר':fmtN(n)+' קילומטר'; },
+    logged:'נרשם', updated:'עודכן', setNo:function(n){ return 'סט '+n; }, many:function(c){ return 'נרשמו '+c+' סטים'; }, bw:'משקל גוף',
+    sameW:function(w){ return 'המשקל כמו בסט הקודם, '+fmtN(w)+' קילו'; }, sameR:function(r){ return 'החזרות כמו בסט הקודם, '+r; }, sameSet:'כמו הסט הקודם',
+    j:{ first:['פעם ראשונה שהתרגיל הזה נרשם. התחלה טובה.'], ok:['יפה מאוד.','כל הכבוד.'],
+        prw:function(d){ return 'שיא חדש! '+fmtN(d)+' קילו יותר מהשיא הקודם.'; }, prr:function(d){ return 'שיא חזרות במשקל הזה! '+(d===1?'חזרה אחת':d+' חזרות')+' יותר.'; },
+        pre:['זה הסט החזק ביותר שלך בתרגיל הזה עד היום. יפה מאוד.'], upw:function(d){ return 'יפה מאוד, עלית '+fmtN(d)+' קילו מהפעם הקודמת.'; },
+        upr:function(d){ return 'יפה מאוד, '+(d===1?'חזרה אחת':d+' חזרות')+' יותר מהפעם הקודמת.'; }, upt:function(d,u){ return 'יפה מאוד, '+fmtN(d)+(u==='sec'?' שניות':' דקות')+' יותר מהפעם הקודמת.'; }, prr0:function(d){ return 'שיא חזרות חדש! '+(d===1?'חזרה אחת':d+' חזרות')+' יותר מהשיא הקודם.'; },
+        upd:function(d){ return 'יפה מאוד, '+fmtN(d)+' קילומטר יותר מהפעם הקודמת.'; }, same:['בדיוק כמו בפעם הקודמת. יציב.'], down:['קצת פחות מהפעם הקודמת, וזה בסדר. ממשיכים.'] },
+    err:{ noex:'לא זיהיתי את התרגיל. אומרים למשל: לחיצת חזה, עשר חזרות, עשרים קילו.', nonum:'לא שמעתי מספרים. אומרים למשל: עשר חזרות, עשרים קילו.',
+          noreps:'כמה חזרות? אומרים שוב עם מספר החזרות.', noweight:'לא שמעתי משקל. אומרים שוב עם המשקל בקילו.', range:'המספרים לא נשמעים הגיוניים. אומרים שוב, לאט.', empty:'לא שמעתי כלום. אומרים למשל: סקוואט, שמונה חזרות, שישים קילו.' },
+    undo:'בוטל. הרישום האחרון נמחק.', undoNone:'אין רישום בקול לבטל.', undoLate:'הסט הזה כבר נכנס ליומן. אפשר למחוק אותו באפליקציה.',
+    today0:'עוד לא נרשם היום כלום.', today:function(n,parts){ return 'היום נרשמו '+(n===1?'תרגיל אחד':n+' תרגילים')+': '+parts.join(', ')+'.'; }, sets:function(n){ return n===1?'סט אחד':n+' סטים'; }
+  };
+  var EN={
+    reps:function(n){ return n===1?'1 rep':n+' reps'; }, kg:function(w){ return fmtN(w)+(w===1?' kilo':' kilos'); }, sec:function(n){ return n+' seconds'; },
+    min:function(n){ return n===1?'1 minute':fmtN(n)+' minutes'; }, km:function(n){ return n===1?'1 kilometer':fmtN(n)+' kilometers'; },
+    logged:'Logged', updated:'Updated', setNo:function(n){ return 'set '+n; }, many:function(c){ return 'Logged '+c+' sets'; }, bw:'body weight',
+    sameW:function(w){ return 'same weight as your last set, '+fmtN(w)+' kilos'; }, sameR:function(r){ return 'same reps as your last set, '+r; }, sameSet:'same as your last set',
+    j:{ first:['First time you log this exercise. Good start.'], ok:['Nice work.','Well done.'],
+        prw:function(d){ return 'New record! '+fmtN(d)+' kilos above your previous best.'; }, prr:function(d){ return 'Rep record at this weight! '+(d===1?'1 rep':d+' reps')+' more.'; },
+        pre:['That is your strongest set on this exercise so far. Nice.'], upw:function(d){ return 'Nice, '+fmtN(d)+' kilos up from last time.'; },
+        upr:function(d){ return 'Nice, '+(d===1?'1 rep':d+' reps')+' more than last time.'; }, upt:function(d,u){ return 'Nice, '+fmtN(d)+(u==='sec'?' seconds':' minutes')+' more than last time.'; }, prr0:function(d){ return 'New rep record! '+(d===1?'1 rep':d+' reps')+' above your best.'; },
+        upd:function(d){ return 'Nice, '+fmtN(d)+' kilometers more than last time.'; }, same:['Same as last time. Steady.'], down:['A little under last time, and that is fine. Keep going.'] },
+    err:{ noex:'I did not catch the exercise. Try: bench press, ten reps, twenty kilos.', nonum:'I did not hear any numbers. Try: ten reps, twenty kilos.',
+          noreps:'How many reps? Say it again with the reps.', noweight:'I did not hear a weight. Say it again with the kilos.', range:'Those numbers do not sound right. Say it again, slowly.', empty:'I did not hear anything. Try: squat, eight reps, sixty kilos.' },
+    undo:'Undone. The last entry was removed.', undoNone:'There is no voice entry to undo.', undoLate:'That set is already in your journal. You can delete it in the app.',
+    today0:'Nothing logged today yet.', today:function(n,parts){ return 'Today: '+parts.join(', ')+'.'; }, sets:function(n){ return n===1?'1 set':n+' sets'; }
+  };
+  function T(lang){ return lang==='en'?EN:HE; }
+  function pick(arr,seed){ return arr[Math.abs(seed|0)%arr.length]; }
+  function setPhrase(L,e,s){
+    if(isCardio(e)){ var p=[]; if(s.r>0) p.push(L.min(s.r)); if(s.w>0) p.push(L.km(s.w)); return p.join(', '); }
+    if(isTimed(e)) return L.sec(s.r)+(s.w>0?', '+L.kg(s.w):'');
+    if(isBw(e)&&!(s.w>0)) return L.reps(s.r);
+    return L.reps(s.r)+', '+L.kg(s.w);
+  }
+  function compose(lang,e,item,res,J,R){
+    var L=T(lang), s=item.sets[0], name=spokenName(e,lang), head;
+    var body=setPhrase(L,e,s);
+    if(res.count>1) head=L.many(res.count)+': '+name+', '+body+'.';
+    else if(isCardio(e)) head=L.logged+': '+name+', '+body+'.';
+    else head=(res.replaced?L.updated:L.logged)+': '+name+', '+L.setNo(res.setNo)+', '+body+'.';
+    var notes=[]; if(R&&R.inherit){ if(R.inherit.w&&R.inherit.r) notes.push(L.sameSet); else if(R.inherit.w) notes.push(L.sameW(s.w)); else if(R.inherit.r&&!isTimed(e)) notes.push(L.sameR(s.r)); }
+    var tail=''; var jj=L.j[J.k]; if(typeof jj==='function') tail=jj(J.d,J.u); else if(jj) tail=pick(jj,res.setNo+String(item.d).length+(s.r|0));
+    var out=head; if(notes.length){ var nn=notes.join(', ')+'.'; out+=' '+nn.charAt(0).toUpperCase()+nn.slice(1); } if(tail) out+=' '+tail;
+    return out;
+  }
+
+  /* ---------- one sentence in, one answer out ----------
+     env: {index, logs:{id:{sessions}}, plan:[ids], stars:{}, popular:{}, last:{ex,at}|null, date:'YYYY-MM-DD', now:ms, lang?}
+     returns {ok, say, lang, cmd?, item?:{ex,d,sets,idx}, setNo?, replaced?, why?, match?} and never changes env */
+  function handle(text,env){
+    env=env||{}; var F=parse(text); var lang=env.lang||F.lang; var L=T(lang);
+    if(!norm(text)) return {ok:false,why:'empty',lang:lang,say:L.err.empty};
+    if(F.cmd) return {ok:true,cmd:F.cmd,lang:lang,say:''};
+    var ix=env.index, m=F.query?match(F.query,ix,env):null, exId=m?m.id:'', viaLast=false;
+    var recent=env.last&&env.last.ex&&ix.byId[env.last.ex]&&(env.now||0)-(env.last.at||0)<45*60000;
+    if(!exId&&recent&&(F.hasNum||F.again)&&(!F.query||F.again)){ exId=env.last.ex; viaLast=true; }
+    if(!exId) return {ok:false,why:F.hasNum||F.query?'noex':'empty',lang:lang,say:F.hasNum||F.query?L.err.noex:L.err.empty,parsed:F};
+    var e=ix.byId[exId]; var log=(env.logs||{})[exId]||{sessions:[]};
+    var R=resolve(F,e,log,env.date); if(R.err) return {ok:false,why:R.err,lang:lang,say:L.err[R.err]||L.err.nonum,parsed:F,ex:exId};
+    var item={ex:exId,d:env.date,sets:R.sets,idx:R.idx||0};
+    var res=applyItem(clone(log),item); var J=judge(log,item,e,res);
+    return {ok:true,lang:lang,item:item,setNo:res.setNo,replaced:res.replaced,count:res.count,judge:J,match:m,viaLast:viaLast,say:compose(lang,e,item,res,J,R),parsed:F};
+  }
+  /* the inbox the server keeps: items wait there until the app takes them into the journal */
+  function pending(inbox,done){ var seen=(done&&done.ids)||{}; return ((inbox&&inbox.items)||[]).filter(function(it){ return it&&it.id&&!seen[it.id]; }); }
+  function withPending(logs,items){
+    var out={}, k; for(k in logs) if(has(logs,k)) out[k]=logs[k];
+    (items||[]).forEach(function(it){ if(!it||!it.ex) return; out[it.ex]=applyItem(clone(out[it.ex]||{sessions:[]}),it).log; });
+    return out;
+  }
+  function todayLine(lang,logs,ix,date){
+    var L=T(lang), parts=[], id;
+    for(id in logs){ if(!has(logs,id)) continue; var s=sessOn(logs[id],date), e=ix.byId[id]; if(!s||!e) continue; var done=workSets(s).filter(function(x){ return x.t; }); if(!done.length) continue; parts.push(spokenName(e,lang)+' '+(isCardio(e)?setPhrase(L,e,done[done.length-1]):L.sets(done.length))); }
+    return parts.length?L.today(parts.length,parts):L.today0;
+  }
+  /* ---------- the server side of one request ----------
+     Storage is handed in, so the PocketBase hook and the local test server run exactly this code.
+     io: { get(key) -> document | null,  logs() -> {exerciseId: logDocument},  put(key, document),  catalog: {ex:[...], popular:[...]} }
+     input: { text, today: the server's idea of the person's date, date?: the phone's own date, now, lang?, src? }
+     The journal itself is never written here. The sentence becomes an item in the "vinbox" document, which only the server writes;
+     the app takes the items into the journal when it opens and notes them in "vdone", which only the app writes. */
+  function israelDate(ms){
+    var d=new Date(ms), y=d.getUTCFullYear(), lastSun=function(m){ var x=new Date(Date.UTC(y,m+1,0)); return x.getUTCDate()-x.getUTCDay(); };
+    var start=Date.UTC(y,2,lastSun(2)-2,0,0), end=Date.UTC(y,9,lastSun(9),-1,0);       // summer time: Friday before the last Sunday of March, to the last Sunday of October
+    var t=new Date(ms+((ms>=start&&ms<end)?3:2)*3600000), p=function(n){ return n<10?'0'+n:''+n; };
+    return t.getUTCFullYear()+'-'+p(t.getUTCMonth()+1)+'-'+p(t.getUTCDate());
+  }
+  function indexFor(catalog,custom){
+    if(!catalog._ix) catalog._ix=buildIndex(catalog.ex||[]);
+    if(!custom||!custom.length) return catalog._ix;
+    var extra=buildIndex(custom), byId={}, k; for(k in catalog._ix.byId) if(has(catalog._ix.byId,k)) byId[k]=catalog._ix.byId[k]; for(k in extra.byId) if(has(extra.byId,k)) byId[k]=extra.byId[k];
+    return {list:catalog._ix.list.concat(extra.list),byId:byId};
+  }
+  function serve(input,io){
+    var text=String(input.text==null?'':input.text).slice(0,300), now=+input.now||Date.now(), today=input.today||israelDate(now);
+    var date=(/^\d{4}-\d{2}-\d{2}$/.test(String(input.date||''))&&Math.abs(daysBetween(today,input.date))<=1)?input.date:today;
+    var inbox=io.get('vinbox')||{}, done=io.get('vdone')||{}; if(!inbox.items) inbox.items=[];
+    var recent=inbox.items.filter(function(it){ return now-(it.at||0)<60000; }).length;
+    var langGuess=input.lang||(isHe(text)?'he':'en');
+    if(recent>=20) return {ok:false,why:'busy',say:langGuess==='en'?'Too many entries in one minute. Try again shortly.':'יותר מדי רישומים בדקה אחת. מנסים שוב עוד רגע.'};
+    var logs=withPending(io.logs(),pending(inbox,done));
+    var deck=io.get('deck')||{}, week=io.get('week')||{}, days=io.get('days')||{};
+    var custom=(deck.custom||[]).map(function(c){ return {id:c.id,he:c.he,en:c.en||'',g:c.g||'',cat:c.cat||'',eq:c.eq||'custom',bw:!!c.bw,custom:true}; });
+    var ix=indexFor(io.catalog,custom), plan=[], rec=(days.map||{})[date], dow=new Date(date+'T00:00:00Z').getUTCDay();
+    var p=(rec&&rec.plan)?rec.plan:((week.days||{})[dow]||null); if(p&&!p.rest&&p.ex) plan=p.ex.map(function(x){ return x.id; });
+    var stars={}, pop={}; (deck.stars||[]).forEach(function(id){ stars[id]=1; }); ((io.catalog&&io.catalog.popular)||[]).forEach(function(id){ pop[id]=1; });
+    var lastIt=inbox.items.length?inbox.items[inbox.items.length-1]:null;
+    var R=handle(text,{index:ix,logs:logs,plan:plan,stars:stars,popular:pop,last:lastIt?{ex:lastIt.ex,at:lastIt.at}:null,date:date,now:now,lang:input.lang}), L=T(R.lang);
+    if(R.cmd==='undo'){
+      if(!lastIt) return {ok:false,why:'undo',say:L.undoNone};
+      if((done.ids||{})[lastIt.id]) return {ok:false,why:'undo',say:L.undoLate};
+      inbox.items.pop(); io.put('vinbox',inbox); return {ok:true,say:L.undo,undone:lastIt.id};
+    }
+    if(R.cmd==='today') return {ok:true,say:todayLine(R.lang,logs,ix,date)};
+    if(!R.ok) return {ok:false,why:R.why,say:R.say};
+    var item={id:'v'+now.toString(36)+Math.floor(Math.random()*46656).toString(36),at:now,d:date,ex:R.item.ex,sets:R.item.sets,idx:R.item.idx||0,text:text,lang:R.lang,src:input.src||'siri'};
+    inbox.items.push(item);
+    inbox.items=inbox.items.filter(function(it){ return now-(it.at||0)<60*86400000; }); if(inbox.items.length>400) inbox.items=inbox.items.slice(-400);
+    io.put('vinbox',inbox);
+    return {ok:true,say:R.say,item:{id:item.id,ex:item.ex,d:item.d,sets:item.sets,setNo:R.setNo}};
+  }
+  return {norm:norm,parse:parse,match:match,buildIndex:buildIndex,applyItem:applyItem,handle:handle,judge:judge,compose:compose,resolve:resolve,serve:serve,israelDate:israelDate,
+    pending:pending,withPending:withPending,todayLine:todayLine,isCardio:isCardio,isTimed:isTimed,isBw:isBw,spokenName:spokenName,text:T,clone:clone,ALIAS:ALIAS};
+})();
+if(typeof module!=='undefined'&&module.exports) module.exports=VoiceLog;
+
+/* GoalKit: takes a goal in the person's own words or from a list, and turns it into stages that make sense for the body.
+   It knows the usual rates (how fast weight can come off, how fast a lift grows, how a long run is built, how a triathlon is
+   periodised), checks a wished-for date against them, and reads the journal to say where the person stands and how the week went.
+   No DOM and no globals, plain ES5: the app injects it (build.py) and the tests load it with node. */
+var GoalKit=(function(){
+  function has(o,k){ return Object.prototype.hasOwnProperty.call(o,k); }
+  function pad(n){ return n<10?'0'+n:''+n; }
+  function D(s){ var p=String(s).split('-'); return new Date(Date.UTC(+p[0],+p[1]-1,+p[2])); }
+  function iso(d){ return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate()); }
+  function addDays(s,n){ var d=D(s); d.setUTCDate(d.getUTCDate()+n); return iso(d); }
+  function daysBetween(a,b){ return Math.round((D(b)-D(a))/86400000); }
+  function weekStart(s){ var d=D(s); d.setUTCDate(d.getUTCDate()-d.getUTCDay()); return iso(d); }
+  function f1(x){ return String(Math.round(x*10)/10); }
+  function r05(x){ return Math.round(x*2)/2; }
+  function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
+  var FINALS={'ך':'כ','ם':'מ','ן':'נ','ף':'פ','ץ':'צ'};
+  function norm(s){ return String(s==null?'':s).toLowerCase().replace(/[֑-ׇ]/g,'').replace(/[ךםןףץ]/g,function(c){ return FINALS[c]; }).replace(/["'׳״`‘’\-־.,()\/:;!?]/g,' ').replace(/וו/g,'ו').replace(/יי/g,'י').replace(/\s+/g,' ').trim(); }
+  var MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  var MONTHS_EN=['january','february','march','april','may','june','july','august','september','october','november','december'];
+  function heDate(s,today){ var d=D(s); var y=d.getUTCFullYear(); var same=today&&String(today).slice(0,4)===String(y); return d.getUTCDate()+' ב'+MONTHS[d.getUTCMonth()]+(same?'':' '+y); }
+  function heWeeks(n){ n=Math.max(1,Math.round(n)); if(n===1) return 'שבוע'; if(n===2) return 'שבועיים'; if(n<=10) return n+' שבועות'; var m=Math.round(n/4.345); if(m<=11) return 'כ-'+m+' חודשים'; if(m<=14) return 'כשנה'; if(m<=20) return 'כשנה וחצי'; if(m<=27) return 'כשנתיים'; return 'כ-'+Math.round(m/12)+' שנים'; }
+  function plural(n,one,many){ return n===1?one:n+' '+many; }
+
+  /* ---------- what the app offers to choose from ---------- */
+  var TYPES=[
+    {k:'lose',t:'לרדת במשקל',s:'בקצב בריא, עם שמירה על השריר',icon:'scale',col:'cardio'},
+    {k:'gain',t:'לעלות במסת שריר',s:'עלייה נקייה, שלב אחרי שלב',icon:'arms',col:'arms'},
+    {k:'lift',t:'להתחזק בתרגיל',s:'בנץ׳ 100, סקוואט 140 וכדומה',icon:'gym',col:'chest'},
+    {k:'run',t:'לרוץ מרחק',s:'5 ק״מ, 10 ק״מ, חצי מרתון, מרתון',icon:'cardio',col:'legs'},
+    {k:'tri',t:'טריאתלון ואיירונמן',s:'שחייה, רכיבה וריצה',icon:'bolt',col:'back'},
+    {k:'reps',t:'עליות מתח ושכיבות סמיכה',s:'יותר חזרות במשקל גוף',icon:'trend',col:'shoulders'},
+    {k:'habit',t:'להתמיד באימונים',s:'כמה אימונים בשבוע, שבוע אחרי שבוע',icon:'cal',col:'core'},
+    {k:'free',t:'מטרה אחרת',s:'כותבים אותה ואת השלבים שלה',icon:'target',col:'full'}
+  ];
+  function typeOf(k){ for(var i=0;i<TYPES.length;i++) if(TYPES[i].k===k) return TYPES[i]; return TYPES[TYPES.length-1]; }
+  var RACES={ sprint:{swim:0.75,bike:20,run:5,he:'טריאתלון ספרינט'}, oly:{swim:1.5,bike:40,run:10,he:'טריאתלון אולימפי'}, half:{swim:1.9,bike:90,run:21.1,he:'חצי איירונמן'}, iron:{swim:3.8,bike:180,run:42.2,he:'איירונמן'} };
+  var LIFTS=[['bench-press','בנצ|bench|לחיצת חזה'],['squat','סקוואט|squat|כריע'],['deadlift','דדליפט|דד ליפט|deadlift'],['seated-barbell-overhead-press','לחיצת כתפ|overhead|ohp|shoulder press|military'],['barbell-row','חתירה|barbell row'],['hip-thrust','היפ ת ראסט|היפ טראסט|hip thrust'],['leg-press','לג פרס|leg press|לחיצת רגל'],['lat-pulldown','פולדאונ|pulldown|פולי עליונ']];
+  var BWS=[['pull-up','מתח|פול אפ|pull up|pullup'],['chin-ups','סנטר|צ ינ אפ|chin'],['push-up','שכיבות|push up|pushup|פושאפ|פוש אפ'],['dips','מקבילימ|dips|דיפס']];
+  var LIFT_IDS=LIFTS.map(function(x){ return x[0]; }), BW_IDS=BWS.map(function(x){ return x[0]; }).concat(['bodyweight-squat']);
+  function findBy(table,n){ for(var i=0;i<table.length;i++){ var ks=table[i][1].split('|'); for(var j=0;j<ks.length;j++){ if((' '+n+' ').indexOf(norm(ks[j]))>=0) return table[i][0]; } } return ''; }
+
+  /* ---------- reading the journal ---------- */
+  function sessionsOf(data,id){ var l=data.logs&&data.logs[id]; return (l&&l.sessions)||[]; }
+  function eachSet(data,id,since,fn){ sessionsOf(data,id).forEach(function(s){ if(since&&s.d<since) return; (s.sets||[]).forEach(function(x){ if(x.k==='w') return; if(!(+x.r>0||+x.w>0)) return; if(s.d===data.today&&!x.t) return; fn(x,s.d); }); }); }
+  function oneRM(w,r){ return r<=1?w:w*(1+r/30); }
+  function nRM(w,r,n){ var o=oneRM(w,r), v=n<=1?o:o/(1+n/30); return (r>=n&&w>v)?w:v; }
+  function bestLift(data,ex,n,since){ var est=0,real=0,at='',bw=0,br=0; eachSet(data,ex,since,function(x,d){ var w=+x.w||0,r=+x.r||0; if(!(w>0&&r>0)) return; var v=nRM(w,r,n); if(v>est){ est=v; at=d; bw=w; br=r; } if(r>=n&&w>real) real=w; }); return {est:est,real:real,d:at,w:bw,r:br}; }
+  function maxReps(data,ex,since){ var m=0,at=''; eachSet(data,ex,since,function(x,d){ var r=+x.r||0; if(r>m){ m=r; at=d; } }); return {n:m,d:at}; }
+  var SPORT={'running':'run','treadmill-running':'run','cycling':'bike','stationary-bike':'bike','x-bike-outdoor':'bike','air-bike':'bike','x-swimming':'swim'};
+  function sportOf(data,id){ if(has(SPORT,id)) return SPORT[id]; if(!/^c-|^custom|^m-/.test(id)&&!(data.isCustom&&data.isCustom(id))) return ''; var n=norm(data.nameOf?data.nameOf(id):''); if(/ריצ|run|jog/.test(n)) return 'run'; if(/אופנ|רכיב|bike|cycl/.test(n)) return 'bike'; if(/שחי|swim/.test(n)) return 'swim'; return ''; }
+  function sportStats(data,sport,a,b){ var km=0,min=0,n=0,lng=0,id; for(id in (data.logs||{})){ if(!has(data.logs,id)||sportOf(data,id)!==sport) continue; eachSet(data,id,a,function(x,d){ if(b&&d>=b) return; var k=+x.w||0; km+=k; min+=+x.r||0; n++; if(k>lng) lng=k; }); } return {km:Math.round(km*10)/10,min:Math.round(min),n:n,long:lng}; }
+  function longest(data,sport,since){ return sportStats(data,sport,since,'').long; }
+  function workoutDates(data){ var set={},id; for(id in (data.logs||{})){ if(!has(data.logs,id)) continue; eachSet(data,id,'',function(x,d){ set[d]=1; }); } return set; }
+  function weekDays(data,a,b){ var set=workoutDates(data),n=0,d; for(d in set) if(has(set,d)&&d>=a&&d<b) n++; return n; }
+  function weeksMet(data,per,since){ var set=workoutDates(data), wk={}, d, n=0; for(d in set){ if(!has(set,d)||d<since) continue; var k=weekStart(d); wk[k]=(wk[k]||0)+1; } for(d in wk) if(has(wk,d)&&wk[d]>=per) n++; return n; }
+  function weighins(data){ return (data.weighins||[]).slice().sort(function(a,b){ return a.d<b.d?-1:(a.d>b.d?1:0); }); }
+  function weightOn(data,d){ var w=weighins(data),out=null; for(var i=0;i<w.length;i++){ if(w[i].d<=d) out=w[i]; } return out; }
+  function tdeeOf(p){ var w=+p.weight||0,h=+p.height||0,a=+p.age||0; if(!w||!h||!a) return 0; var bmr=p.sex==='f'?10*w+6.25*h-5*a-161:10*w+6.25*h-5*a+5; var wk=+p.weekly||3; var act=+p.activity||(wk<=1?1.2:wk<=2?1.375:wk<=4?1.55:wk<=6?1.725:1.9); return Math.round(bmr*act); }
+
+  /* ---------- the person's own words -> a kind of goal and what we already know about it ---------- */
+  function dueFrom(text,today){
+    var n=norm(text), m, t=today, y=+String(today).slice(0,4), i;
+    m=/(\d{1,2})[.\/](\d{1,2})(?:[.\/](\d{2,4}))?/.exec(String(text));
+    if(m&&+m[1]<=31&&+m[2]<=12){ var yy=m[3]?(+m[3]<100?2000+ +m[3]:+m[3]):y; var d0=yy+'-'+pad(+m[2])+'-'+pad(+m[1]); if(!m[3]&&d0<=today) d0=(yy+1)+'-'+pad(+m[2])+'-'+pad(+m[1]); return d0; }
+    var num=function(s){ var v=parseFloat(s); if(!isNaN(v)) return v; var W={'שבוע':1,'חודש':1,'שנה':1,'שבועימ':2,'חודשימ':2,'שנתימ':2,'חצי':0.5}; return has(W,s)?W[s]:0; };
+    m=/(?:תוכ|בעוד|within|in|תוך) (חצי שנה|half a year|(\d+(?:\.\d+)?) ?(שבועות|שבוע|חודשימ|חודש|שנימ|שנה|weeks?|months?|years?)|שבועימ|חודשימ|שנתימ|חודש|שנה|שבוע)/.exec(n);
+    if(m){ var days=0, g=m[1];
+      if(g==='חצי שנה'||g==='half a year') days=182; else if(m[2]){ var v=+m[2], u=m[3]; days=/שבוע|week/.test(u)?v*7:(/חודש|month/.test(u)?v*30.4:v*365); }
+      else days=({'שבועימ':14,'חודשימ':61,'שנתימ':730,'חודש':30,'שנה':365,'שבוע':7})[g]||0;
+      if(days) return addDays(t,Math.round(days)); }
+    if(/סופ השנה|end of the year|end of year/.test(n)) return y+'-12-31';
+    var seasons=[['קיצ','06-21'],['summer','06-21'],['חורפ','12-21'],['winter','12-21'],['אביב','03-21'],['spring','03-21'],['סתיו','09-23'],['autumn','09-23'],['fall','09-23']];
+    for(i=0;i<seasons.length;i++){ if((' '+n+' ').indexOf(seasons[i][0])>=0&&/עד|לקראת|by|before|לפני/.test(n)){ var ds=y+'-'+seasons[i][1]; return ds>today?ds:(y+1)+'-'+seasons[i][1]; } }
+    for(i=0;i<12;i++){ var hm=norm(MONTHS[i]); if(new RegExp('(?:עד|ב|by|in|before|לפני|לקראת) ?(?:סופ |תחילת |חודש )?'+hm+'(?: |$)').test(n)||new RegExp('(?:by|in|before) '+MONTHS_EN[i]).test(n)){ var end=/סופ/.test(n); var dm=y+'-'+pad(i+1)+'-'+(end?'28':'01'); return dm>today?dm:(y+1)+'-'+pad(i+1)+'-'+(end?'28':'01'); } }
+    return '';
+  }
+  /* ctx: {today, weight, weekly, parse: VoiceLog.parse (optional, adds number words)} */
+  function understand(text,ctx){
+    ctx=ctx||{}; var n=norm(text), out={kind:'free',p:{},due:'',text:String(text||'').trim()}; if(!n) return out;
+    var P=ctx.parse?ctx.parse(text):null, kg=null, km=null, loose=[];
+    if(P){ kg=P.weight; km=P.km; loose=(P.loose||[]).slice(); if(P.reps!=null) loose.unshift(P.reps); if(P.count&&!loose.length) loose.push(P.count); }
+    else { var rx=/(\d+(?:[.,]\d+)?)\s*(קילומטר|ק"מ|ק״מ|קמ|km|k\b|קילוגרם|קילו|ק"ג|ק״ג|קג|kg)?/g, mm; while((mm=rx.exec(String(text)))){ var v=parseFloat(mm[1].replace(',','.')), u=mm[2]||''; if(/קילומטר|ק"מ|ק״מ|קמ|km|^k$/.test(u)) km=v; else if(u) kg=v; else loose.push(v); } }
+    out.due=dueFrom(text,ctx.today||iso(new Date()));
+    var W=+ctx.weight||0, any=kg!=null?kg:(loose.length?loose[0]:null);
+    if(/איירונמנ|אירונמנ|איירונ מנ|ironman|iron man|טריאתלונ|triathlon|70 3/.test(n)){
+      out.kind='tri'; var iron=/איירונ|אירונ|iron/.test(n);
+      out.p.race=(/חצי|half|70 3/.test(n))?'half':(/אולימפי|olympic/.test(n)?'oly':(/ספרינט|sprint/.test(n)?'sprint':(iron?'iron':'sprint'))); return out; }
+    if(/מרתונ|marathon/.test(n)){ out.kind='run'; out.p.km=/חצי|half/.test(n)?21.1:42.2; return out; }
+    if(/לרוצ|ריצה|ריצת|לרוץ|run|jog/.test(n)){ out.kind='run'; out.p.km=km!=null?km:((loose.length&&loose[0]<=100)?loose[0]:5); return out; }
+    var bw=findBy(BWS,n), lift=findBy(LIFTS,n), raw=String(text).replace(/[־–—]/g,'-');
+    if(bw&&kg==null){ out.kind='reps'; out.p.ex=bw; if(loose.length) out.p.to=Math.round(loose[0]); return out; }
+    if(lift){ out.kind='lift'; out.p.ex=lift; if(kg!=null||loose.length) out.p.to=kg!=null?kg:loose[0]; return out; }
+    if(/לרדת|להוריד|ירידה|לרזות|להרזות|הרזיה|דיאטה|lose|weight loss|slim|חיטוב|לחטב|להתחטב|להשיל/.test(n)||/(^| )cut( |$)/.test(n)){
+      out.kind='lose';
+      if(any!=null){ var asTarget=/(?:^|\s)(?:ל|עד|להגיע ל|to|down to|reach)\s*-?\s*\d/.test(raw), asAmount=/(?:לרדת|להוריד|לרזות|lose|drop)\s*-?\s*\d/.test(raw); if((asTarget&&!asAmount)||any>(W?W*0.45:35)) out.p.to=any; else out.p.lose=any; }
+      return out; }
+    if(/לעלות|להעלות|עליה במסה|מסה|מסת שריר|לבנות שריר|שריר|bulk|gain|muscle|לגדול/.test(n)){
+      out.kind='gain'; if(any!=null){ if(any>(W?W*0.45:35)) out.p.to=any; else out.p.gain=any; } return out; }
+    if(bw){ out.kind='reps'; out.p.ex=bw; return out; }
+    if(/להתמיד|התמדה|שגרה|הרגל|קבוע|consisten|routine|habit|פעמימ בשבוע|אימונימ בשבוע|times a week|כושר|בריאות|בריא|fit|shape|health|להרגיש/.test(n)){
+      out.kind='habit'; var per=(loose.length&&loose[0]>=1&&loose[0]<=7)?Math.round(loose[0]):0; if(per) out.p.perWeek=per; return out; }
+    return out;
+  }
+
+  /* ---------- the few questions each kind still needs ---------- */
+  function round25(x){ return Math.round(x/2.5)*2.5; }
+  /* data: {today, profile, weighins, logs, nameOf(id)} */
+  function ask(kind,p,data){
+    p=p||{}; var pr=data.profile||{}, lastW=weightOn(data,data.today), W=lastW?lastW.kg:(+pr.weight||0), q=[];
+    var exOpts=function(ids){ return ids.filter(function(id){ return !data.nameOf||data.nameOf(id); }).map(function(id){ return [id,data.nameOf?data.nameOf(id):id]; }); };
+    if(kind==='lose'||kind==='gain'){
+      var to=p.to!=null?p.to:(W?(kind==='lose'?(p.lose?W-p.lose:r05(W*0.93)):(p.gain?W+p.gain:r05(W*1.05))):'');
+      q.push({k:'from',t:'כמה אתה שוקל היום?',type:'num',unit:'ק״ג',def:W||'',min:35,max:250,step:0.1});
+      q.push({k:'to',t:kind==='lose'?'לאיזה משקל רוצים להגיע?':'לאיזה משקל רוצים לעלות?',type:'num',unit:'ק״ג',def:to===''?'':r05(to),min:35,max:250,step:0.5});
+      if(kind==='lose'&&!(+pr.height>0)) q.push({k:'height',t:'מה הגובה שלך?',type:'num',unit:'ס״מ',def:'',min:120,max:230,step:1,why:'כדי לוודא שהיעד בטווח הבריא'});
+    } else if(kind==='lift'){
+      var ex=p.ex||LIFT_IDS[0], n=p.reps||1, b=bestLift(data,ex,n,'');
+      q.push({k:'ex',t:'באיזה תרגיל?',type:'ex',def:ex,opts:exOpts(LIFT_IDS)});
+      q.push({k:'from',t:'כמה אתה מרים היום?',type:'num',unit:'ק״ג',def:b.est?round25(b.est):'',min:1,max:500,step:2.5,why:b.est?'לפי הסטים שרשמת':''});
+      q.push({k:'to',t:'ולכמה רוצים להגיע?',type:'num',unit:'ק״ג',def:p.to!=null?p.to:(b.est?round25(b.est*1.2):''),min:1,max:600,step:2.5});
+    } else if(kind==='reps'){
+      var ex2=p.ex||BW_IDS[0], mr=maxReps(data,ex2,'').n;
+      q.push({k:'ex',t:'באיזה תרגיל?',type:'ex',def:ex2,opts:exOpts(BW_IDS)});
+      q.push({k:'from',t:'כמה חזרות ברצף היום?',type:'num',unit:'חזרות',def:mr||0,min:0,max:300,step:1});
+      q.push({k:'to',t:'ולכמה רוצים להגיע?',type:'num',unit:'חזרות',def:p.to!=null?p.to:(mr?Math.max(mr+5,Math.round(mr*1.5)):10),min:1,max:500,step:1});
+    } else if(kind==='run'){
+      var lg=longest(data,'run',addDays(data.today,-60));
+      q.push({k:'km',t:'איזה מרחק?',type:'pick',def:p.km||5,opts:[[5,'5 ק״מ'],[10,'10 ק״מ'],[21.1,'חצי מרתון'],[42.2,'מרתון']],other:{unit:'ק״מ',min:1,max:100,step:0.5}});
+      q.push({k:'from',t:'כמה ק״מ ברצף היום?',type:'num',unit:'ק״מ',def:lg||0,min:0,max:100,step:0.5,why:lg?'לפי הריצות שרשמת':'אם עוד לא רצים, משאירים 0'});
+    } else if(kind==='tri'){
+      var s=longest(data,'swim',addDays(data.today,-90)), bk=longest(data,'bike',addDays(data.today,-90)), rn=longest(data,'run',addDays(data.today,-90));
+      var lvl=(s>=1.5&&bk>=60&&rn>=14)?'exp':((s>=0.75||bk>=30||rn>=7)?'trained':'beginner');
+      q.push({k:'race',t:'איזה מרחק?',type:'pick',def:p.race||'sprint',opts:[['sprint','ספרינט · 750 מ׳, 20, 5'],['oly','אולימפי · 1.5, 40, 10'],['half','חצי איירונמן · 1.9, 90, 21'],['iron','איירונמן · 3.8, 180, 42']]});
+      q.push({k:'level',t:'איפה אתה היום?',type:'pick',def:p.level||lvl,opts:[['beginner','מתחיל · עוד לא מתאמן בשלושת הענפים'],['trained','מתאמן · שוחה 750 מ׳, רוכב 30, רץ 7'],['exp','מנוסה · כבר סיימתי מרחק אולימפי']]});
+    } else if(kind==='habit'){
+      q.push({k:'perWeek',t:'כמה אימונים בשבוע?',type:'pick',def:p.perWeek||+pr.weekly||3,opts:[[2,'פעמיים'],[3,'שלוש'],[4,'ארבע'],[5,'חמש']]});
+      q.push({k:'weeks',t:'לכמה זמן?',type:'pick',def:p.weeks||12,opts:[[4,'חודש'],[8,'חודשיים'],[12,'שלושה חודשים'],[24,'חצי שנה']]});
+    }
+    return q;
+  }
+
+  /* ---------- stages ---------- */
+  function mkStage(t,sub,why,todo,m,weeks,fixed){ var s={t:t,sub:sub||'',why:why||'',todo:todo||[],m:m,weeks:Math.max(1,Math.round(weeks||1)),done:''}; if(fixed) s.fixed=1; return s; }
+  function schedule(stages,start){ var d=start; stages.forEach(function(s,i){ s.id='s'+(i+1); s.from=d; d=addDays(d,s.weeks*7); s.until=d; }); return d; }
+  /* fit the plan into the weeks there are: stretch freely, squeeze down to `floor` of the natural length */
+  function fit(stages,avail,floor){
+    var fixed=0, tot=0; stages.forEach(function(s){ if(s.fixed) fixed+=s.weeks; else tot+=s.weeks; });
+    if(!avail||avail<=0||!tot) return {ok:true,weeks:tot+fixed,ratio:1};
+    var room=avail-fixed, ratio=room/tot; if(ratio<floor) return {ok:false,weeks:tot+fixed,ratio:ratio};
+    var acc=0, used=0, free=stages.filter(function(s){ return !s.fixed; });
+    free.forEach(function(s,i){ acc+=s.weeks*ratio; var w=Math.max(1,Math.round(acc)-used); if(i===free.length-1) w=Math.max(1,Math.round(room)-used); s.weeks=w; used+=w; });
+    return {ok:true,weeks:used+fixed,ratio:ratio};
+  }
+  function availWeeks(today,due){ return due?Math.floor(daysBetween(today,due)/7):0; }
+
+  function buildWeight(kind,p,data,due){
+    var pr=data.profile||{}, today=data.today, W0=+p.from, WT=+p.to, lose=kind==='lose', notes=[];
+    if(!(W0>0)||!(WT>0)) return {err:'חסר משקל נוכחי או משקל יעד.'};
+    if(lose&&WT>=W0) return {err:'היעד צריך להיות נמוך מהמשקל של היום. לעלייה במסה בוחרים במטרה השנייה.'};
+    if(!lose&&WT<=W0) return {err:'היעד צריך להיות גבוה מהמשקל של היום.'};
+    var h=+p.height||+pr.height||0, age=+pr.age||0;
+    if(lose&&age>0&&age<18) return {stop:'מתחת לגיל 18 האפליקציה לא בונה תוכנית ירידה במשקל. את זה עושים עם רופא או דיאטנית. אפשר לבחור מטרה של התמדה או של כוח.'};
+    if(lose&&h>0){ var minW=Math.ceil(18.5*Math.pow(h/100,2)*2)/2; if(W0<=minW+0.5) return {stop:'המשקל שלך כבר בקצה התחתון של הטווח הבריא לגובה שלך. מכאן האפליקציה לא בונה תוכנית ירידה. אפשר לבחור מטרה של כוח, מסה או התמדה.'}; if(WT<minW){ WT=minW; notes.push('היעד עודכן ל-'+f1(WT)+' ק״ג. זה הגבול התחתון של המשקל הבריא לגובה שלך.'); } }
+    var total=Math.abs(W0-WT), dir=lose?-1:1;
+    var pace=lose?clamp(0.006*W0,0.35,0.75):clamp(0.0035*W0,0.2,0.4), maxPace=lose?0.01*W0:0.005*W0;
+    var state='ok', text='', wish=due, weeks=0, avail=availWeeks(today,due), need=0, easy=pace;
+    if(due&&avail>0){ need=total/avail; if(need<=pace*1.1) pace=Math.max(need,0.1); else if(need<=maxPace){ pace=need; state='hard'; } else { pace=maxPace; state='no'; } }
+    var n=total<=2?1:total<=4?2:total<=7?3:total<=11?4:total<=16?5:6, marks=[], i, prev=W0;
+    for(i=1;i<=n;i++){ var w=i===n?WT:r05(W0+dir*total*i/n); if(Math.abs(w-prev)<0.5&&i<n) continue; marks.push(w); prev=w; }
+    var tdee=tdeeOf({weight:W0,height:h,age:age,sex:pr.sex,weekly:pr.weekly,activity:pr.activity}), delta=Math.round(pace*7700/7/10)*10, kcal=0;
+    if(tdee){ kcal=Math.round((lose?tdee-delta:tdee+Math.min(delta,400))/50)*50; var floor=pr.sex==='f'?1200:1500; if(lose&&kcal<floor){ kcal=floor; notes.push('לא יורדים מתחת ל-'+floor+' קק״ל ביום, גם אם זה מאט את הקצב.'); } }
+    var wk=+pr.weekly||3, prot=Math.round(W0*(lose?2:1.8)/5)*5;
+    var todo=lose?[kcal?'אוכלים כ-'+kcal+' קק״ל ביום, כ-'+delta+' פחות ממה שהגוף שורף':'אוכלים כ-500 קק״ל פחות ממה שהגוף שורף. מחשבון הקלוריות יחשב בדיוק',prot+' גרם חלבון ביום, כדי שהירידה תהיה משומן ולא משריר',wk+' אימוני כוח בשבוע','שקילה פעם בשבוע, בבוקר, באותו יום']
+                 :[kcal?'אוכלים כ-'+kcal+' קק״ל ביום, מעט מעל מה שהגוף שורף':'אוכלים כ-300 קק״ל מעל מה שהגוף שורף',prot+' גרם חלבון ביום',wk+' אימוני כוח בשבוע, ובכל שבוע עוד קצת משקל או עוד חזרה','שקילה פעם בשבוע, בבוקר, באותו יום'];
+    var stages=[]; prev=W0;
+    marks.forEach(function(w,ix){
+      var first=ix===0, last=ix===marks.length-1, mid=!first&&!last, why;
+      if(lose) why=first?'בשבועות הראשונים הירידה מהירה יותר, כי חלק ממנה נוזלים. כאן בונים את ההרגלים שיחזיקו עד הסוף.':(last?'הקילוגרמים האחרונים הם האיטיים ביותר. זה צפוי, ולא סימן שמשהו לא עובד.':(ix===2&&weeks>10?'אחרי כשמונה עד עשרה שבועות בגירעון כדאי שבוע אחד בתחזוקה. הגוף והראש נחים, ואז ממשיכים.':'הקצב מתייצב. אם המשקל נתקע שבועיים, מורידים עוד 100 עד 150 קק״ל או מוסיפים הליכה יומית.'));
+      else why=first?'מתחילים בעודף קטן. עלייה מהירה מדי היא בעיקר שומן.':(last?'ככל שמתקדמים העלייה מאטה. ממשיכים להוסיף עומס באימונים, לא רק אוכל.':'אם המשקל לא זז שבועיים, מוסיפים 100 עד 150 קק״ל ביום.');
+      if(marks.length===1) why=lose?'ירידה קטנה: גירעון מתון, אימוני כוח ושקילה שבועית.':'עלייה קטנה: עודף מתון ועומס שעולה באימונים.';
+      stages.push(mkStage((lose?'עד ':'עד ')+f1(w)+' ק״ג',(lose?'יורדים ':'עולים ')+f1(Math.abs(w-prev))+' ק״ג',why,todo,{k:'weight',to:w,dir:dir},Math.abs(w-prev)/pace)); prev=w;
+    });
+    var keepW=lose?4:3;
+    stages.push(mkStage('שמירה','נשארים בטווח של קילו מ-'+f1(WT)+' ק״ג',lose?'המטרה האמיתית היא להישאר שם. מעלים קלוריות בהדרגה עד לתחזוקה ונשארים קרוב ליעד.':'מייצבים את המשקל החדש לפני שמחליטים על השלב הבא.',[lose?(tdee?'עולים בהדרגה לכ-'+Math.round(tdeeOf({weight:WT,height:h,age:age,sex:pr.sex,weekly:pr.weekly,activity:pr.activity})/50)*50+' קק״ל ביום':'מוסיפים 100 קק״ל בכל שבוע עד שהמשקל יציב'):'נשארים על אותן קלוריות','ממשיכים באותם אימונים','שקילה פעם בשבוע'],{k:'keep',to:WT,tol:1,weeks:keepW},keepW,1));
+    var body=stages.slice(0,-1); if(wish&&avail>0&&state!=='no') fit(body,avail,0.2);
+    body.forEach(function(s){ weeks+=s.weeks; }); due=addDays(today,weeks*7);
+    if(!wish||!(avail>0)) text=(lose?'בקצב בריא של ':'בקצב של ')+f1(pace)+' ק״ג בשבוע זה לוקח '+heWeeks(weeks)+'.';
+    else if(state==='ok'){ text='התאריך שבחרת ריאלי: '+f1(pace)+' ק״ג בשבוע.'; if(pace<easy*0.75) text+=' אפשר גם מהר יותר: בקצב של '+f1(easy)+' ק״ג בשבוע זה לוקח '+heWeeks(Math.ceil(total/easy))+'.'; }
+    else if(state==='hard') text='שאפתני אבל אפשרי: '+f1(need)+' ק״ג בשבוע. זה דורש הקפדה כמעט בלי חריגות.';
+    else text='עד '+heDate(wish,today)+' זה '+(lose?'מהיר מדי בשביל להיות בריא':'מהיר מדי, ורוב העלייה תהיה שומן')+'. בקצב בטוח של '+f1(maxPace)+' ק״ג בשבוע מגיעים ב-'+heDate(due,today)+', והתוכנית נבנתה לתאריך הזה.';
+    var title=(lose?'לרדת ל-':'לעלות ל-')+f1(WT)+' ק״ג';
+    return {kind:kind,title:title,p:{from:W0,to:WT,pace:Math.round(pace*100)/100,kcal:kcal},stages:stages,due:due,verdict:{state:state,text:text,weeks:weeks},notes:notes};
+  }
+
+  var STD={bench:[0.5,1.0,1.5],squat:[0.75,1.25,1.75],deadlift:[1.0,1.5,2.0],ohp:[0.35,0.65,0.9],row:[0.5,0.9,1.3]};
+  function liftClass(ex){ if(/bench/.test(ex)&&!/db-|dumbbell/.test(ex)) return 'bench'; if(/squat/.test(ex)&&!/goblet|db-|dumbbell|bodyweight/.test(ex)) return 'squat'; if(/deadlift/.test(ex)&&!/dumbbell|db-/.test(ex)) return 'deadlift'; if(/overhead|shoulder-press|military/.test(ex)&&!/dumbbell|db-/.test(ex)) return 'ohp'; if(/barbell-row|t-bar-row/.test(ex)) return 'row'; return ''; }
+  function liftRate(w,n,ex,data){ var pr=data.profile||{}, lw=weightOn(data,data.today), BW=lw?lw.kg:(+pr.weight||0), cls=liftClass(ex);
+    if(cls&&BW>0){ var st=STD[cls], f=pr.sex==='f'?0.65:1, r=(n<=1?w:w*(1+n/30))/BW; if(r<st[0]*f) return 0.02; if(r<st[1]*f) return 0.01; if(r<st[2]*f) return 0.0045; return 0.002; }
+    var ns=sessionsOf(data,ex).length; return ns<12?0.015:(ns<40?0.008:0.004); }
+  function buildLift(p,data,due){
+    var today=data.today, ex=p.ex, n=Math.max(1,Math.round(p.reps||1)), cur=+p.from, target=+p.to, name=data.nameOf?data.nameOf(ex):ex;
+    if(!ex||!name) return {err:'בוחרים תרגיל.'}; if(!(cur>0)) return {err:'צריך לדעת כמה אתה מרים היום, גם בערך.'}; if(!(target>cur)) return {err:'היעד צריך להיות גבוה ממה שאתה מרים היום.'};
+    var g=target/cur, ns=g<=1.08?2:g<=1.2?3:g<=1.4?4:g<=1.7?5:6, step=target-cur<10?1:2.5, marks=[], i, prev=cur;
+    for(i=1;i<=ns;i++){ var w=i===ns?target:Math.round(cur*Math.pow(g,i/ns)/step)*step; if(w<=prev||(w>=target&&i<ns)) continue; marks.push(w); prev=w; }
+    var sim=function(a,b){ var w=a, k=0; while(w<b&&k<600){ w=w*(1+liftRate(w,n,ex,data)); k++; } return Math.max(1,k); };
+    var stages=[], reps=n>1?' × '+n:''; prev=cur;
+    marks.forEach(function(w,ix){
+      var last=ix===marks.length-1, first=ix===0, pre=ix===marks.length-2, why, todo;
+      if(last){ why='ניסיון על המשקל המלא, ביום שבו אתה רענן. השלב הזה נסגר רק כשהמשקל באמת עולה.'; todo=['שבוע קל לפני הניסיון','חימום הדרגתי, ואז ניסיון אחד או שניים','עם מאבטח או עם מעצורי בטיחות']; }
+      else if(first){ why='בונים בסיס של טכניקה ונפח. בתחילת הדרך רוב ההתקדמות מגיעה מתנועה טובה יותר.'; todo=['פעמיים בשבוע על התרגיל','3 עד 4 סטים של 6 עד 10 חזרות','כשכל הסטים מצליחים, מוסיפים '+f1(step)+' ק״ג']; }
+      else if(pre){ why='מתקרבים ליעד. כאן ההתקדמות איטית, וזה תקין.'; todo=['סטים של 2 עד 3 חזרות קרוב למשקל היעד','שבוע קל אחת לארבעה או חמישה שבועות','שינה ואוכל מספיקים']; }
+      else { why='עוברים לעומסים כבדים יותר: פחות חזרות, יותר משקל.'; todo=['יום כבד: 4 עד 5 סטים של 3 עד 5 חזרות','יום קל: 3 סטים של 8 בכ-80% מהמשקל','תרגילי עזר לשרירים המסייעים']; }
+      stages.push(mkStage((last?'היעד: ':'')+f1(w)+' ק״ג'+reps,last?'הרמה אמיתית של המשקל':'לפי הערכה מהסטים שלך',why,todo,last?{k:'lift',ex:ex,to:w,reps:n,real:1}:{k:'lift',ex:ex,to:w,reps:n},sim(prev,w))); prev=w;
+    });
+    var weeks=0; stages.forEach(function(s){ weeks+=s.weeks; });
+    var state='ok', text='ברמה שלך מתקדמים בערך '+f1(liftRate(cur,n,ex,data)*100)+'% בשבוע, ולכן זה לוקח '+heWeeks(weeks)+'. הקצב מאט ככל שמתחזקים.', wish=due, avail=availWeeks(today,due);
+    if(due&&avail>0){ var ratio=weeks/avail;
+      if(ratio<=1.1){ fit(stages,avail,0.9); weeks=avail; text='התאריך שבחרת ריאלי לרמה שלך.'; }
+      else if(ratio<=1.6){ fit(stages,avail,0.6); weeks=avail; state='hard'; text='שאפתני. כדי להגיע בזמן צריך להתקדם מהר מהרגיל, בלי שבועות שהולכים לאיבוד.'; }
+      else { due=addDays(today,weeks*7); state='no'; text='עד '+heDate(wish,today)+' זה מוקדם מדי: כוח נבנה לאט. בקצב ריאלי מגיעים ב-'+heDate(due,today)+', והתוכנית נבנתה לתאריך הזה.'; }
+    } else due=addDays(today,weeks*7);
+    return {kind:'lift',title:name+': '+f1(target)+' ק״ג'+reps,p:{ex:ex,from:cur,to:target,reps:n},stages:stages,due:due,verdict:{state:state,text:text,weeks:weeks},notes:[]};
+  }
+
+  function buildReps(p,data,due){
+    var today=data.today, ex=p.ex, cur=Math.max(0,Math.round(+p.from||0)), target=Math.round(+p.to), name=data.nameOf?data.nameOf(ex):ex;
+    if(!ex||!name) return {err:'בוחרים תרגיל.'}; if(!(target>cur)) return {err:'היעד צריך להיות גבוה ממה שאתה עושה היום.'};
+    var hard=/pull|chin|dip|muscle-up|handstand/.test(ex), rate=hard?0.6:2, ladder=[1,3,5,8,10,12,15,20,25,30,40,50,60,80,100,150,200], marks=ladder.filter(function(x){ return x>cur&&x<target; });
+    while(marks.length>5) marks=marks.filter(function(x,i){ return i%2===0; });
+    marks.push(target);
+    var stages=[], prev=cur;
+    marks.forEach(function(m,ix){
+      var last=ix===marks.length-1, why, todo, w=Math.max(2,(m-prev)/rate);
+      if(prev===0&&hard){ w=6; why='החזרה הראשונה היא עניין של כוח יחסי. בונים אותו עם תלייה, עם ירידות איטיות ועם עזרה.'; todo=/dip/.test(ex)?['החזקה למעלה על המקבילים, 3 פעמים עד 20 שניות','ירידות איטיות של 5 שניות, 3 סטים של 3 עד 5','מקבילים עם גומיה או במכונה מסייעת, 3 סטים של 5 עד 8']:['תלייה על המתח, 3 פעמים עד 30 שניות','שליליות: קופצים למעלה ויורדים 5 שניות, 3 סטים של 3 עד 5','מתח עם גומיה או במכונה מסייעת, 3 סטים של 5 עד 8']; }
+      else if(last){ why='הסט שסוגר את המטרה. מגיעים אליו רעננים.'; todo=['יום או יומיים של מנוחה לפני','חימום קצר, ואז סט אחד עד הסוף','רושמים אותו באפליקציה']; }
+      else { why=hard?'מוסיפים חזרות בהדרגה. הרבה סטים קלים בונים יותר מסט אחד עד כישלון.':'מוסיפים חזרות בהדרגה, עם סטים קצרים וחוזרים.'; todo=['3 אימונים בשבוע','כמה סטים של כ-60% מהמקסימום, עם מנוחה מלאה','פעם בשבוע סט אחד עד הסוף, ורושמים אותו']; }
+      stages.push(mkStage((last?'היעד: ':'')+plural(m,'חזרה אחת','חזרות'),last?'בסט אחד, ברצף':'בסט אחד',why,todo,{k:'reps',ex:ex,to:m},w)); prev=m;
+    });
+    var weeks=0; stages.forEach(function(s){ weeks+=s.weeks; });
+    var state='ok', text='בקצב רגיל זה לוקח '+heWeeks(weeks)+'.', wish=due, avail=availWeeks(today,due);
+    if(due&&avail>0){ var ratio=weeks/avail; if(ratio<=1.1){ fit(stages,avail,0.9); weeks=avail; text='התאריך שבחרת ריאלי.'; } else if(ratio<=1.7){ fit(stages,avail,0.55); weeks=avail; state='hard'; text='שאפתני, אבל אפשרי עם שלושה אימונים בכל שבוע.'; } else { due=addDays(today,weeks*7); state='no'; text='עד '+heDate(wish,today)+' זה מוקדם מדי. בקצב ריאלי מגיעים ב-'+heDate(due,today)+', והתוכנית נבנתה לתאריך הזה.'; } }
+    else due=addDays(today,weeks*7);
+    return {kind:'reps',title:name+': '+target+' חזרות',p:{ex:ex,from:cur,to:target},stages:stages,due:due,verdict:{state:state,text:text,weeks:weeks},notes:[]};
+  }
+
+  /* weeks to grow the long run from `cur` through each mark; every fourth week is an easy one and adds nothing */
+  function runPlan(cur,marks){ var w=Math.max(cur,0), k=0, out=[], last=0; marks.forEach(function(m){ while(w<m-0.01&&k<400){ k++; if(k%4===0) continue; w=w<5?w+0.55:(w<10?Math.max(w*1.15,w+0.75):w+1.5); } out.push(Math.max(1,k-last)); last=k; }); return out; }
+  function kmText(k){ return k===42.2?'מרתון':(k===21.1?'חצי מרתון':f1(k)+' ק״מ'); }
+  function buildRun(p,data,due){
+    var today=data.today, T=+p.km, cur=Math.max(0,+p.from||0);
+    if(!(T>0)) return {err:'בוחרים מרחק.'}; if(cur>=T) return {err:'את המרחק הזה אתה כבר רץ. אפשר לבחור מרחק ארוך יותר.'};
+    var long=T>11, peak=T>22?32:(T>11?19:T), ladder=T<=5.5?[1,2,3,4]:(T<=11?[2,3,5,6.5,8]:(T<=22?[5,8,10,13,16]:[10,16,21,26,30]));
+    var marks=ladder.filter(function(x){ return x>cur+0.3&&x<peak-0.3; }); marks.push(peak);
+    var stages=[], prev=cur, beginner=cur<2, plan=runPlan(cur,marks);
+    marks.forEach(function(m,ix){
+      var isPeak=ix===marks.length-1, why, todo;
+      if(prev<2){ why='מתחילים בריצה והליכה לסירוגין. הלב והריאות מסתגלים מהר, הגידים והמפרקים לאט, ולכן לא ממהרים.'; todo=['3 פעמים בשבוע, יום מנוחה ביניהן','דקה ריצה ודקה עד שתיים הליכה, 20 עד 25 דקות','בכל שבוע מאריכים מעט את קטעי הריצה']; }
+      else if(isPeak&&long){ why='הריצות הארוכות ביותר בתוכנית. אחריהן הגוף מוכן למרחק המלא.'; todo=['הריצה הארוכה מגיעה ל-'+f1(m)+' ק״מ','שבוע קל אחרי כל שלושה שבועות עמוסים','מתרגלים שתייה ואכילה בריצות הארוכות']; }
+      else if(isPeak){ why='המרחק המלא, ברצף, בקצב נוח.'; todo=['יומיים קלים לפני','יוצאים לאט ממה שמתחשק','רושמים את הריצה באפליקציה']; }
+      else { why='מאריכים את הריצה הארוכה בהדרגה. הכלל: לא יותר מעשרה אחוזים בשבוע.'; todo=['3 ריצות בשבוע: שתיים קצרות וקלות, אחת ארוכה','קצב שאפשר לדבר בו','אימון כוח לרגליים פעם בשבוע: סקוואט, לאנג׳ים, תאומים']; }
+      stages.push(mkStage((isPeak&&!long?'היעד: ':'')+f1(m)+' ק״מ ברצף',isPeak&&long?'הריצה הארוכה של התוכנית':'בריצה אחת',why,todo,{k:'long',sport:'run',km:m},plan[ix])); prev=m;
+    });
+    if(long){ var tw=T>22?3:2;
+      stages.push(mkStage('הפחתה','פחות קילומטרים, אותה תדירות','בשבועות האחרונים הגוף סופג את העבודה. מי שממשיך לדחוף מגיע עייף לקו הזינוק.',['מורידים את הנפח בשליש עד חצי','שומרים על מעט קצב, בלי ריצות ארוכות','שינה, ואוכל רגיל'],{k:'rest',weeks:tw},tw,1));
+      stages.push(mkStage('היעד: '+kmText(T),f1(T)+' ק״מ',T>22?'היום שבשבילו התאמנת.':'המרחק המלא.',['יוצאים לאט מהמתוכנן','שותים ואוכלים לפי מה שתרגלת','נהנים מהדרך'],{k:'long',sport:'run',km:T},1,1)); }
+    var weeks=0; stages.forEach(function(s){ weeks+=s.weeks; });
+    var state='ok', text=(beginner?'מאפס, בקצב בטוח, ':'מהמקום שבו אתה היום ')+'זה לוקח '+heWeeks(weeks)+'.', wish=due, avail=availWeeks(today,due);
+    if(due&&avail>0){ var ratio=weeks/avail; if(ratio<=1.1){ fit(stages,avail,0.9); weeks=avail; text='התאריך שבחרת ריאלי.'; } else if(ratio<=1.4){ fit(stages,avail,0.7); weeks=avail; state='hard'; text='שאפתני. זה אפשרי רק אם לא מפספסים שבועות, והסיכון לפציעה עולה.'; } else { due=addDays(today,weeks*7); state='no'; text='עד '+heDate(wish,today)+' זה מוקדם מדי: העלאה מהירה של קילומטרים היא הדרך הקצרה לפציעה. בקצב בטוח מגיעים ב-'+heDate(due,today)+', והתוכנית נבנתה לתאריך הזה.'; } }
+    else due=addDays(today,weeks*7);
+    return {kind:'run',title:'לרוץ '+kmText(T),p:{km:T,from:cur},stages:stages,due:due,verdict:{state:state,text:text,weeks:weeks},notes:[]};
+  }
+
+  function triLine(s,b,r){ return 'שחייה '+(s<1?Math.round(s*1000)+' מ׳':f1(s)+' ק״מ')+' · רכיבה '+f1(b)+' ק״מ · ריצה '+f1(r)+' ק״מ'; }
+  var TRI_BASE={beginner:{swim:0.2,bike:10,run:2},trained:{swim:0.75,bike:30,run:7},exp:{swim:1.5,bike:60,run:14}};
+  var TRI_PH=[
+    {id:'base',t:'בסיס אירובי',s:0.4,b:15,r:3,w:6,why:'קודם בונים מנוע: שלושה ענפים בקצב קל, וטכניקת שחייה.',todo:['שחייה פעמיים בשבוע: טכניקה ונשימה','רכיבה פעמיים וריצה פעמיים, הכול בקצב קל','אימון כוח אחד בשבוע לכל הגוף']},
+    {id:'sprint',t:'מרחק ספרינט',s:0.75,b:20,r:5,w:6,why:'כל ענף מגיע למרחק של טריאתלון ספרינט, ומתחילים לחבר ביניהם.',todo:['אימון משולב אחד בשבוע: ריצה קצרה מיד אחרי רכיבה','שחייה במים פתוחים לפחות פעמיים','שבוע קל אחת לארבעה שבועות']},
+    {id:'oly',t:'מרחק אולימפי',s:1.5,b:40,r:10,w:10,why:'מכפילים את המרחקים. הנפח עולה לאט, והגוף לומד להתאושש בין אימונים.',todo:['רכיבה ארוכה אחת וריצה ארוכה אחת בשבוע','אימון משולב אחת לשבוע','תחרות ספרינט כמבחן, אם יש']},
+    {id:'half',t:'מרחק חצי איירונמן',s:1.9,b:90,r:18,w:12,why:'כאן נכנסת התזונה: בלי לאכול ולשתות על האופניים אי אפשר לסיים את הריצה.',todo:['רכיבה ארוכה בסוף השבוע, ולמחרת ריצה ארוכה','מתרגלים אכילה ושתייה תוך כדי רכיבה','תחרות אולימפית כמבחן באמצע השלב']},
+    {id:'build',t:'בנייה לאיירונמן',s:3.0,b:130,r:26,w:12,why:'שבועות ארוכים של נפח. המטרה היא סבולת, לא מהירות.',todo:['10 עד 14 שעות אימון בשבוע','רכיבה ארוכה ואחריה מיד ריצה קצרה','תחרות חצי איירונמן כמבחן']},
+    {id:'peak',t:'שיא',s:3.8,b:160,r:32,w:6,why:'האימונים הארוכים ביותר. אחריהם אין מה להוסיף, רק לנוח.',todo:['שחייה של המרחק המלא','רכיבה של 160 ק״מ וריצה של 32 ק״מ, בימים נפרדים','בודקים את כל הציוד והתזונה ליום המרוץ']}
+  ];
+  var TRI_UPTO={sprint:1,oly:2,half:3,iron:5};
+  function buildTri(p,data,due){
+    var today=data.today, race=has(RACES,p.race)?p.race:'sprint', R=RACES[race], lvl=has(TRI_BASE,p.level)?p.level:'beginner', since=addDays(today,-90);
+    var base={swim:Math.max(TRI_BASE[lvl].swim,longest(data,'swim',since)),bike:Math.max(TRI_BASE[lvl].bike,longest(data,'bike',since)),run:Math.max(TRI_BASE[lvl].run,longest(data,'run',since))};
+    var all=TRI_PH.slice(0,TRI_UPTO[race]+1);      // phases the person is already past are skipped; the last one always stays, it is where the three sports are joined
+    var path=all.filter(function(ph,i){ return i===all.length-1||!(base.swim>=ph.s&&base.bike>=ph.b&&base.run>=ph.r); });
+    var stages=path.map(function(ph,ix){ var w=ph.w; if(ix===0){ var gap=Math.max(0,1-Math.min(base.swim/ph.s,base.bike/ph.b,base.run/ph.r)); w=Math.max(3,Math.round(ph.w*Math.max(0.5,gap+0.3))); }
+      return mkStage(ph.t,triLine(ph.s,ph.b,ph.r),ph.why,ph.todo,{k:'tri',swim:ph.s,bike:ph.b,run:ph.r},w); });
+    var tw=race==='iron'?3:(race==='half'?2:1);
+    stages.push(mkStage('הפחתה','פחות נפח, אותה תדירות','הגוף סופג את העבודה של החודשים האחרונים. מגיעים לקו הזינוק רעננים.',['מורידים את הנפח בחצי','שומרים על תדירות ועל מעט קצב','שינה, ציוד, ותכנון יום המרוץ'],{k:'rest',weeks:tw},tw,1));
+    stages.push(mkStage('יום המרוץ: '+R.he,triLine(R.swim,R.bike,R.run),'היום שבשבילו התאמנת.',['יוצאים רגוע בשחייה','אוכלים ושותים לפי התוכנית','חוצים את קו הסיום'],{k:'event'},1,1));
+    var weeks=0; stages.forEach(function(s){ weeks+=s.weeks; });
+    var state='ok', text=(lvl==='beginner'&&(race==='iron'||race==='half')?'מהמקום שבו אתה היום הדרך עוברת דרך מרחקים קצרים יותר. ':'')+'בסך הכול '+heWeeks(weeks)+'.', wish=due, avail=availWeeks(today,due), notes=[];
+    if(due&&avail>0){ var f=fit(stages,avail,0.7); if(f.ok){ if(f.ratio<0.97){ state='hard'; text='שאפתני: התוכנית נדחסה ל-'+heWeeks(avail)+'. אין מקום לשבועות שהולכים לאיבוד.'; } else text='התאריך שבחרת ריאלי. התוכנית פרושה על '+heWeeks(avail)+'.'; weeks=f.weeks; } else { due=addDays(today,weeks*7); state='no'; text='עד '+heDate(wish,today)+' אין מספיק זמן לבנות את המרחקים בבטחה. צריך לפחות '+heWeeks(Math.ceil(weeks*0.7))+', ורצוי '+heWeeks(weeks)+'. התוכנית נבנתה ל-'+heDate(due,today)+'.'; } }
+    else due=addDays(today,weeks*7);
+    if(race==='iron'||race==='half') notes.push('לפני מרחקים כאלה כדאי בדיקה אצל רופא ספורט.');
+    return {kind:'tri',title:'לסיים '+R.he,p:{race:race,level:lvl,base:base},stages:stages,due:due,verdict:{state:state,text:text,weeks:weeks},notes:notes};
+  }
+
+  function buildHabit(p,data){
+    var today=data.today, per=clamp(Math.round(+p.perWeek||3),1,7), total=clamp(Math.round(+p.weeks||12),2,104), ladder=[2,4,8,12,16,24,36,52,78], marks=ladder.filter(function(x){ return x<total; }); marks.push(total);
+    var WHY={2:'שבועיים ראשונים: רק להגיע. האימון יכול להיות קצר.',4:'חודש: ההרגל מתחיל להחזיק את עצמו.',8:'חודשיים: כאן כבר רואים שינוי בכוח ובמראה.',12:'שלושה חודשים: האימונים הם חלק מהשבוע שלך.'}, stages=[], prev=0;
+    marks.forEach(function(m,ix){ var last=ix===marks.length-1; stages.push(mkStage((last?'היעד: ':'')+(m===2?'שבועיים מלאים':plural(m,'שבוע מלא','שבועות מלאים')),plural(per,'אימון אחד','אימונים')+' בכל שבוע',WHY[m]||'ממשיכים באותו קצב. שבוע שהתפספס לא מוחק את מה שנבנה.',['ימים ושעות קבועים לאימון','אימון קצר עדיף על דילוג','מסמנים כל אימון באפליקציה'],{k:'weeks',n:m,per:per},m-prev)); prev=m; });
+    return {kind:'habit',title:'להתאמן '+(per===1?'פעם':per===2?'פעמיים':per+' פעמים')+' בשבוע, '+heWeeks(total).replace('כ-',''),p:{perWeek:per,weeks:total},stages:stages,due:addDays(today,total*7),verdict:{state:'ok',text:'שבוע נספר כשיש בו '+plural(per,'אימון אחד','אימונים')+' לפחות. שבוע שהתפספס לא מאפס את הספירה.',weeks:total},notes:[]};
+  }
+  function buildFree(p,data,due){
+    var today=data.today, title=String(p.title||'').trim(), names=(p.stages||[]).map(function(s){ return String(s||'').trim(); }).filter(Boolean);
+    if(!title) return {err:'כותבים את המטרה במילים שלך.'};
+    if(!names.length) names=['מגדירים איך נראית הצלחה','שבועיים ראשונים של עקביות','אמצע הדרך','המטרה'];
+    var avail=availWeeks(today,due), each=avail>0?Math.max(1,Math.floor(avail/names.length)):4;
+    var stages=names.map(function(nm){ return mkStage(nm,'מסמנים כשהשלב הושלם','',[],{k:'manual'},each); });
+    return {kind:'free',title:title,p:{},stages:stages,due:due||addDays(today,each*names.length*7),verdict:{state:'ok',text:'את השלבים האלה מסמנים ביד. אפשר לשנות את השמות שלהם בכל רגע.',weeks:each*names.length},notes:[]};
+  }
+  /* build(kind, params, data, due) -> {goal, verdict, notes} | {err} | {stop} */
+  function build(kind,p,data,due,text){
+    var r; p=p||{}; due=(due&&due>data.today)?due:'';
+    if(kind==='lose'||kind==='gain') r=buildWeight(kind,p,data,due); else if(kind==='lift') r=buildLift(p,data,due); else if(kind==='reps') r=buildReps(p,data,due);
+    else if(kind==='run') r=buildRun(p,data,due); else if(kind==='tri') r=buildTri(p,data,due); else if(kind==='habit') r=buildHabit(p,data); else r=buildFree(p,data,due);
+    if(r.err||r.stop) return r;
+    schedule(r.stages,data.today);
+    var goal={id:'g'+(data.now||Date.now()).toString(36),kind:r.kind,title:r.title,text:String(text||'').trim(),created:data.today,p:r.p,due:r.due,stages:r.stages,status:'on',doneAt:'',state:r.verdict.state};
+    return {goal:goal,verdict:r.verdict,notes:r.notes||[]};
+  }
+
+  /* ---------- where the person stands ---------- */
+  function stageMet(goal,st,ix,data){
+    var m=st.m||{}, since=goal.created, prevDone=ix>0?goal.stages[ix-1].done:goal.created;
+    if(m.k==='weight'){ var w=weightOn(data,data.today); if(!w||w.d<since) return false; return m.dir<0?w.kg<=m.to+0.05:w.kg>=m.to-0.05; }
+    if(m.k==='keep'){ if(!prevDone) return false; var ws=weighins(data).filter(function(x){ return x.d>prevDone; }); if(ws.length<2||daysBetween(prevDone,data.today)<m.weeks*7) return false; return Math.abs(ws[ws.length-1].kg-m.to)<=m.tol+0.05; }
+    if(m.k==='lift'){ var b=bestLift(data,m.ex,m.reps||1,since); return m.real?b.real>=m.to-0.01:b.est>=m.to-0.01; }
+    if(m.k==='reps') return maxReps(data,m.ex,since).n>=m.to;
+    if(m.k==='long') return longest(data,m.sport,since)>=m.km-0.05;
+    if(m.k==='tri') return longest(data,'swim',since)>=m.swim-0.01&&longest(data,'bike',since)>=m.bike-0.05&&longest(data,'run',since)>=m.run-0.05;
+    if(m.k==='weeks') return weeksMet(data,m.per,weekStart(since))>=m.n;
+    if(m.k==='rest') return !!prevDone&&daysBetween(prevDone,data.today)>=m.weeks*7;
+    return false;      // manual, event: the person marks these
+  }
+  /* marks every stage the journal already proves, in order; returns the ones that just closed */
+  function sync(goal,data){
+    var fresh=[]; if(!goal||goal.status!=='on') return {fresh:fresh,finished:false};
+    for(var i=0;i<goal.stages.length;i++){ var st=goal.stages[i]; if(st.done) continue; if(!stageMet(goal,st,i,data)) break; st.done=data.today; fresh.push(st); }
+    var all=goal.stages.every(function(s){ return !!s.done; }); if(all){ goal.status='done'; goal.doneAt=data.today; }
+    return {fresh:fresh,finished:all&&fresh.length>0};
+  }
+  function markStage(goal,ix,data){ var st=goal.stages[ix]; if(!st||st.done) return false; for(var i=0;i<ix;i++) if(!goal.stages[i].done) return false; st.done=data.today; if(goal.stages.every(function(s){ return !!s.done; })){ goal.status='done'; goal.doneAt=data.today; } return true; }
+  /* remaining stages keep their length and start again from today */
+  function replan(goal,data){ var d=data.today; goal.stages.forEach(function(s){ if(s.done) return; s.from=d; d=addDays(d,s.weeks*7); s.until=d; }); goal.due=d; goal.state='ok'; return goal; }
+  function stageRatio(goal,st,ix,data){
+    var m=st.m||{}, since=goal.created, lo, cur, prev=ix>0?goal.stages[ix-1]:null, pm=prev?prev.m:null;
+    if(st.done) return 1;
+    if(m.k==='weight'){ lo=(pm&&pm.k==='weight')?pm.to:goal.p.from; var w=weightOn(data,data.today); cur=(w&&w.d>=since)?w.kg:goal.p.from; return clamp((cur-lo)/((m.to-lo)||1),0,1); }
+    if(m.k==='lift'){ lo=(pm&&pm.k==='lift')?pm.to:goal.p.from; cur=Math.max(goal.p.from,bestLift(data,m.ex,m.reps||1,since).est); return clamp((cur-lo)/((m.to-lo)||1),0,m.real?0.97:1); }
+    if(m.k==='reps'){ lo=(pm&&pm.k==='reps')?pm.to:goal.p.from; cur=Math.max(goal.p.from,maxReps(data,m.ex,since).n); return clamp((cur-lo)/((m.to-lo)||1),0,1); }
+    if(m.k==='long'){ lo=(pm&&pm.k==='long')?pm.km:(goal.p.from||0); cur=Math.max(goal.p.from||0,longest(data,m.sport,since)); return clamp((cur-lo)/((m.km-lo)||1),0,1); }
+    if(m.k==='tri'){ var b=goal.p.base||{swim:0,bike:0,run:0}; var one=function(sp,to){ var c=Math.max(b[sp]||0,longest(data,sp,since)); return clamp(c/to,0,1); }; return (one('swim',m.swim)+one('bike',m.bike)+one('run',m.run))/3; }
+    if(m.k==='weeks'){ lo=(pm&&pm.k==='weeks')?pm.n:0; return clamp((weeksMet(data,m.per,weekStart(since))-lo)/((m.n-lo)||1),0,1); }
+    if(m.k==='rest'||m.k==='keep'){ var from=(prev&&prev.done)||goal.created; return clamp(daysBetween(from,data.today)/(m.weeks*7),0,m.k==='keep'?0.95:1); }
+    return 0;
+  }
+  function progress(goal,data){
+    var n=goal.stages.length, done=0, idx=-1, i; for(i=0;i<n;i++){ if(goal.stages[i].done) done++; else if(idx<0) idx=i; }
+    var st=idx>=0?goal.stages[idx]:null, sp=st?stageRatio(goal,st,idx,data):1, p=goal.p||{}, since=goal.created, out={idx:idx,done:done,total:n,stage:st,stagePct:sp,pct:goal.status==='done'?1:clamp((done+sp)/n,0,0.99),need:'',cur:null,curText:'',toText:'',leftText:'',eta:'',state:'on'};
+    var k=goal.kind;
+    if(k==='lose'||k==='gain'){ var w=weightOn(data,data.today), fresh=w&&w.d>=since; out.cur=fresh?w.kg:p.from; out.curText=f1(out.cur)+' ק״ג'; out.toText=f1(p.to)+' ק״ג'; var left=Math.abs(out.cur-p.to), past=k==='lose'?out.cur<=p.to:out.cur>=p.to; out.leftText=past?'הגעת ליעד':'נשארו '+f1(left)+' ק״ג';
+      out.pct=goal.status==='done'?1:clamp(Math.abs(out.cur-p.from)/(Math.abs(p.to-p.from)||1)*(((out.cur-p.from)*(p.to-p.from))>=0?1:0),0,0.99);
+      if(!w||daysBetween(w.d,data.today)>=8) out.need='weighin';
+      var wk=daysBetween(since,data.today)/7, exp=p.from+(k==='lose'?-1:1)*Math.min(Math.abs(p.to-p.from),(p.pace||0.5)*wk), diff=(k==='lose'?exp-out.cur:out.cur-exp);
+      out.state=wk<1.5?'new':(diff>0.6?'ahead':(diff<-1.2?'behind':'on'));
+      var old=weightOn(data,addDays(data.today,-21)); if(fresh&&old&&old.d>=addDays(since,-1)&&old.d<w.d){ var rate=(w.kg-old.kg)/(daysBetween(old.d,w.d)/7), good=k==='lose'?-rate:rate; if(good>0.05&&!past) out.eta=addDays(data.today,Math.round(left/good*7)); } }
+    else if(k==='lift'){ var b=bestLift(data,p.ex,p.reps||1,since); out.cur=Math.max(p.from,b.est); out.curText=f1(Math.round(out.cur*2)/2)+' ק״ג'; out.toText=f1(p.to)+' ק״ג'; out.leftText=out.cur>=p.to?'נשאר להרים את זה באמת':'נשארו '+f1(Math.max(0,p.to-Math.round(out.cur*2)/2))+' ק״ג';
+      out.pct=goal.status==='done'?1:clamp((out.cur-p.from)/((p.to-p.from)||1),0,0.97); var last=sessionsOf(data,p.ex).slice(-1)[0]; if(!last||daysBetween(last.d,data.today)>=10) out.need='log'; }
+    else if(k==='reps'){ var mr=maxReps(data,p.ex,since); out.cur=Math.max(p.from,mr.n); out.curText=out.cur+' חזרות'; out.toText=p.to+' חזרות'; out.leftText='נשארו '+Math.max(0,p.to-out.cur)+' חזרות'; out.pct=goal.status==='done'?1:clamp((out.cur-p.from)/((p.to-p.from)||1),0,0.99); var l2=sessionsOf(data,p.ex).slice(-1)[0]; if(!l2||daysBetween(l2.d,data.today)>=10) out.need='log'; }
+    else if(k==='run'){ var lg=Math.max(p.from||0,longest(data,'run',since)); out.cur=lg; out.curText=f1(lg)+' ק״מ'; out.toText=f1(p.km)+' ק״מ'; out.leftText='הריצה הארוכה שלך: '+f1(lg)+' ק״מ'; var rw=sportStats(data,'run',addDays(data.today,-10),''); if(!rw.n) out.need='run'; }
+    else if(k==='tri'){ var s=sportStats(data,'swim',addDays(data.today,-10),''), bk=sportStats(data,'bike',addDays(data.today,-10),''), rn=sportStats(data,'run',addDays(data.today,-10),''); if(!s.n&&!bk.n&&!rn.n) out.need='run'; out.curText=''; out.toText=RACES[p.race]?RACES[p.race].he:''; out.leftText='שלב '+(Math.min(done+1,n))+' מתוך '+n; }
+    else if(k==='habit'){ var met=weeksMet(data,p.perWeek,weekStart(since)); out.cur=met; out.curText=plural(met,'שבוע אחד','שבועות'); out.toText=p.weeks+' שבועות'; out.leftText='נשארו '+plural(Math.max(0,p.weeks-met),'שבוע אחד','שבועות'); out.pct=goal.status==='done'?1:clamp(met/p.weeks,0,0.99); }
+    else { out.leftText='שלב '+(Math.min(done+1,n))+' מתוך '+n; }
+    if(k!=='lose'&&k!=='gain'){ if(st&&st.until&&daysBetween(st.until,data.today)>10) out.state='behind'; else if(st&&st.from&&daysBetween(data.today,st.from)>10) out.state='ahead'; else if(daysBetween(since,data.today)<10) out.state='new'; }
+    if(goal.status==='done') out.state='done';
+    return out;
+  }
+
+  /* ---------- how the week went, in words ---------- */
+  function week(goal,data,off){
+    off=off==null?1:off; var a=addDays(weekStart(data.today),-7*off), b=addDays(a,7), k=goal.kind, p=goal.p||{}, lines=[], tone='ok', moved=false;
+    var days=weekDays(data,a,b), wkGoal=k==='habit'?p.perWeek:(+((data.profile||{}).weekly)||3);
+    if(k==='lose'||k==='gain'){
+      var end=weightOn(data,addDays(b,-1)), start=weightOn(data,addDays(a,-1)), inWeek=end&&end.d>=a;
+      if(inWeek&&start){ var d=end.kg-start.kg, good=k==='lose'?-d:d; if(Math.abs(d)<0.15){ lines.push('המשקל נשאר '+f1(end.kg)+' ק״ג.'); } else { lines.push((d<0?'ירדת ':'עלית ')+f1(Math.abs(d))+' ק״ג, ל-'+f1(end.kg)+'.'); if(good>0){ moved=true; tone='good'; lines.push(good>=(p.pace||0.5)*0.8?'זה הקצב שתוכנן, '+f1(p.pace||0.5)+' ק״ג בשבוע.':'קצת פחות מהמתוכנן, ועדיין בכיוון.'); if(k==='lose'&&good>Math.max(1.2,(p.from||80)*0.012)) lines.push('זה מהיר. אם זה נמשך, מוסיפים מעט אוכל כדי לשמור על השריר.'); } else { tone='low'; lines.push(k==='lose'?'שבוע אחד לא קובע: נוזלים ומלח מזיזים קילו לכאן ולשם.':'בודקים שבאמת אוכלים מעל התחזוקה.'); } } }
+      else if(inWeek){ lines.push('נשקלת: '+f1(end.kg)+' ק״ג. מהשבוע הבא יש עם מה להשוות.'); }
+      else { lines.push('לא נרשמה שקילה, אז אי אפשר לדעת איך היה השבוע.'); tone='low'; }
+      lines.push(days>wkGoal?plural(days,'אימון אחד','אימונים')+', יותר מהיעד השבועי.':(days===wkGoal?plural(days,'אימון אחד','אימונים')+', כמו שתוכנן.':(days?plural(days,'אימון אחד','אימונים')+' מתוך '+wkGoal+'.':'בלי אימונים השבוע.')));
+    } else if(k==='lift'){
+      var n=p.reps||1, wk=null; eachSet(data,p.ex,a,function(x,dd){ if(dd>=b) return; var w=+x.w||0,r=+x.r||0; if(!(w>0&&r>0)) return; var v=nRM(w,r,n); if(!wk||v>wk.v) wk={v:v,w:w,r:r}; });
+      var before=0; eachSet(data,p.ex,'',function(x,dd){ if(dd>=a) return; var w=+x.w||0,r=+x.r||0; if(w>0&&r>0) before=Math.max(before,nRM(w,r,n)); }); before=Math.max(before,p.from||0);
+      if(!wk){ lines.push('לא התאמנת על התרגיל השבוע.'); tone='low'; }
+      else { lines.push('הסט הטוב ביותר: '+f1(wk.w)+' ק״ג על '+plural(wk.r,'חזרה אחת','חזרות')+'.'); if(wk.v>before+0.4){ moved=true; tone='good'; lines.push('זה שווה ערך ל-'+f1(Math.round(wk.v*2)/2)+' ק״ג, '+f1(Math.round((wk.v-before)*2)/2)+' מעל השיא הקודם.'); } else lines.push('אותה רמה כמו קודם. כוח עולה במדרגות, לא בקו ישר.'); }
+    } else if(k==='reps'){
+      var best=0, prevBest=p.from||0; eachSet(data,p.ex,a,function(x,dd){ if(dd<b) best=Math.max(best,+x.r||0); }); eachSet(data,p.ex,goal.created,function(x,dd){ if(dd<a) prevBest=Math.max(prevBest,+x.r||0); });
+      if(!best){ lines.push('לא נרשם השבוע סט בתרגיל.'); tone='low'; } else { lines.push('המקסימום השבוע: '+plural(best,'חזרה אחת','חזרות')+'.'); if(best>prevBest){ moved=true; tone='good'; lines.push(plural(best-prevBest,'חזרה אחת','חזרות')+' יותר מהשיא הקודם.'); } else lines.push('השיא עדיין '+prevBest+'. ממשיכים לצבור סטים קלים.'); }
+    } else if(k==='run'||k==='tri'){
+      var sports=k==='run'?[['run','ריצה']]:[['swim','שחייה'],['bike','רכיבה'],['run','ריצה']], any=false;
+      sports.forEach(function(sp){ var s=sportStats(data,sp[0],a,b); if(!s.n) return; any=true; var prevLong=Math.max((p.base&&p.base[sp[0]])||(sp[0]==='run'?p.from:0)||0,sportStats(data,sp[0],goal.created,a).long); var t=sp[1]+': '+f1(s.km)+' ק״מ '+(s.n===1?'באימון אחד':'ב-'+s.n+' אימונים')+'.'; if(s.long>prevLong+0.05){ moved=true; t+=' הארוך ביותר עד היום: '+f1(s.long)+' ק״מ.'; } lines.push(t); });
+      if(!any){ lines.push(k==='run'?'לא נרשמה ריצה השבוע.':'לא נרשמו השבוע שחייה, רכיבה או ריצה.'); tone='low'; } else tone=moved?'good':'ok';
+    } else if(k==='habit'){
+      var met=days>=p.perWeek; lines.push(plural(days,'אימון אחד','אימונים')+' מתוך '+p.perWeek+'.'); if(met){ moved=true; tone='good'; lines.push('שבוע מלא. '+plural(weeksMet(data,p.perWeek,weekStart(goal.created)),'שבוע אחד','שבועות')+' מתוך '+p.weeks+'.'); } else { tone='low'; lines.push(days?'חסר '+plural(p.perWeek-days,'אימון אחד','אימונים')+' לשבוע מלא.':'שבוע בלי אימונים. הספירה לא מתאפסת.'); }
+    } else { lines.push(days?plural(days,'אימון אחד','אימונים')+' השבוע.':'בלי אימונים השבוע.'); tone=days?'ok':'low'; }
+    var title=moved?'השבוע התקדמת לעבר המטרה':(tone==='low'?'שבוע בלי התקדמות, וזה קורה':'שבוע של שמירה על הקצב');
+    var close=moved?'יפה מאוד.':(tone==='low'?'השבוע הבא מתחיל מחדש.':'ממשיכים.');
+    return {key:a,until:b,title:title,lines:lines,close:close,tone:tone,moved:moved,days:days};
+  }
+  /* one short line: "שלב 2 מתוך 5 · נשארו 4.5 ק״ג" */
+  function line(goal,data){ var pr=progress(goal,data); if(goal.status==='done') return 'הושגה ב-'+heDate(goal.doneAt,data.today); return 'שלב '+Math.min(pr.done+1,pr.total)+' מתוך '+pr.total+(pr.leftText&&goal.kind!=='tri'&&goal.kind!=='free'?' · '+pr.leftText:''); }
+
+  return {TYPES:TYPES,RACES:RACES,typeOf:typeOf,understand:understand,ask:ask,build:build,sync:sync,markStage:markStage,replan:replan,progress:progress,week:week,line:line,
+    heDate:heDate,heWeeks:heWeeks,addDays:addDays,daysBetween:daysBetween,weekStart:weekStart,weightOn:weightOn,bestLift:bestLift,maxReps:maxReps,longest:longest,sportStats:sportStats,sportOf:sportOf,norm:norm,dueFrom:dueFrom};
+})();
+if(typeof module!=='undefined'&&module.exports) module.exports=GoalKit;
+
+/* ========================= v12: goals and achievements, logging by voice ========================= */
+/* The thinking lives in parts/goals.js (GoalKit) and parts/voice.js (VoiceLog). This file is the screens and the glue:
+   four documents are added to what the app stores and syncs: goals, body (weigh-ins), vinbox (what the phone assistant sent,
+   written only by the server) and vdone (which of those this account has already taken into the journal). */
+ICONS.mic='<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/>';
+S.goals={list:[]}; S.body={w:[]}; S.vinbox={items:[]}; S.vdone={ids:{},last:[]};
+const SIRI_SHORTCUT_URL='';      // the iCloud link of the ready-made shortcut; until it exists the app shows how to build it by hand
+
+/* ---------- goals: data ---------- */
+function goalData(){ return {today:todayKey(),now:Date.now(),profile:S.profile,weighins:(S.body&&S.body.w)||[],logs:S.logs,nameOf:id=>{ const e=getEx(id); return e?e.he:''; },isCustom:id=>(S.deck.custom||[]).some(c=>c.id===id)}; }
+function goalsOn(){ return ((S.goals&&S.goals.list)||[]).filter(g=>g.status==='on'); }
+function goalsPast(){ return ((S.goals&&S.goals.list)||[]).filter(g=>g.status!=='on'); }
+function goalById(id){ return ((S.goals&&S.goals.list)||[]).find(g=>g.id===id); }
+function saveGoals(){ return save('goals',S.goals); }
+function lastWeigh(){ const w=(S.body&&S.body.w)||[]; return w.length?w[w.length-1]:null; }
+function addWeigh(kg,d){
+  d=d||todayKey(); const w=S.body.w||(S.body.w=[]); const i=w.findIndex(x=>x.d===d);
+  if(i>=0) w[i].kg=kg; else { w.push({d,kg}); w.sort((a,b)=>a.d.localeCompare(b.d)); }
+  if(w.length>400) S.body.w=w.slice(-400);
+  if(lastWeigh().d===d){ S.profile.weight=kg; save('profile',S.profile); }
+  save('body',S.body);
+}
+/* every change to a log or to the weigh-ins ends here: stages that the journal now proves are closed, with a banner */
+let GOAL_T=null;
+function goalsSoon(){ clearTimeout(GOAL_T); GOAL_T=setTimeout(goalsSync,700); }
+function goalsSync(){
+  if(!goalsOn().length) return;
+  const D=goalData(); let n=0;
+  goalsOn().forEach(g=>{ const r=GoalKit.sync(g,D); if(!r.fresh.length) return; const last=r.fresh[r.fresh.length-1], k=n++; setTimeout(()=>stageBanner(g,last,r.finished,r.fresh.length),k*1300); });
+  if(!n) return;
+  saveGoals(); goalAch(n*1300);
+  if(['goals','goal','home','more','ach'].includes(route.page)) render();
+}
+function goalAch(delay){ try{ checkAch().forEach((a,i)=>setTimeout(()=>achBanner(a),(delay||0)+i*1000)); }catch(e){} }
+function stageBanner(g,st,finished,count){
+  const el=h('button',{class:'prban gban',type:'button','aria-live':'polite'},h('span',{class:'pb-i'},ic(finished?'trophy':'flag')),h('span',{class:'grow'},h('b',{},finished?'המטרה הושגה':(count>1?`${count} שלבים הושלמו`:'שלב הושלם')),h('span',{},finished?g.title:st.t)));
+  el.addEventListener('click',()=>{ el.remove(); if(route.page!=='goals') go('#goals'); }); $('#pop').append(el); Snd.pr(); haptic([40,40,120]);
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),400); },4200);
+}
+/* the medals that belong to goals join the others */
+const achStatsBase=achStats;
+achStats=function(){ const s=achStatsBase(), gl=(S.goals&&S.goals.list)||[]; s.goalsSet=gl.length; s.stagesDone=gl.reduce((n,g)=>n+(g.stages||[]).filter(x=>x.done).length,0); s.goalsDone=gl.filter(g=>g.status==='done').length; return s; };
+ACH.push({id:'gs',t:'מטרה ראשונה',d:'מטרה עם שלבים בדרך',v:s=>[s.goalsSet,1]},{id:'gst',t:'שלב ראשון',d:'שלב אחד בדרך למטרה',v:s=>[s.stagesDone,1]},{id:'gst5',t:'חמישה שלבים',d:'חמישה שלבים שהושלמו',v:s=>[s.stagesDone,5]},{id:'gd',t:'מטרה הושגה',d:'הגעת ליעד שהצבת לעצמך',v:s=>[s.goalsDone,1]});
+
+/* ---------- goals: pieces of the page ---------- */
+const GSTATE={ahead:['מקדים את התוכנית','good'],on:['בקצב','on'],behind:['מאחורי התוכנית','late'],new:['רק התחלנו','on'],done:['הושגה','good']};
+const gDate=d=>GoalKit.heDate(d,todayKey());
+function goalRing(pct,col,done){
+  const C=2*Math.PI*40, p=Math.max(0,Math.min(1,pct||0));
+  const el=h('div',{class:'gring',role:'img','aria-label':`${Math.round(p*100)} אחוז מהדרך`,html:`<svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="40" fill="none" stroke="var(--card3)" stroke-width="9"/><circle class="p" cx="48" cy="48" r="40" fill="none" stroke="${done?'var(--good)':col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${FRESH?C:C*(1-p)}"/></svg><div class="v"><span>${Math.round(p*100)}<small>%</small></span></div>`});
+  if(FRESH) requestAnimationFrame(()=>requestAnimationFrame(()=>{ const c=el.querySelector('circle.p'); if(c) c.style.strokeDashoffset=String(C*(1-p)); }));
+  return el;
+}
+/* weigh-ins since the goal began, with the target as a dashed line; time runs left to right like the other charts */
+function weightSpark(g){
+  const ws=(S.body.w||[]).filter(x=>x.d>=addDays(g.created,-1)); if(ws.length<2) return null;
+  const W=320,H=64,px=8,pt=10,pb=10; const vals=ws.map(x=>x.kg).concat([g.p.to]); const mn=Math.min(...vals), mx=Math.max(...vals), span=(mx-mn)||1;
+  const t0=new Date(ws[0].d).getTime(), t1=Math.max(new Date(ws[ws.length-1].d).getTime(),t0+86400000);
+  const X=d=>px+(new Date(d).getTime()-t0)/(t1-t0)*(W-2*px), Y=v=>pt+(1-(v-mn)/span)*(H-pt-pb);
+  const pts=ws.map(x=>`${X(x.d).toFixed(1)},${Y(x.kg).toFixed(1)}`).join(' '); const lastP=ws[ws.length-1];
+  return h('div',{role:'img','aria-label':`${ws.length} שקילות, מ-${fmtW(ws[0].kg)} עד ${fmtW(lastP.kg)} ק״ג`,html:`<svg class="gspark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line class="tg" x1="${px}" x2="${W-px}" y1="${Y(g.p.to).toFixed(1)}" y2="${Y(g.p.to).toFixed(1)}"/><polyline class="ln" points="${pts}"/><circle class="pt" cx="${X(lastP.d).toFixed(1)}" cy="${Y(lastP.kg).toFixed(1)}" r="4"/></svg>`});
+}
+function goalHero(g,P){
+  const T=GoalKit.typeOf(g.kind), col=`var(--g-${T.col})`, done=g.status==='done', st=GSTATE[P.state]||GSTATE.on;
+  const box=h('div',{class:'ghero',style:`--c:${col}`});
+  box.append(h('div',{class:'row',style:'align-items:flex-start'},h('div',{class:'grow'},h('div',{class:'gk'},ic(T.icon),h('span',{},T.t)),h('div',{class:'gt'},g.title)),h('button',{class:'iconbtn',type:'button',html:I('dots'),'aria-label':'אפשרויות למטרה',onclick:()=>goalMenu(g)})));
+  const facts=h('div',{class:'grow'});
+  if(P.curText&&P.toText) facts.append(h('div',{class:'gnum'},h('b',{},P.curText),h('span',{class:'arr','aria-hidden':'true'},'←'),h('span',{},P.toText)));
+  else if(P.toText) facts.append(h('div',{class:'gnum'},h('b',{},P.toText)));
+  facts.append(h('div',{class:'small muted',style:'margin-top:2px'},done?`הושגה ב-${gDate(g.doneAt)}`:(g.status==='off'?'המטרה הופסקה':P.leftText)));
+  if(g.status==='on') facts.append(h('div',{class:'gmeta'},h('span',{class:'gst '+st[1]},st[0]),g.due?h('span',{},`יעד: ${gDate(g.due)}`):null));
+  box.append(h('div',{class:'hero-row',style:'margin-top:4px'},goalRing(P.pct,col,done),facts));
+  if(g.kind==='lose'||g.kind==='gain'){ const sp=weightSpark(g); if(sp) box.append(sp); }
+  return box;
+}
+function goalNow(g,P){
+  const st=P.stage; if(!st||g.status!=='on') return null;
+  const card=h('div',{class:'card gnow'});
+  card.append(h('div',{class:'gn-h'},h('span',{class:'k'},'מה עושים עכשיו'),h('span',{class:'small muted'},`שלב ${P.idx+1} מתוך ${P.total}`)),h('div',{class:'gn-t'},st.t),st.sub?h('div',{class:'small muted',style:'margin-top:2px'},st.sub):null);
+  card.append(h('div',{class:'hbar2','aria-hidden':'true',style:'margin-top:10px'},h('i',{style:`width:${Math.round(P.stagePct*100)}%`})));
+  if(st.todo&&st.todo.length) card.append(h('ul',{class:'gtodo'},...st.todo.map(t=>h('li',{},ic('check'),h('span',{},t)))));
+  if(P.need) card.append(h('div',{class:'banner',style:'margin:14px 0 0'},ic('info'),h('span',{},P.need==='weighin'?'עבר יותר משבוע מאז השקילה האחרונה. בלי שקילה אי אפשר לדעת איפה עומדים.':(P.need==='run'?'בעשרת הימים האחרונים לא נרשם אימון סבולת.':'בעשרת הימים האחרונים לא נרשם סט בתרגיל הזה.'))));
+  if(st.why) card.append(h('p',{class:'gwhy'},st.why));
+  const k=(st.m||{}).k; if(k==='manual'||k==='event') card.append(h('button',{class:'btn sec2',type:'button',style:'margin-top:12px',onclick:()=>doneStage(g,P.idx)},k==='event'?'סיימתי את המרוץ':'השלב הושלם'));
+  return card;
+}
+function goalWeekData(g){ if(g.status!=='on') return null; const wk=GoalKit.week(g,goalData(),1); return g.created>=wk.until?null:wk; }      // null: the goal did not exist yet that week
+function goalWeekCard(g){
+  const wk=goalWeekData(g); if(!wk) return null;
+  return h('div',{class:'card gweek '+wk.tone},h('div',{class:'gw-h'},ic(wk.moved?'trend':'cal'),h('div',{class:'grow'},h('div',{class:'k'},wk.title),h('div',{class:'small muted'},`השבוע שעבר · ${fmtDate(wk.key)} עד ${fmtDate(addDays(wk.until,-1))}`))),...wk.lines.map(l=>h('p',{},l)),h('p',{class:'b'},wk.close));
+}
+function stageHow(s){ const k=(s.m||{}).k; return k==='manual'?'מסמנים אותו ביד כשהוא הושלם.':k==='event'?'מסמנים אותו אחרי המרוץ.':k==='rest'?'נסגר לבד כשהזמן עובר.':(k==='weight'||k==='keep')?'נסגר לבד לפי השקילות.':'נסגר לבד לפי מה שנרשם ביומן.'; }
+function goalStages(g,P,plain){
+  const box=h('div',{class:'list stgs'}), tk=todayKey();
+  g.stages.forEach((s,i)=>{ const cur=i===P.idx&&g.status==='on', done=!!s.done; const when=done?`הושלם ב-${gDate(s.done)}`:(cur&&s.until<tk?`תוכנן עד ${gDate(s.until)}`:`עד ${gDate(s.until)}`);
+    const inner=[h('span',{class:'dot'},done?ic('check'):String(i+1)),h('span',{class:'grow'},h('span',{class:'t'},s.t),s.sub?h('span',{class:'s'},s.sub):null,h('span',{class:'d'},when))];
+    box.append(plain?h('div',{class:'stg'},...inner):h('button',{class:'stg pressable'+(done?' done':'')+(cur?' cur':''),type:'button',onclick:()=>stageSheet(g,i)},...inner,h('span',{class:'chev',html:I('chev')}))); });
+  return box;
+}
+function stageSheet(g,i){
+  const s=g.stages[i], P=GoalKit.progress(g,goalData()); const body=h('div',{},h('div',{class:'small b muted'},`שלב ${i+1} מתוך ${g.stages.length}`),h('h2',{},s.t));
+  if(s.sub) body.append(h('p',{class:'small muted',style:'margin:0 0 10px'},s.sub));
+  if(s.why) body.append(h('p',{style:'margin:0 0 4px;line-height:1.6'},s.why));
+  if(s.todo&&s.todo.length) body.append(h('ul',{class:'gtodo'},...s.todo.map(t=>h('li',{},ic('check'),h('span',{},t)))));
+  body.append(h('p',{class:'small muted',style:'margin:14px 0 0;line-height:1.55'},s.done?`הושלם ב-${gDate(s.done)}.`:`מתוכנן מ-${gDate(s.from)} עד ${gDate(s.until)}, ${GoalKit.heWeeks(s.weeks)}. ${stageHow(s)}`));
+  const k=(s.m||{}).k;
+  if(!s.done&&g.status==='on'&&i===P.idx&&(k==='manual'||k==='event')) body.append(h('button',{class:'btn',type:'button',style:'margin-top:14px',onclick:()=>{ Sheet.close(); setTimeout(()=>doneStage(g,i),320); }},k==='event'?'סיימתי את המרוץ':'השלב הושלם'));
+  if(g.kind==='free'&&!s.done&&g.status==='on') body.append(h('button',{class:'btn sec2',type:'button',style:'margin-top:8px',onclick:()=>{ Sheet.close(); setTimeout(()=>renameSheet('שם השלב',s.t,v=>{ s.t=v; saveGoals(); render(); }),320); }},'שינוי שם השלב'));
+  Sheet.show(body);
+}
+function doneStage(g,i){ if(!GoalKit.markStage(g,i,goalData())) return; saveGoals(); stageBanner(g,g.stages[i],g.status==='done',1); goalAch(1300); goalsSoon(); render(); }
+function renameSheet(title,cur,onSave){
+  const inp=h('input',{type:'text',value:cur||'',maxlength:'80'});
+  Sheet.show(h('div',{},h('h2',{},title),h('div',{class:'fld'},inp),h('button',{class:'btn',type:'button',onclick:()=>{ const v=inp.value.trim(); if(!v) return; Sheet.close(); onSave(v); }},'שמור'))); setTimeout(()=>{ try{ inp.focus(); }catch(e){} },350);
+}
+function weighSheet(){
+  const lw=lastWeigh(); const inp=h('input',{type:'number',inputmode:'decimal',step:'0.1',min:'30',max:'300',value:lw?lw.kg:(S.profile.weight||''),placeholder:'ק״ג','aria-label':'המשקל היום בקילוגרם'});
+  const go2=()=>{ const v=Math.round(pnum(inp.value)*10)/10; if(!(v>=30&&v<=300)){ toast('מקלידים משקל בקילוגרם'); return; } const prev=lastWeigh(); addWeigh(v); Sheet.close(); haptic(12);
+    const d=prev&&prev.d!==todayKey()?Math.round((v-prev.kg)*10)/10:0; toast(d?`נרשם: ${fmtW(v)} ק״ג · ${d<0?'ירדת':'עלית'} ${fmtW(Math.abs(d))} מהשקילה הקודמת`:`נרשם: ${fmtW(v)} ק״ג`); render(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); go2(); } });
+  Sheet.show(h('div',{},h('h2',{},'שקילה'),h('p',{class:'small muted',style:'margin:0 0 12px;line-height:1.5'},lw?`בפעם הקודמת, ${fmtDate(lw.d)}: ${fmtW(lw.kg)} ק״ג. הכי מדויק בבוקר, לפני אוכל.`:'הכי מדויק בבוקר, לפני אוכל, באותו יום בשבוע.'),h('div',{class:'fld'},h('label',{},'המשקל היום, בק״ג'),inp),h('button',{class:'btn',type:'button',onclick:go2},'שמור')));
+  setTimeout(()=>{ try{ inp.focus(); inp.select(); }catch(e){} },350);
+}
+function weighList(){
+  const body=h('div',{},h('h2',{},'השקילות שלי')); const draw=()=>{ const l=h('div',{class:'list'}); const ws=(S.body.w||[]).slice().reverse().slice(0,40);
+    ws.forEach((x,i)=>{ const nx=ws[i+1]; const d=nx?Math.round((x.kg-nx.kg)*10)/10:0; l.append(h('div',{class:'item'},h('div',{class:'grow'},h('div',{class:'t'},`${fmtW(x.kg)} ק״ג`),h('div',{class:'s'},`${fmtDate(x.d)}${d?' · '+(d<0?'ירידה של ':'עלייה של ')+fmtW(Math.abs(d)):''}`)),h('button',{class:'iconbtn sm',type:'button','aria-label':'מחיקת השקילה',html:I('trash'),style:'color:var(--bad);background:none',onclick:()=>{ S.body.w=S.body.w.filter(y=>y.d!==x.d); const lw=lastWeigh(); if(lw){ S.profile.weight=lw.kg; save('profile',S.profile); } save('body',S.body); draw(); }}))); });
+    if(!ws.length) l.append(h('div',{class:'empty'},'עוד אין שקילות.')); const old=body.querySelector('.list'); if(old) old.replaceWith(l); else body.append(l); };
+  draw(); body.append(h('button',{class:'btn',type:'button',style:'margin-top:4px',onclick:()=>{ Sheet.close(); setTimeout(weighSheet,320); }},'שקילה חדשה')); Sheet.show(body,()=>render());
+}
+function goalMenu(g){
+  const body=h('div',{},h('h2',{},g.title)), list=h('div',{class:'list'}), P=GoalKit.progress(g,goalData());
+  const row=(icn,t,sub,fn,bad)=>list.append(h('button',{class:'item pressable',type:'button',onclick:()=>{ Sheet.close(); setTimeout(fn,320); }},h('div',{class:'th',style:`width:40px;height:40px;border-radius:var(--r-s);color:${bad?'var(--bad)':'var(--accent-t)'};background:${bad?'rgba(248,113,113,.14)':'var(--accent-soft)'}`},ic(icn)),h('div',{class:'grow'},h('div',{class:'t'},t),sub?h('div',{class:'s'},sub):null)));
+  if(g.status==='on'){
+    if(g.kind==='lose'||g.kind==='gain') row('scale','השקילות שלי',plural((S.body.w||[]).length,'שקילה אחת','שקילות'),weighList);
+    if(P.state==='behind') row('cal','עדכון התאריכים מהיום','השלבים נשארים, התאריכים זזים',()=>{ GoalKit.replan(g,goalData()); saveGoals(); render(); toast('התאריכים עודכנו'); });
+    if(goalsOn()[0]!==g) row('star','להפוך למטרה הראשית','היא תופיע ראשונה',()=>{ S.goals.list=[g].concat(S.goals.list.filter(x=>x!==g)); saveGoals(); goReplace('#goals'); });
+    row('edit','שינוי שם המטרה','',()=>renameSheet('שם המטרה',g.title,v=>{ g.title=v; saveGoals(); render(); }));
+    row('pause','הפסקת המטרה','היא נשמרת ברשימת המטרות הקודמות',()=>{ g.status='off'; g.doneAt=todayKey(); saveGoals(); toast('המטרה הופסקה'); if(route.page==='goal') history.back(); else render(); });
+  } else if(g.status==='off') row('play','חזרה למטרה','התאריכים יתעדכנו מהיום',()=>{ g.status='on'; g.doneAt=''; GoalKit.replan(g,goalData()); saveGoals(); render(); toast('המטרה חזרה לפעילות'); });
+  row('trash','מחיקת המטרה','',()=>confirmSheet('למחוק את המטרה?','השלבים וההתקדמות שלה יימחקו. האימונים והשקילות נשארים.',()=>{ S.goals.list=S.goals.list.filter(x=>x.id!==g.id); saveGoals(); toast('המטרה נמחקה'); if(route.page==='goal') history.back(); else render(); },'כן, למחוק'),true);
+  body.append(list); Sheet.show(body);
+}
+function goalDock(g){
+  if(g.status!=='on') return; const k=g.kind; let b=null;
+  const mk=(icn,label,fn)=>h('button',{class:'btn sgo',type:'button',onclick:fn},ic(icn),h('span',{},label));
+  if(k==='lose'||k==='gain') b=mk('scale','שקילה',weighSheet);
+  else if((k==='lift'||k==='reps')&&getEx(g.p.ex)) b=mk('plus','רישום סט בתרגיל',()=>go('#ex-'+g.p.ex));
+  else if(k==='run') b=mk('plus','רישום ריצה',()=>go('#ex-running'));
+  else if(k==='tri') b=mk('plus','רישום אימון',()=>pickSheet('מה עשית?','',[['x-swimming','שחייה'],['cycling','רכיבה'],['running','ריצה']],'',id=>go('#ex-'+id)));
+  if(b) Dock.set(b);
+}
+function goalDetail(wrap,g){
+  const P=GoalKit.progress(g,goalData());
+  wrap.append(goalHero(g,P)); const now=goalNow(g,P); if(now) wrap.append(now); const wk=goalWeekCard(g); if(wk) wrap.append(wk);
+  wrap.append(h('div',{class:'sec'},h('h2',{},'השלבים'),h('span',{class:'small muted'},`${P.done} מתוך ${P.total}`)),goalStages(g,P));
+  goalDock(g);
+}
+function goalRow(g){
+  const T=GoalKit.typeOf(g.kind), D=goalData(); const sub=g.status==='done'?`הושגה ב-${gDate(g.doneAt)}`:(g.status==='off'?'הופסקה':GoalKit.line(g,D));
+  return h('button',{class:'item pressable',type:'button',onclick:()=>go('#goal-'+g.id)},h('div',{class:'th',style:`width:44px;height:44px;border-radius:var(--r-m);color:var(--g-${T.col});background:color-mix(in srgb,var(--g-${T.col}) 16%,transparent)`},ic(g.status==='done'?'trophy':T.icon)),h('div',{class:'grow'},h('div',{class:'t ell'},g.title),h('div',{class:'s ell'},sub)),h('span',{class:'chev',html:I('chev')}));
+}
+function achStrip(){
+  const got=S.prefs.ach||{}; const mine=ACH.filter(a=>got[a.id]).sort((a,b)=>String(got[b.id]).localeCompare(String(got[a.id]))); const n=mine.length, top=mine.slice(0,3);
+  return h('button',{class:'achstrip pressable',type:'button',onclick:()=>go('#ach')},h('div',{class:'as-i'},...(top.length?top.map(()=>h('span',{class:'m on'},ic('medal'))):[h('span',{class:'m'},ic('medal'))])),h('div',{class:'grow'},h('div',{class:'k'},'ההישגים שלי'),h('div',{class:'small muted ell'},n?`${n} מתוך ${ACH.length} · האחרון: ${top[0].t}`:`${ACH.length} הישגים מחכים לך`)),h('span',{class:'chev',html:I('chev')}));
+}
+
+/* ---------- goals: the pages ---------- */
+function goalsPage(){
+  header('מטרות והישגים',{back:'#more'}); const wrap=h('div'); goalsSoon();
+  const on=goalsOn(), past=goalsPast();
+  wrap.append(h('div',{class:'display'},'מטרות והישגים'));
+  if(!on.length){
+    wrap.append(h('div',{class:'ghero'},h('div',{class:'hero-row'},mascot('cheer')||h('div',{class:'restico'},ic('target')),h('div',{class:'grow'},h('div',{class:'k',style:'font-size:22px;line-height:1.2'},'מה המטרה שלך?'),h('div',{class:'small muted',style:'margin-top:4px;line-height:1.5'},'כותבים אותה במילים שלך או בוחרים מהרשימה. האפליקציה בונה ממנה שלבים, ועוקבת אחרי ההתקדמות.'))),h('button',{class:'btn',type:'button',style:'margin-top:14px',onclick:newGoal},'בוחרים מטרה')));
+  } else {
+    goalDetail(wrap,on[0]);
+    if(on.length>1){ wrap.append(h('div',{class:'sec'},h('h2',{},'עוד מטרות'))); const l=h('div',{class:'list'}); on.slice(1).forEach(g=>l.append(goalRow(g))); wrap.append(l); }
+    if(on.length<3) wrap.append(h('button',{class:'lnkline center',type:'button',onclick:newGoal},ic('plus'),h('span',{},'מטרה נוספת')));
+  }
+  wrap.append(achStrip());
+  if(past.length){ wrap.append(h('div',{class:'sec'},h('h2',{},'מטרות קודמות'))); const l=h('div',{class:'list'}); past.slice().reverse().forEach(g=>l.append(goalRow(g))); wrap.append(l); }
+  return wrap;
+}
+function goalPage(){
+  const g=goalById(route.param); header('מטרה',{back:'#goals'}); const wrap=h('div');
+  if(!g){ wrap.append(h('div',{class:'empty'},ic('target'),h('div',{},'המטרה לא נמצאה.'))); return wrap; }
+  goalsSoon(); goalDetail(wrap,g); return wrap;
+}
+function goReplace(hash){ if(NAVS.length>1&&NAVS[NAVS.length-2]===hash){ history.back(); return; } NAV_REPL=true; location.replace(hash); }
+
+/* ---------- goals: taking in a new one. three steps: the goal, what is still missing, the plan ---------- */
+const GW={step:0,text:'',kind:'',p:{},due:'',dueMode:'',ans:{},res:null,params:null,err:'',fromText:false};
+function newGoal(){ Object.assign(GW,{step:0,text:'',kind:'',p:{},due:'',dueMode:'',ans:{},res:null,params:null,err:'',fromText:false}); go('#goalnew'); }
+function gwTo(step){ GW.step=step; render(); $('#scroll').scrollTop=0; }
+function goalNewPage(){
+  header('מטרה חדשה',{back:'#goals'}); const wrap=h('div',{class:'gwiz'});
+  wrap.append(h('div',{class:'gw-dots','aria-hidden':'true'},...[0,1,2].map(i=>h('i',{class:i===GW.step?'on':(i<GW.step?'was':'')}))));
+  if(GW.step===1&&GW.kind) gwAsk(wrap); else if(GW.step===2&&GW.res) gwPlan(wrap); else gwStart(wrap);
+  return wrap;
+}
+function gwStart(wrap){
+  const ta=h('textarea',{rows:'2',placeholder:'למשל: לרדת 8 קילו עד הקיץ',maxlength:'200','aria-label':'המטרה במילים שלך'}); ta.value=GW.text;
+  const btn=h('button',{class:'btn',type:'button',disabled:!GW.text.trim()},'המשך');
+  const next=()=>{ const t=ta.value.trim(); if(!t) return; const u=GoalKit.understand(t,{today:todayKey(),weight:(lastWeigh()||{}).kg||S.profile.weight,parse:VoiceLog.parse});
+    Object.assign(GW,{text:t,kind:u.kind,p:u.p,due:u.due,dueMode:u.due?'date':'',ans:{},err:'',fromText:true}); gwTo(1); };
+  ta.addEventListener('input',()=>{ GW.text=ta.value; btn.disabled=!ta.value.trim(); });
+  ta.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); next(); } });
+  btn.addEventListener('click',next);
+  wrap.append(h('div',{class:'display'},'מה המטרה שלך?'),h('p',{class:'lead'},'כותבים אותה במילים שלך. למשל: חצי מרתון עד מרץ, בנץ׳ 100 קילו, איירונמן.'),h('div',{class:'fld'},ta),btn);
+  wrap.append(h('div',{class:'sec'},h('h2',{},'או בוחרים מהרשימה')));
+  const grid=h('div',{class:'gtiles'});
+  GoalKit.TYPES.forEach(T=>grid.append(h('button',{class:'gtile pressable',type:'button',style:`--c:var(--g-${T.col})`,onclick:()=>{ Object.assign(GW,{text:'',kind:T.k,p:{},due:'',dueMode:'',ans:{},err:'',fromText:false}); gwTo(1); }},h('span',{class:'ic'},ic(T.icon)),h('span',{class:'t'},T.t),h('span',{class:'s'},T.s))));
+  wrap.append(grid);
+}
+function gwAsk(wrap){
+  const T=GoalKit.typeOf(GW.kind), D=goalData(), tk=todayKey(), free=GW.kind==='free';
+  wrap.append(h('div',{class:'gk',style:`--c:var(--g-${T.col})`},ic(T.icon),h('span',{},GW.fromText?(free?'מטרה במילים שלך':'הבנתי: '+T.t):T.t)));
+  wrap.append(h('div',{class:'display',style:'font-size:26px;margin-bottom:12px'},GW.text||T.t));
+  if(GW.fromText&&free) wrap.append(h('p',{class:'lead'},'את המטרה הזאת האפליקציה לא יודעת למדוד לבד, אז בונים את השלבים ביד. אם היא דומה לאחת מהרשימה, אפשר לחזור ולבחור אותה.'));
+  if(free){
+    const ti=h('input',{type:'text',value:GW.ans.title!=null?GW.ans.title:GW.text,placeholder:'המטרה במילים שלך',maxlength:'80'}); GW.ans.title=ti.value; ti.addEventListener('input',()=>{ GW.ans.title=ti.value; });
+    wrap.append(h('div',{class:'fld'},h('label',{},'המטרה'),ti)); GW.ans.stages=GW.ans.stages||['','','',''];
+    const fs=h('div',{class:'fld'},h('label',{},'השלבים בדרך (אפשר להשאיר ריק)'));
+    GW.ans.stages.forEach((sv,i)=>{ const si=h('input',{type:'text',value:sv,placeholder:`שלב ${i+1}`,maxlength:'60','aria-label':`שלב ${i+1}`}); si.addEventListener('input',()=>{ GW.ans.stages[i]=si.value; }); fs.append(si); }); wrap.append(fs);
+  }
+  GoalKit.ask(GW.kind,Object.assign({},GW.p,GW.ans),D).forEach(f=>{
+    const val=(GW.ans[f.k]!=null&&GW.ans[f.k]!=='')?GW.ans[f.k]:f.def;
+    if(f.type==='num'){
+      const inp=h('input',{type:'number',inputmode:'decimal',step:String(f.step||1),min:String(f.min),max:String(f.max),value:(val===''||val==null)?'':val,placeholder:f.unit});
+      if(val!==''&&val!=null) GW.ans[f.k]=val; inp.addEventListener('input',()=>{ GW.ans[f.k]=inp.value===''?'':pnum(inp.value); });
+      wrap.append(h('div',{class:'fld'},h('label',{},`${f.t} · ${f.unit}`),inp,f.why?h('div',{class:'small muted'},f.why):null));
+    } else if(f.type==='pick'){
+      GW.ans[f.k]=val; const known=f.opts.some(o=>String(o[0])===String(val)); const one=f.opts.some(o=>String(o[1]).length>12);
+      const grid=h('div',{class:'typegrid'+(one?' one':'')}); f.opts.forEach(([v,l])=>grid.append(h('button',{class:'typebtn pressable'+(String(val)===String(v)?' on':''),type:'button','aria-pressed':String(val)===String(v)?'true':'false',onclick:()=>{ GW.ans[f.k]=v; delete GW.ans.from; render(); }},h('span',{},l))));
+      const fld=h('div',{class:'fld'},h('label',{},f.t),grid);
+      if(f.other){ grid.append(h('button',{class:'typebtn pressable'+(known?'':' on'),type:'button','aria-pressed':known?'false':'true',onclick:()=>{ GW.ans[f.k]=known?15:val; render(); }},h('span',{},'מרחק אחר')));
+        if(!known){ const oi=h('input',{type:'number',inputmode:'decimal',step:String(f.other.step),min:String(f.other.min),max:String(f.other.max),value:val,'aria-label':'מרחק בקילומטרים'}); oi.addEventListener('input',()=>{ const v=pnum(oi.value); if(v>0) GW.ans[f.k]=v; }); fld.append(oi); } }
+      wrap.append(fld);
+    } else if(f.type==='ex'){
+      GW.ans.ex=val; const opts=f.opts.slice(); if(!opts.some(o=>o[0]===val)){ const e=getEx(val); if(e) opts.push([val,e.he]); }
+      const sel=h('select',{},...opts.map(([v,l])=>h('option',{value:v,selected:v===val},l)),h('option',{value:'__other'},'תרגיל אחר…'));
+      sel.addEventListener('change',()=>{ const pickIt=id=>{ GW.ans.ex=id; delete GW.ans.from; delete GW.ans.to; render(); };
+        if(sel.value==='__other'){ sel.value=val; pickExerciseSheet(e=>pickIt(e.id),'באיזה תרגיל?'); } else pickIt(sel.value); });
+      wrap.append(h('div',{class:'fld'},h('label',{},f.t),sel));
+    }
+  });
+  if(GW.kind!=='habit'){
+    const chips=h('div',{class:'gchips'}); [['','בלי תאריך'],['3m','3 חודשים'],['6m','חצי שנה'],['12m','שנה'],['date','תאריך אחר']].forEach(([m,l])=>chips.append(h('button',{class:'gchip'+(GW.dueMode===m?' on':''),type:'button','aria-pressed':GW.dueMode===m?'true':'false',onclick:()=>{ GW.dueMode=m; GW.due=m==='3m'?addDays(tk,91):m==='6m'?addDays(tk,182):m==='12m'?addDays(tk,365):(m==='date'?(GW.due||addDays(tk,90)):''); render(); }},l)));
+    const fld=h('div',{class:'fld'},h('label',{},(GW.kind==='run'||GW.kind==='tri')?'מתי המרוץ? (לא חובה)':'עד מתי? (לא חובה)'),chips);
+    if(GW.dueMode==='date'){ const di=h('input',{type:'date',value:GW.due,min:addDays(tk,7),'aria-label':'תאריך היעד'}); di.addEventListener('change',()=>{ GW.due=di.value; }); fld.append(di); }
+    wrap.append(fld);
+  }
+  if(GW.err) wrap.append(h('div',{class:'banner',role:'alert'},ic('info'),h('span',{},GW.err)));
+  wrap.append(h('button',{class:'btn',type:'button',onclick:gwBuild},'בונים את התוכנית'),h('button',{class:'lnkline center',type:'button',onclick:()=>{ GW.err=''; gwTo(0); }},'חזרה'));
+}
+function gwBuild(){
+  const D=goalData(), a=GW.ans, k=GW.kind; let p;
+  if(k==='lose'||k==='gain') p={from:+a.from,to:+a.to,height:+a.height||0};
+  else if(k==='lift') p={ex:a.ex,from:+a.from,to:+a.to,reps:1};
+  else if(k==='reps') p={ex:a.ex,from:+a.from||0,to:+a.to};
+  else if(k==='run') p={km:+a.km,from:+a.from||0};
+  else if(k==='tri') p={race:a.race,level:a.level};
+  else if(k==='habit') p={perWeek:+a.perWeek,weeks:+a.weeks};
+  else p={title:(a.title||'').trim(),stages:a.stages||[]};
+  const r=GoalKit.build(k,p,D,GW.due,GW.text);
+  if(r.err){ GW.err=r.err; render(); return; }
+  GW.err=''; GW.res=r; GW.params=p; gwTo(2);
+}
+function gwPlan(wrap){
+  const r=GW.res;
+  if(r.stop){ wrap.append(h('div',{class:'display',style:'font-size:26px;margin-bottom:12px'},'כאן האפליקציה עוצרת'),h('div',{class:'banner'},ic('info'),h('span',{},r.stop)),h('button',{class:'btn',type:'button',onclick:()=>{ GW.res=null; gwTo(0); }},'בחירת מטרה אחרת')); return; }
+  const g=r.goal, T=GoalKit.typeOf(g.kind), v=r.verdict;
+  wrap.append(h('div',{class:'gk',style:`--c:var(--g-${T.col})`},ic(T.icon),h('span',{},'התוכנית שלך')),h('div',{class:'display',style:'font-size:28px;margin-bottom:12px'},g.title));
+  wrap.append(h('div',{class:'banner'+(v.state==='ok'?' good':'')},ic(v.state==='ok'?'check':'info'),h('span',{},v.text)));
+  (r.notes||[]).forEach(n=>wrap.append(h('div',{class:'banner blue'},ic('info'),h('span',{},n))));
+  wrap.append(h('div',{class:'sec'},h('h2',{},plural(g.stages.length,'שלב אחד','שלבים')),h('span',{class:'small muted'},`יעד: ${gDate(g.due)}`)),goalStages(g,{idx:-1},true));
+  wrap.append(h('button',{class:'btn',type:'button',onclick:gwSave},'מתחילים'),h('button',{class:'lnkline center',type:'button',onclick:()=>gwTo(1)},'חזרה לשינוי'));
+}
+function gwSave(){
+  const r=GW.res; if(!r||!r.goal) return; const g=r.goal, p=GW.params||{}, P=S.profile;
+  if(g.kind==='lose'||g.kind==='gain'){ if(p.height>0&&!(+P.height>0)) P.height=p.height; addWeigh(g.p.from); }
+  if(g.kind==='habit') P.weekly=g.p.perWeek;
+  const focus={lose:'fatloss',gain:'hypertrophy',lift:'strength',run:'endurance',tri:'endurance'}[g.kind]; if(focus) P.goal=focus;
+  save('profile',P);
+  S.goals.list=S.goals.list||[]; S.goals.list.push(g); saveGoals(); GW.res=null; GW.step=0; GW.text='';
+  toast('המטרה נשמרה. מתחילים.'); haptic(15); goalAch(900); goReplace('#goals');
+}
+
+/* ---------- goals: on the other screens ---------- */
+function goalHubBox(){
+  const g=goalsOn()[0], D=goalData();
+  if(!g){ const n=ACH.filter(a=>(S.prefs.ach||{})[a.id]).length; return h('button',{class:'hubbox wide pressable',type:'button',style:'--c:var(--g-chest)',onclick:()=>go('#goals')},h('div',{class:'ic'},ic('target')),h('div',{class:'grow'},h('div',{class:'t'},'מטרות והישגים'),h('div',{class:'s'},n?`בוחרים מטרה · ${plural(n,'הישג אחד','הישגים')}`:'כותבים מטרה ומקבלים שלבים')),h('span',{class:'chev',html:I('chev')})); }
+  const T=GoalKit.typeOf(g.kind), P=GoalKit.progress(g,D);
+  return h('button',{class:'hubbox wide pressable',type:'button',style:`--c:var(--g-${T.col})`,onclick:()=>go('#goals')},h('div',{class:'ic'},ic(T.icon)),h('div',{class:'grow'},h('div',{class:'t'},'מטרות והישגים'),h('div',{class:'s ell'},`${g.title} · ${GoalKit.line(g,D)}`),h('div',{class:'gp','aria-hidden':'true'},h('i',{style:`width:${Math.round(P.pct*100)}%`}))),h('span',{class:'chev',html:I('chev')}));
+}
+function goalProfileRow(){ const g=goalsOn()[0]; return h('button',{class:'card pressable',type:'button',style:'width:100%;text-align:start',onclick:()=>go('#goals')},h('div',{class:'row'},h('div',{class:'grow'},h('div',{class:'k'},g?g.title:'המטרה שלי'),h('div',{class:'small muted'},g?GoalKit.line(g,goalData()):'בוחרים מטרה, והאפליקציה בונה את השלבים')),ic('chev'))); }
+/* on the Today screen, one card at most: the week that ended (Sunday to Tuesday, once), or an invitation to set a goal (once) */
+function goalCard(){
+  const tk=todayKey(), dow=new Date(tk).getDay(), g=goalsOn()[0];
+  const card=(icn,k,s,onTap,onSeen)=>h('div',{class:'recap pressable',role:'button',tabindex:'0',onclick:()=>{ onSeen(); onTap(); }},h('div',{class:'rc-i'},ic(icn)),h('div',{class:'grow'},h('div',{class:'rc-k'},k),h('div',{class:'rc-s ell'},s)),h('button',{class:'iconbtn sm',type:'button','aria-label':'סגירה',html:I('x'),onclick:ev=>{ ev.stopPropagation(); onSeen(); render(); }}));
+  if(!g){ if(S.prefs.seen.goalNudge||((S.goals&&S.goals.list)||[]).length||allSessions().length<3) return null; return card('target','יש לך מטרה?','כותבים אותה, והאפליקציה בונה את השלבים',newGoal,()=>{ S.prefs.seen.goalNudge=tk; save('prefs',S.prefs); }); }
+  if(dow>2) return null; const wk=goalWeekData(g); if(!wk||g.seenWeek===wk.key) return null;
+  return card(wk.moved?'trend':'target',wk.title,wk.lines[0]||g.title,()=>goalWeekSheet(g,wk),()=>{ g.seenWeek=wk.key; saveGoals(); });
+}
+function goalWeekSheet(g,wk){ Sheet.show(h('div',{},h('div',{class:'small b muted'},g.title),h('h2',{},wk.title),...wk.lines.map(l=>h('p',{style:'margin:0 0 8px;line-height:1.6'},l)),h('p',{class:'b',style:'margin:4px 0 14px'},wk.close),h('button',{class:'btn',type:'button',onclick:()=>{ Sheet.close(); setTimeout(()=>go('#goals'),320); }},'למטרה ולשלבים')),()=>render()); }
+
+/* ---------- voice: one sentence in, one set in the journal, one sentence back ---------- */
+const VO={rec:null,say:'',ok:null,heard:'',last:null,snap:[],ping:null,pulled:0,auto:false,busy:false,ix:null,ixN:0};
+function voiceEnv(){
+  const tk=todayKey(), all=allEx(); if(!VO.ix||VO.ixN!==all.length){ VO.ix=VoiceLog.buildIndex(all); VO.ixN=all.length; }
+  const stars={}, pop={}; (S.deck.stars||[]).forEach(id=>{ stars[id]=1; }); POPULAR.forEach(id=>{ pop[id]=1; });
+  return {index:VO.ix,logs:S.logs,plan:((planFor(tk)||{}).ex||[]).map(x=>x.id),stars,popular:pop,last:VO.last,date:tk,now:Date.now()};
+}
+function voiceApply(item,src){
+  const id=item.ex, before=S.logs[id]?JSON.stringify(S.logs[id]):null, log=S.logs[id]||{sessions:[]};
+  const r=VoiceLog.applyItem(log,item); S.logs[id]=log; save('log-'+id,log);
+  if(item.d===todayKey()) recordDay(); else recordDayFor(item.d,id);
+  const rec={id:item.id||('l'+Date.now().toString(36)),ex:id,d:item.d,sets:item.sets,at:item.at||Date.now(),src:src||'app',no:r.setNo};
+  S.vdone.last=[rec].concat(S.vdone.last||[]).slice(0,20); VO.snap=[{id:rec.id,ex:id,d:item.d,before}].concat(VO.snap).slice(0,10); VO.last={ex:id,at:Date.now()};
+  return r;
+}
+/* only what was said while the app is open can be taken back exactly */
+function voiceUndo(){
+  const s=VO.snap.shift(); if(!s) return false;
+  if(s.before) S.logs[s.ex]=JSON.parse(s.before); else delete S.logs[s.ex];
+  save('log-'+s.ex,S.logs[s.ex]||{sessions:[]}); S.vdone.last=(S.vdone.last||[]).filter(x=>x.id!==s.id); save('vdone',S.vdone);
+  if(s.d===todayKey()) recordDay(); VO.last=null; return true;
+}
+function voiceSay(text,opts){
+  opts=opts||{}; const env=voiceEnv(), R=VoiceLog.handle(text,env), L=VoiceLog.text(R.lang);
+  if(R.cmd==='undo'){ R.ok=voiceUndo(); R.say=R.ok?L.undo:L.undoNone; }
+  else if(R.cmd==='today') R.say=VoiceLog.todayLine(R.lang,S.logs,env.index,todayKey());
+  else if(R.ok){ voiceApply(R.item,'app'); save('vdone',S.vdone); haptic(15); if(R.judge&&/^pr/.test(R.judge.k)) Snd.pr(); else Snd.ok(); }
+  VO.say=R.say; VO.ok=!!R.ok; VO.heard=text;
+  if(opts.speak) voiceSpeak(R.say,R.lang);
+  return R;
+}
+function voiceSpeak(t,lang){ try{ if(!('speechSynthesis' in window)||!t) return; const u=new SpeechSynthesisUtterance(t); u.lang=lang==='en'?'en-US':'he-IL'; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
+function voiceCanListen(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); }
+function voiceListen(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){ toast('הדפדפן הזה לא תומך בזיהוי דיבור. אפשר להקליד.'); return; }
+  if(VO.rec){ try{ VO.rec.stop(); }catch(e){} return; }
+  const rec=new SR(); rec.lang=S.profile.vlang==='en'?'en-US':'he-IL'; rec.interimResults=true; rec.maxAlternatives=1; rec.continuous=false; let heard='';
+  rec.onresult=ev=>{ let t=''; for(let i=0;i<ev.results.length;i++) t+=ev.results[i][0].transcript; heard=t; VO.heard=t; const el=$('#vheard'); if(el) el.textContent=t||'מקשיב…'; };
+  rec.onerror=ev=>{ if(ev.error==='not-allowed'||ev.error==='service-not-allowed') toast('צריך לאשר לאפליקציה גישה למיקרופון'); else if(ev.error!=='no-speech'&&ev.error!=='aborted') toast('הזיהוי לא הצליח. אפשר להקליד.'); };
+  rec.onend=()=>{ VO.rec=null; if(heard.trim()) voiceSay(heard.trim(),{speak:true}); if(route.page==='voice') render(); };
+  try{ rec.start(); VO.rec=rec; VO.say=''; VO.heard=''; if(route.page==='voice') render(); }catch(e){ VO.rec=null; toast('המיקרופון לא נפתח'); }
+}
+/* what the phone assistant sent while the app was closed: taken into the journal once, on this or on any other device */
+function voiceIntake(){
+  const live={}; ((S.vinbox&&S.vinbox.items)||[]).forEach(it=>{ if(it&&it.id) live[it.id]=1; }); S.vdone.ids=S.vdone.ids||{};
+  Object.keys(S.vdone.ids).forEach(id=>{ if(!live[id]) delete S.vdone.ids[id]; });
+  const pend=VoiceLog.pending(S.vinbox,S.vdone).slice().sort((a,b)=>(a.at||0)-(b.at||0)); if(!pend.length) return 0;
+  let n=0; const names=[];
+  pend.forEach(it=>{ S.vdone.ids[it.id]=1; if(typeof it.ex!=='string'||!it.ex||!Array.isArray(it.sets)||!/^\d{4}-\d{2}-\d{2}$/.test(it.d||'')) return;
+    it={...it,sets:it.sets.slice(0,10).map(x=>({r:+x.r,w:+x.w})).filter(x=>x.r>=0&&x.r<=7200&&x.w>=0&&x.w<=600)}; if(!it.sets.length) return;      // the inbox is data: only sane numbers enter the journal
+    voiceApply(it,'siri'); n+=it.sets.length; const e=getEx(it.ex); if(e&&!names.includes(e.he)) names.push(e.he); });
+  save('vdone',S.vdone);
+  if(n){ toast(`נרשם בקול: ${plural(n,'סט אחד','סטים')}${names.length?' · '+names.slice(0,2).join(', '):''}`); haptic(12); render(); }
+  return n;
+}
+async function voicePull(force){
+  if(!STANDALONE||!PB.user||(!force&&Date.now()-VO.pulled<15000)) return; VO.pulled=Date.now();
+  try{ const j=await PB.req('GET',`/api/collections/docs/records?perPage=1&filter=${encodeURIComponent('user="'+PB.user.id+'" && key="vinbox"')}`); const it=(j.items||[])[0]; if(!it||!it.data) return;
+    S.vinbox={items:[],...it.data}; try{ localStorage.setItem('gt:vinbox',JSON.stringify(it.data)); }catch(e){} voiceIntake(); }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) voicePull(); });
+window.addEventListener('focus',()=>voicePull());
+/* the personal code the phone assistant sends with each sentence. the server keeps only its fingerprint, this device keeps the code */
+function voiceKey(){ try{ return localStorage.getItem('gtv:key')||''; }catch(e){ return ''; } }
+async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
+async function voiceKeyNew(){
+  if(!PB.user||VO.busy) return; VO.busy=true; render();
+  try{
+    const key='stm_'+Array.from(crypto.getRandomValues(new Uint8Array(24))).map(x=>x.toString(36).padStart(2,'0')).join('').slice(0,40), hash=await sha256hex(key);
+    const old=await PB.req('GET',`/api/collections/voice_keys/records?perPage=50&filter=${encodeURIComponent('user="'+PB.user.id+'"')}`);
+    for(const it of (old.items||[])){ try{ await PB.req('DELETE','/api/collections/voice_keys/records/'+it.id); }catch(e){} }
+    await PB.req('POST','/api/collections/voice_keys/records',{user:PB.user.id,hash,label:'siri'});
+    try{ localStorage.setItem('gtv:key',key); }catch(e){} VO.keyInfo={id:'new'}; toast('הקוד האישי מוכן');
+  }catch(e){ toast(e&&e.status===404?'השרת עוד לא תומך ברישום בקול':pbError(e)); }
+  VO.busy=false; render();
+}
+/* the code is kept only on the device that made it; another device of the same account can still learn that one exists */
+async function voiceKeyInfo(){ if(VO.keyInfo!==undefined||!PB.user) return; VO.keyInfo=null; try{ const j=await PB.req('GET',`/api/collections/voice_keys/records?perPage=1&filter=${encodeURIComponent('user="'+PB.user.id+'"')}`); VO.keyInfo=(j.items||[])[0]||null; }catch(e){ VO.keyInfo=null; } if(VO.keyInfo&&route.page==='voice') render(); }
+const pbLogoutBase=PB.logout.bind(PB);
+PB.logout=function(){ try{ localStorage.removeItem('gtv:key'); }catch(e){} VO.keyInfo=undefined; return pbLogoutBase(); };      // a code belongs to one account: it leaves the device with it
+async function voicePing(){ if(VO.ping!=null||!STANDALONE) return; VO.ping=undefined; try{ const r=await fetch(PB_URL+'/api/setim/voice'); const j=await r.json().catch(()=>({})); VO.ping=!!(r.ok&&j&&j.ok); }catch(e){ VO.ping=false; } if(route.page==='voice') render(); }
+async function copyText(t,msg){ try{ await navigator.clipboard.writeText(t); toast(msg||'הועתק'); }catch(e){ toast('ההעתקה לא הצליחה'); } }
+function voiceShortcutHelp(){
+  const url=PB_URL+'/api/setim/voice', key=voiceKey();
+  const step=(t,d,extra)=>h('li',{},h('div',{class:'grow'},h('div',{class:'st'},t),d?h('div',{class:'sd'},d):null,extra||null));
+  const code=(txt,label)=>h('div',{class:'vkey'},h('code',{},txt),h('button',{type:'button',onclick:()=>copyText(txt,label+' הועתק')},'העתקה'));
+  Sheet.show(h('div',{},h('h2',{},'בונים את הקיצור, פעם אחת'),h('p',{class:'small muted',style:'margin:0 0 4px;line-height:1.55'},'באפליקציה ״קיצורים״ (Shortcuts) באייפון. שמות הפעולות כתובים באנגלית, כי כך מוצאים אותן בחיפוש.'),
+    h('ol',{class:'vsteps'},
+      step('קיצור חדש','לוחצים על + למעלה.'),
+      step('Ask for Input','סוג הקלט: Text. השאלה: מה לרשום?'),
+      step('Get Contents of URL','מדביקים את הכתובת. פותחים את החץ ובוחרים בשיטה POST ובגוף בקשה מסוג JSON.',code(url,'הכתובת')),
+      step('שני שדות בגוף הבקשה','שדה בשם key עם הקוד האישי, ושדה בשם text עם התשובה מהשלב השני (Provided Input).',key?code(key,'הקוד'):null),
+      step('Get Dictionary Value','בשדה Get Value for כותבים את המילה say, כדי שהקיצור ייקח את המשפט שחזר.'),
+      step('Show Result','כך Siri מקריאה את התשובה. נותנים לקיצור את השם סטים.'))));
+}
+function voicePhone(wrap){
+  if(!STANDALONE){ wrap.append(h('div',{class:'card'},h('p',{class:'small muted',style:'margin:0;line-height:1.6'},'רישום דרך Siri עובד בגרסה שבכתובת getonekeyai.com, עם חשבון.'))); return; }
+  voicePing(); const key=voiceKey(), android=/Android/i.test(navigator.userAgent); if(!key) voiceKeyInfo();
+  const head=(t,s)=>h('div',{class:'vc-h'},h('span',{class:'vc-i'},ic('phone')),h('div',{class:'grow'},h('div',{class:'k'},t),h('div',{class:'small muted',style:'line-height:1.45'},s)));
+  const step=(t,d,extra)=>h('li',{},h('div',{class:'grow'},h('div',{class:'st'},t),d?h('div',{class:'sd'},d):null,extra||null));
+  const ios=h('div',{class:'card vcard'},head('iPhone, דרך Siri','אומרים ״היי סירי, סטים״, Siri שואלת מה לרשום, ועונים במשפט אחד.'));
+  if(!PB.user) ios.append(h('p',{class:'small muted',style:'margin:12px 0;line-height:1.6'},'Siri שולחת את המשפט לחשבון שלך, ולכן צריך להתחבר קודם.'),h('button',{class:'btn sm',type:'button',onclick:()=>authSheet('login')},'כניסה או הרשמה'));
+  else if(VO.ping===false) ios.append(h('div',{class:'banner',style:'margin:12px 0 0'},ic('info'),h('span',{},'החיבור ל-Siri עוד לא הופעל בשרת של סטים. הרישום מתוך האפליקציה כבר עובד.')));
+  else ios.append(h('ol',{class:'vsteps'},
+    step('קוד אישי',key?'הקוד שמור במכשיר הזה. מי שמחזיק בו יכול להוסיף סטים לחשבון שלך ולשמוע מה נרשם היום, ולא יותר מזה.':(VO.keyInfo?'לחשבון כבר יש קוד פעיל, והקיצור שלך ממשיך לעבוד. הקוד עצמו שמור רק במכשיר שבו נוצר. קוד חדש מחליף אותו, ואז מעדכנים אותו גם בקיצור.':'קוד שמזהה אותך מול Siri. אפשר להחליף אותו בכל רגע.'),key?h('div',{class:'vkey'},h('code',{},key.slice(0,10)+'…'),h('button',{type:'button',onclick:()=>copyText(key,'הקוד הועתק')},'העתקה'),h('button',{type:'button',onclick:()=>confirmSheet('להחליף את הקוד?','הקוד הישן יפסיק לעבוד, וצריך לעדכן אותו בקיצור של Siri.',voiceKeyNew,'כן, להחליף')},'החלפה')):h('button',{class:'btn sm',type:'button',disabled:VO.busy,onclick:voiceKeyNew},VO.busy?'רגע…':(VO.keyInfo?'קוד חדש במקום הקיים':'יצירת קוד אישי'))),
+    step('הקיצור של Siri',SIRI_SHORTCUT_URL?'מוסיפים את הקיצור המוכן ומדביקים בו את הקוד.':'בונים אותו פעם אחת, בארבע פעולות.',h('button',{class:'btn sm sec2',type:'button',onclick:()=>{ if(SIRI_SHORTCUT_URL) window.open(SIRI_SHORTCUT_URL,'_blank','noopener'); else voiceShortcutHelp(); }},SIRI_SHORTCUT_URL?'הוספת הקיצור':'איך בונים את הקיצור')),
+    step('מדברים','״היי סירי, סטים״. ״מה לרשום?״ ״בנץ׳, 10 חזרות, 60 קילו.״ Siri עונה מה נרשם ואיך זה ביחס לפעם הקודמת. הסט מופיע ביומן בפעם הבאה שהאפליקציה נפתחת.')));
+  const and=h('div',{class:'card vcard'},head('Android','קיצור דרך במסך הבית שפותח את סטים ישר בהאזנה.'),
+    h('p',{class:'small muted',style:'margin:12px 0 0;line-height:1.6'},'Google הסירה את Assistant מהטלפונים, ו-Gemini עוד לא יודע להעביר משפט בעברית לאפליקציה כמו סטים. לכן ב-Android אין היום רישום בלי לגעת בטלפון.'),
+    h('ol',{class:'vsteps'},step('לחיצה ארוכה על הסמל של סטים','במסך הבית, אחרי שהאפליקציה הותקנה.'),step('גוררים את ״רישום בקול״ למסך הבית','נוצר סמל נפרד.'),step('נגיעה אחת, ומדברים','האפליקציה מקשיבה, רושמת ומקריאה את התשובה.')));
+  wrap.append(...(android?[and,ios]:[ios,and]));
+}
+function voicePage(){
+  header('רישום בקול',{back:'#more'}); const wrap=h('div');
+  wrap.append(h('div',{class:'display'},'רישום בקול'),h('p',{class:'lead'},'אומרים או כותבים משפט אחד, והסט נרשם. בעברית או באנגלית.'));
+  const inp=h('input',{type:'text',id:'vtext',placeholder:'בנץ׳, 10 חזרות, 60 קילו',autocomplete:'off',enterkeyhint:'send','aria-label':'מה לרשום'});
+  const send=()=>{ const t=inp.value.trim(); if(!t) return; voiceSay(t); render(); };
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); send(); } });
+  const mic=voiceCanListen()?h('button',{class:'vmic pressable'+(VO.rec?' on':''),type:'button','aria-label':VO.rec?'עצירת ההאזנה':'דיבור','aria-pressed':VO.rec?'true':'false',html:I('mic'),onclick:voiceListen}):null;
+  const box=h('div',{class:'vbox'},mic?h('div',{class:'vtop'},mic,h('div',{class:'small b muted'},VO.rec?'מקשיב. אפשר לדבר':'נוגעים ומדברים')):null,h('div',{class:'vrow'},h('div',{class:'fld grow',style:'margin:0'},inp),h('button',{class:'btn sm',type:'button',onclick:send},'רשום')));
+  if(VO.rec) box.append(h('div',{class:'vheard',id:'vheard','aria-live':'polite'},VO.heard||'מקשיב…'));
+  else if(VO.say){ box.append(h('div',{class:'vres '+(VO.ok?'ok':'no'),'aria-live':'polite'},VO.heard?h('div',{class:'q'},'״'+VO.heard+'״'):null,h('div',{class:'a'},ic(VO.ok?'check':'info'),h('span',{},VO.say))));
+    if(VO.ok&&VO.snap.length) box.append(h('button',{class:'lnkline',type:'button',onclick:()=>{ if(voiceUndo()){ VO.say='בוטל. הרישום האחרון נמחק.'; VO.heard=''; } render(); }},ic('undo'),h('span',{},'ביטול הרישום הזה'))); }
+  wrap.append(box);
+  const chips=h('div',{class:'gchips'}); ['סקוואט, 8 חזרות, 60 קילו','עוד סט','מתח 8','ריצה 30 דקות 5 קילומטר','בטל'].forEach(t=>chips.append(h('button',{class:'gchip',type:'button',onclick:()=>{ inp.value=t; inp.focus(); }},t)));
+  wrap.append(h('div',{class:'small b muted',style:'margin:16px 2px 8px'},'אפשר לומר, למשל'),chips);
+  wrap.append(h('div',{class:'sec'},h('h2',{},'מהטלפון, בלי לפתוח את האפליקציה'))); voicePhone(wrap);
+  const last=(S.vdone.last||[]).filter(x=>getEx(x.ex)).slice(0,8);
+  if(last.length){ wrap.append(h('div',{class:'sec'},h('h2',{},'נרשמו בקול'))); const l=h('div',{class:'list'}); last.forEach(x=>{ const e=getEx(x.ex); l.append(exItem(e,{sub:`${setStr((x.sets||[]).map(s=>({...s,t:true})),e)} · ${x.d===todayKey()?'היום':fmtDate(x.d)}${x.src==='siri'?' · Siri':''}`,onclick:()=>go('#dayex-'+x.d+'-'+x.ex)})); }); wrap.append(l); }
+  if(route.param==='go'&&!VO.auto&&voiceCanListen()){ VO.auto=true; setTimeout(voiceListen,450); }
+  return wrap;
+}
+function voiceHubBox(){ return h('button',{class:'hubbox wide pressable',type:'button',style:'--c:var(--g-back)',onclick:()=>go('#voice')},h('div',{class:'ic'},ic('mic')),h('div',{class:'grow'},h('div',{class:'t'},'רישום בקול'),h('div',{class:'s'},'אומרים משפט אחד, והסט נרשם')),h('span',{class:'chev',html:I('chev')})); }
+
+PAGES.goals=goalsPage; PAGES.goal=goalPage; PAGES.goalnew=goalNewPage; PAGES.voice=voicePage;
+Object.assign(TABOF,{goals:'more',goal:'more',goalnew:'more',voice:'more'});
+
+
 /* ========================= boot ========================= */
 (async function boot(){
   loadLocal(); loadExMini(); applyTheme(); applyLook(); woSweep(); if(woActive()) Wake.on(); const r=parseHash(); route.page=r.page; route.param=r.param; render();
   let onboarded=false; try{ onboarded=!!localStorage.getItem('gt:onboarded'); }catch(e){} if(!onboarded&&!onbSettle()){ if(STANDALONE) setTimeout(showOnboarding,250); else Onb.wait=true; }
-  try{ const res=await fetch('data/exercises.json'); S.ex=(await res.json()).concat(EXTRA_EX); S.ex.forEach(e=>S.byId[e.id]=e); cacheExMini(); }catch(e){ $('#view').prepend(h('div',{class:'banner'},'לא הצלחתי לטעון את מאגר התרגילים.')); }
+  try{ const res=await fetch('data/exercises.json'); S.ex=(await res.json()).concat(EXTRA_EX); S.ex.forEach(e=>{ if(CALIS_EQ.has(e.eq)) e.bw=true; S.byId[e.id]=e; }); cacheExMini(); }catch(e){ $('#view').prepend(h('div',{class:'banner'},'לא הצלחתי לטעון את מאגר התרגילים.')); }
   render();
   if(!STANDALONE) initCloud(); else { S.loaded=true; render(); initPB(); if('serviceWorker' in navigator){ try{ const had=!!navigator.serviceWorker.controller; navigator.serviceWorker.register('sw.js'); navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(had) toastAct('יש גרסה חדשה של סטים','רענון',()=>location.reload()); }); }catch(e){} } try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){} checkAch(); }
+  try{ voiceIntake(); goalsSoon(); }catch(e){}
 })();
 </script>
 </body>
