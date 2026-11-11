@@ -10,7 +10,7 @@ const ex = JSON.parse(fs.readFileSync(path.join(root, 'data', 'exercises.json'),
 const extra = [['x-swimming', 'שחייה', 'Swimming'], ['x-bike-outdoor', 'רכיבה על אופניים בחוץ', 'Outdoor cycling'], ['x-hiking', 'הליכה בטבע / טיול', 'Hiking']]
   .map(([id, he, en]) => ({ id, he, en, g: 'cardio', cat: 'cardio', bw: true }));
 const IX = VL.buildIndex(ex.concat(extra));
-const POP = {}; ['bench-press', 'squat', 'deadlift', 'pull-up', 'lat-pulldown', 'leg-press', 'plank', 'push-up', 'dumbbell-shoulder-press', 'barbell-curl', 'dips', 'running', 'hip-thrust', 'lateral-raise', 'seated-cable-row', 'crunches', 'tricep-pushdown', 'lunge', 'treadmill-running'].forEach(id => POP[id] = 1);
+const POP = {}; JSON.parse(fs.readFileSync(path.join(root, 'server', 'pb_hooks', 'exnames.json'), 'utf8')).popular.forEach(id => POP[id] = 1);      // the same list the app and the server use
 const D = '2026-11-11';
 const env = (over = {}) => Object.assign({ index: IX, logs: {}, plan: [], stars: {}, popular: POP, last: null, date: D, now: Date.parse(D + 'T10:00:00Z') }, over);
 const say = (text, over) => VL.handle(text, env(over));
@@ -133,7 +133,7 @@ test('pending inbox items count as history for the next sentence', () => {
   assert.match(VL.todayLine('he', all, IX, D), /לחיצת חזה במוט 2 סטים/);
 });
 test('the server side: sentences wait in the inbox, the journal itself is never written', () => {
-  const docs = { 'log-bench-press': { sessions: [{ d: '2026-11-04', sets: [{ r: 10, w: 57.5, t: true }] }] }, week: { days: { 3: { label: 'chest', ex: [{ id: 'db-bench-press', sets: 3, reps: 10 }] } } } };      // 2026-11-11 is a Wednesday
+  const docs = { 'log-bench-press': { sessions: [{ d: '2026-11-04', sets: [{ r: 10, w: 57.5, t: true }] }] }, week: { days: { 3: { label: 'chest', ex: [{ id: 'db-bench-press', sets: 3, reps: 10 }, { id: 'goblet-squat', sets: 3, reps: 10 }] } } } };      // 2026-11-11 is a Wednesday
   const copy = o => JSON.parse(JSON.stringify(o));
   const io = { catalog: { ex: ex.concat(extra), popular: Object.keys(POP) }, get: k => docs[k] ? copy(docs[k]) : null, put: (k, d) => { docs[k] = copy(d); },
     logs: () => { const o = {}; Object.keys(docs).forEach(k => { if (k.startsWith('log-')) o[k.slice(4)] = copy(docs[k]); }); return o; } };
@@ -141,7 +141,7 @@ test('the server side: sentences wait in the inbox, the journal itself is never 
   let r = ask('לחיצת חזה במוט 10 חזרות 60 קילו'); assert.ok(r.ok, r.say); assert.match(r.say, /שיא חדש! 2\.5 קילו/); assert.strictEqual(docs.vinbox.items.length, 1); assert.strictEqual(docs['log-bench-press'].sessions.length, 1);
   const first = docs.vinbox.items[0]; assert.strictEqual(first.ex, 'bench-press'); assert.strictEqual(first.d, D); assert.strictEqual(first.src, 'siri'); assert.deepStrictEqual(first.sets, [{ r: 10, w: 60 }]);
   r = ask('עוד סט'); assert.ok(r.ok, r.say); assert.match(r.say, /סט 2/); assert.match(r.say, /כמו הסט הקודם/);
-  r = ask('בנץ 8 חזרות 22 קילו'); assert.strictEqual(r.item.ex, 'db-bench-press'); assert.match(r.say, /פעם ראשונה/);                 // today's plan decides which bench press
+  r = ask('סקוואט 8 חזרות 22 קילו'); assert.strictEqual(r.item.ex, 'goblet-squat'); assert.match(r.say, /פעם ראשונה/);                 // today's plan decides which squat
   r = ask('מה עשיתי היום'); assert.match(r.say, /היום נרשמו 2 תרגילים/);
   r = ask('בטל'); assert.ok(r.ok); assert.strictEqual(docs.vinbox.items.length, 2);
   docs.vdone = { ids: { [first.id]: 1, [docs.vinbox.items[1].id]: 1 } };                                                                // the app took both into the journal
@@ -153,4 +153,16 @@ test('the server side: sentences wait in the inbox, the journal itself is never 
   assert.strictEqual(ask('').ok, false); assert.strictEqual(ask('x'.repeat(5000)).ok, false);
   const burst = { catalog: io.catalog, get: k => k === 'vinbox' ? { items: Array.from({ length: 20 }, (_, i) => ({ id: 'b' + i, at: now, ex: 'squat', d: D, sets: [{ r: 5, w: 100 }] })) } : null, logs: () => ({}), put: () => { throw new Error('must not write'); } };
   assert.strictEqual(VL.serve({ text: 'squat 5 reps 100 kilos', now: now + 1000, today: D }, burst).why, 'busy');
+});
+
+test('for someone with no history, a bare name is the standard exercise', () => {
+  const pick = q => { const m = VL.match(q, IX, { popular: POP, date: D }); return m ? m.id : ''; };
+  const want = { 'סקוואט': 'squat', 'squat': 'squat', "בנץ'": 'bench-press', 'לחיצת חזה': 'bench-press', 'bench press': 'bench-press', 'דדליפט': 'deadlift', 'מתח': 'pull-up', 'עליות מתח': 'pull-up', 'pull ups': 'pull-up',
+    'שכיבות סמיכה': 'push-up', 'מקבילים': 'dips', 'לחיצת כתפיים': 'dumbbell-shoulder-press', 'פולי עליון': 'lat-pulldown', 'לאט פולדאון': 'lat-pulldown', 'חתירה': 'seated-cable-row', 'יד קדמית': 'barbell-curl', 'biceps curl': 'barbell-curl',
+    'יד אחורית': 'tricep-pushdown', 'triceps': 'tricep-pushdown', 'לג פרס': 'leg-press', 'לאנג׳ים': 'lunge', 'מכרעים': 'lunge', 'היפ טראסט': 'hip-thrust', 'הרמות צד': 'lateral-raise', 'פלאנק': 'plank', 'בטן': 'crunches', 'כפיפות בטן': 'crunches',
+    'תאומים': 'standing-calf-raise', 'פרפר': 'pec-deck', 'ריצה': 'running', 'הליכון': 'treadmill-running', 'שחייה': 'x-swimming',
+    // a fuller name still means what it says
+    'סקוואט קדמי': 'front-squat', 'גובלט סקוואט': 'goblet-squat', 'סקוואט בולגרי': 'bulgarian-split-squat', 'לחיצת חזה במשקולות': 'db-bench-press', 'דדליפט רומני': 'romanian-deadlift', 'barbell row': 'barbell-row', 'לאט פולדאון באחיזה צרה': 'close-grip-lat-pulldown' };
+  const got = {}; Object.keys(want).forEach(q => { got[q] = pick(q); });
+  assert.deepStrictEqual(got, want);
 });

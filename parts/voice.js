@@ -88,6 +88,32 @@ var VoiceLog=(function(){
     ['leg extension','פשיטת ברכימ'],['leg curl','כפיפת ברכימ'],['calf raise','הרמות תאומימ'],['תאומימ','הרמות תאומימ']
   ];
   ALIAS=ALIAS.map(function(a){ return [norm(a[0]),norm(a[1])]; });
+  /* a bare, common name means the standard exercise ("סקוואט" is the barbell squat, not one of its thirty relatives),
+     unless the person's own plan or history points to another one that also fits the words */
+  var CANON={};
+  [['squat','סקוואט|squat|squats|כריעות|כריעה'],
+   ['bench-press','לחיצת חזה|בנץ|בנץ פרס|bench|bench press'],
+   ['deadlift','דדליפט|דד ליפט|deadlift|deadlifts'],
+   ['pull-up','מתח|עליות מתח|פול אפ|פולאפ|pull up|pull ups|pullup|pullups'],
+   ['push-up','שכיבות סמיכה|שכיבות שמיכה|שכיבות|פושאפ|פוש אפ|push up|push ups|pushup|pushups'],
+   ['dips','מקבילים|דיפס|dip|dips'],
+   ['dumbbell-shoulder-press','לחיצת כתפיים|לחיצת כתף|שולדר פרס|shoulder press|overhead press'],
+   ['lat-pulldown','פולי עליון|לאט פולדאון|פולדאון|lat pulldown|pulldown|pull down'],
+   ['seated-cable-row','חתירה|row|rows'],
+   ['barbell-curl','כפיפת מרפקים|כפיפות מרפקים|יד קדמית|ביצפס|דו ראשי|curl|curls|biceps curl|bicep curl|biceps'],
+   ['tricep-pushdown','יד אחורית|טריצפס|תלת ראשי|פשיטת מרפקים|פושדאון|triceps|tricep|pushdown|triceps pushdown|tricep pushdown'],
+   ['leg-press','לג פרס|לחיצת רגליים|leg press'],
+   ['lunge',"לאנג|לאנג'ים|לאנגים|מכרעים|מכרע|lunge|lunges"],
+   ['hip-thrust',"היפ ת'ראסט|היפ טראסט|hip thrust"],
+   ['lateral-raise','הרמות צד|הרמת צד|lateral raise|lateral raises|side raise'],
+   ['plank','פלאנק|פלנק|plank'],
+   ['crunches',"בטן|כפיפות בטן|קרנץ'|קרנץ|crunch|crunches|sit ups|situps"],
+   ['standing-calf-raise','תאומים|הרמות תאומים|הרמת תאומים|calf raise|calf raises'],
+   ['pec-deck','פרפר|פלאי|פק דק|fly|flies|flyes|pec deck|chest fly'],
+   ['running','ריצה|רצתי|run|running|ran|jog'],['walking','הליכה|הלכתי|walk|walking|walked'],['cycling','אופניים|רכיבה|רכבתי|bike|cycling|cycled'],
+   ['x-swimming','שחייה|שחיתי|swim|swimming|swam'],['treadmill-running','הליכון|treadmill'],
+   ['leg-extension','פשיטת ברכיים|leg extension'],['leg-curl','כפיפת ברכיים|leg curl'],['romanian-deadlift','דדליפט רומני|rdl|romanian deadlift']
+  ].forEach(function(c){ c[1].split('|').forEach(function(t){ CANON[norm(t)]=c[0]; }); });
 
   /* ---------- sentence -> tokens ---------- */
   function tokens(text){
@@ -276,11 +302,13 @@ var VoiceLog=(function(){
       if(pos<0) return; var alt=norm((' '+q+' ').replace(' '+k+' ',' '+a[1]+' '));
       if(alt&&!terms.some(function(t){ return t[0]===alt; })) terms.push([alt,0.95]);
     });
+    var canon=''; terms.forEach(function(t){ if(!canon&&has(CANON,t[0])&&ix.byId[CANON[t[0]]]) canon=CANON[t[0]]; });
     var plan={}, logs=env.logs||{}, stars=env.stars||{}, pop=env.popular||{}, today=env.date||'';
     (env.plan||[]).forEach(function(id){ plan[id]=1; });
     var scored=[];
     ix.list.forEach(function(x){
       var ts=0; terms.forEach(function(t){ var s=textScore(t[0],x)*t[1]; if(s>ts) ts=s; });
+      if(canon&&x.e.id===canon&&ts<97) ts=97;
       if(!ts) return;
       var id=x.e.id, pr=0, l=logs[id], ss=(l&&l.sessions)||[];
       if(plan[id]) pr+=25;
