@@ -889,6 +889,8 @@ html[data-nav="back"]::view-transition-new(root){animation:vt-in-b .26s cubic-be
 .vkey{display:flex;align-items:center;gap:4px;margin-top:8px;background:var(--card2);border-radius:var(--r-m);padding:4px;padding-inline-start:12px}
 .vkey code{flex:1;min-width:0;direction:ltr;text-align:left;font:600 13px ui-monospace,Menlo,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vkey button{flex:none;font-size:var(--fs-2);font-weight:800;color:var(--accent-t);padding:8px 10px;min-height:40px}
+.siri-add{margin-top:14px}
+.siri-add svg.i{stroke-width:2.6}
 .ltr{direction:ltr;unicode-bidi:isolate}
 
 </style>
@@ -3897,7 +3899,7 @@ if(typeof module!=='undefined'&&module.exports) module.exports=GoalKit;
    written only by the server) and vdone (which of those this account has already taken into the journal). */
 ICONS.mic='<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/>';
 S.goals={list:[]}; S.body={w:[]}; S.vinbox={items:[]}; S.vdone={ids:{},last:[]};
-const SIRI_SHORTCUT_URL='';      // the iCloud link of the ready-made shortcut; until it exists the app shows how to build it by hand
+const SIRI_SHORTCUT_URL='';      // fallback for the iCloud link of the ready-made shortcut; normally the server hands it out (server/pb_hooks/siri.json)
 
 /* ---------- goals: data ---------- */
 function goalData(){ return {today:todayKey(),now:Date.now(),profile:S.profile,weighins:(S.body&&S.body.w)||[],logs:S.logs,nameOf:id=>{ const e=getEx(id); return e?e.he:''; },isCustom:id=>(S.deck.custom||[]).some(c=>c.id===id)}; }
@@ -4197,7 +4199,7 @@ function goalCard(){
 function goalWeekSheet(g,wk){ Sheet.show(h('div',{},h('div',{class:'small b muted'},g.title),h('h2',{},wk.title),...wk.lines.map(l=>h('p',{style:'margin:0 0 8px;line-height:1.6'},l)),h('p',{class:'b',style:'margin:4px 0 14px'},wk.close),h('button',{class:'btn',type:'button',onclick:()=>{ Sheet.close(); setTimeout(()=>go('#goals'),320); }},'למטרה ולשלבים')),()=>render()); }
 
 /* ---------- voice: one sentence in, one set in the journal, one sentence back ---------- */
-const VO={rec:null,say:'',ok:null,heard:'',last:null,snap:[],ping:null,pulled:0,auto:false,busy:false,ix:null,ixN:0};
+const VO={rec:null,say:'',ok:null,heard:'',last:null,snap:[],ping:null,pulled:0,auto:false,busy:false,ix:null,ixN:0,shortcut:'',test:null,testing:false,autoKey:false};
 function voiceEnv(){
   const tk=todayKey(), all=allEx(); if(!VO.ix||VO.ixN!==all.length){ VO.ix=VoiceLog.buildIndex(all); VO.ixN=all.length; }
   const stars={}, pop={}; (S.deck.stars||[]).forEach(id=>{ stars[id]=1; }); POPULAR.forEach(id=>{ pop[id]=1; });
@@ -4261,48 +4263,88 @@ window.addEventListener('focus',()=>voicePull());
 /* the personal code the phone assistant sends with each sentence. the server keeps only its fingerprint, this device keeps the code */
 function voiceKey(){ try{ return localStorage.getItem('gtv:key')||''; }catch(e){ return ''; } }
 async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
-async function voiceKeyNew(){
-  if(!PB.user||VO.busy) return; VO.busy=true; render();
+async function voiceKeyNew(quiet){
+  if(!PB.user||VO.busy) return false; VO.busy=true; if(!quiet) render(); let ok=false;
   try{
     const key='stm_'+Array.from(crypto.getRandomValues(new Uint8Array(24))).map(x=>x.toString(36).padStart(2,'0')).join('').slice(0,40), hash=await sha256hex(key);
     const old=await PB.req('GET',`/api/collections/voice_keys/records?perPage=50&filter=${encodeURIComponent('user="'+PB.user.id+'"')}`);
     for(const it of (old.items||[])){ try{ await PB.req('DELETE','/api/collections/voice_keys/records/'+it.id); }catch(e){} }
     await PB.req('POST','/api/collections/voice_keys/records',{user:PB.user.id,hash,label:'siri'});
-    try{ localStorage.setItem('gtv:key',key); }catch(e){} VO.keyInfo={id:'new'}; toast('הקוד האישי מוכן');
-  }catch(e){ toast(e&&e.status===404?'השרת עוד לא תומך ברישום בקול':pbError(e)); }
-  VO.busy=false; render();
+    try{ localStorage.setItem('gtv:key',key); localStorage.removeItem('gtv:added'); }catch(e){} VO.keyInfo={id:'new'}; VO.test=null; ok=true; if(!quiet) toast('הקוד האישי מוכן');
+  }catch(e){ if(!quiet) toast(e&&e.status===404?'השרת עוד לא תומך ברישום בקול':pbError(e)); }
+  VO.busy=false; if(route.page==='voice') render(); return ok;
 }
-/* the code is kept only on the device that made it; another device of the same account can still learn that one exists */
-async function voiceKeyInfo(){ if(VO.keyInfo!==undefined||!PB.user) return; VO.keyInfo=null; try{ const j=await PB.req('GET',`/api/collections/voice_keys/records?perPage=1&filter=${encodeURIComponent('user="'+PB.user.id+'"')}`); VO.keyInfo=(j.items||[])[0]||null; }catch(e){ VO.keyInfo=null; } if(VO.keyInfo&&route.page==='voice') render(); }
+/* the code is kept only on the device that made it; another device of the same account can still learn that one exists.
+   VO.keyInfo: undefined = not asked yet, false = asking, null = the account has no code, an object = it has one */
+async function voiceKeyInfo(){ if(VO.keyInfo!==undefined||!PB.user) return; VO.keyInfo=false; let found=null; try{ const j=await PB.req('GET',`/api/collections/voice_keys/records?perPage=1&filter=${encodeURIComponent('user="'+PB.user.id+'"')}`); found=(j.items||[])[0]||null; }catch(e){ VO.keyInfo=undefined; return; } VO.keyInfo=found; if(route.page==='voice') render(); }
 const pbLogoutBase=PB.logout.bind(PB);
-PB.logout=function(){ try{ localStorage.removeItem('gtv:key'); }catch(e){} VO.keyInfo=undefined; return pbLogoutBase(); };      // a code belongs to one account: it leaves the device with it
-async function voicePing(){ if(VO.ping!=null||!STANDALONE) return; VO.ping=undefined; try{ const r=await fetch(PB_URL+'/api/setim/voice'); const j=await r.json().catch(()=>({})); VO.ping=!!(r.ok&&j&&j.ok); }catch(e){ VO.ping=false; } if(route.page==='voice') render(); }
+PB.logout=function(){ try{ localStorage.removeItem('gtv:key'); localStorage.removeItem('gtv:added'); }catch(e){} VO.keyInfo=undefined; VO.test=null; VO.autoKey=false; return pbLogoutBase(); };      // a code belongs to one account: it leaves the device with it
+/* the ready-made Siri shortcut is one iCloud link for everyone; the server hands it out, so it can change without a new build */
+function siriLink(u){ return (typeof u==='string'&&/^https:\/\/www\.icloud\.com\/shortcuts\/[0-9a-zA-Z]{16,64}\/?$/.test(u))?u:''; }
+function siriAdded(){ try{ return localStorage.getItem('gtv:added')||''; }catch(e){ return ''; } }
+async function voicePing(){ if(VO.ping!=null||!STANDALONE) return; VO.ping=undefined; try{ const r=await fetch(PB_URL+'/api/setim/voice'); const j=await r.json().catch(()=>({})); VO.ping=!!(r.ok&&j&&j.ok); VO.shortcut=siriLink(j&&j.shortcut)||siriLink(SIRI_SHORTCUT_URL); }catch(e){ VO.ping=false; } if(route.page==='voice') render(); }
+/* asks the server a question that writes nothing ("what did I do today"), with this device's code: is the whole road open? */
+async function voiceTest(again){
+  const key=voiceKey(); if(!key||VO.testing||(VO.test&&!again)) return; VO.testing=true;
+  try{ const r=await fetch(PB_URL+'/api/setim/voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,text:'מה עשיתי היום',lang:'he'})}); const j=await r.json().catch(()=>({}));
+    VO.test=(r.ok&&j&&typeof j.say==='string')?{ok:!!j.ok,why:j.why||'',say:j.say}:{ok:false,why:'http',say:''}; }
+  catch(e){ VO.test={ok:false,why:'net',say:''}; }
+  VO.testing=false; if(route.page==='voice') render(); return VO.test;
+}
 async function copyText(t,msg){ try{ await navigator.clipboard.writeText(t); toast(msg||'הועתק'); }catch(e){ toast('ההעתקה לא הצליחה'); } }
+/* the tap on "+": the code is already on this device, so it is copied inside the tap itself and Apple's own "add shortcut" screen opens */
+function siriTap(ev){
+  const key=voiceKey();
+  if(!key){ ev.preventDefault();
+    if(VO.busy){ toast('רגע, מכינים את הקוד'); return; }
+    const make=async()=>{ if(await voiceKeyNew(true)) toast('מוכן. לוחצים שוב על הוספת Siri'); else toast('לא הצלחתי להכין את הקוד. בודקים את החיבור ומנסים שוב.'); };
+    if(VO.keyInfo) confirmSheet('לחבר את Siri מהמכשיר הזה?','Siri כבר חוברה לחשבון ממכשיר אחר. חיבור מכאן מחליף את הקוד, והקיצור במכשיר הקודם יפסיק לעבוד.',make,'כן, לחבר מכאן'); else make();
+    return; }
+  try{ const p=navigator.clipboard.writeText(key); if(p&&p.catch) p.catch(()=>{}); }catch(e){}
+  try{ localStorage.setItem('gtv:added',todayKey()); }catch(e){}
+  toast('הקוד הועתק. מדביקים אותו במסך שנפתח'); setTimeout(()=>{ if(route.page==='voice') render(); },900);
+}
+function siriMore(){
+  const key=voiceKey(), body=h('div',{},h('h2',{},'Siri: עוד אפשרויות')), list=h('div',{class:'list'});
+  const row=(icn,t,sub,fn)=>list.append(h('button',{class:'item pressable',type:'button',onclick:()=>{ Sheet.close(); setTimeout(fn,320); }},h('div',{class:'th',style:'width:40px;height:40px;border-radius:var(--r-s);color:var(--accent-t);background:var(--accent-soft)'},ic(icn)),h('div',{class:'grow'},h('div',{class:'t'},t),sub?h('div',{class:'s'},sub):null)));
+  if(key){ row('copy','העתקת הקוד האישי','אם צריך להדביק אותו שוב',()=>copyText(key,'הקוד הועתק'));
+    row('check','בדיקת החיבור','שואלים את השרת שאלה שלא רושמת כלום',async()=>{ const t=await voiceTest(true); toast(t&&t.ok?'החיבור עובד: '+t.say:(t&&t.why==='key'?'הקוד שבמכשיר הזה כבר לא בתוקף':'לא הצלחתי להגיע לשרת')); }); }
+  row('swap',key?'החלפת הקוד':'קוד חדש','הקוד הקודם מפסיק לעבוד, ומוסיפים את Siri מחדש',()=>confirmSheet('להחליף את הקוד?','הקוד הישן יפסיק לעבוד, וצריך להוסיף את Siri מחדש.',()=>voiceKeyNew(),'כן, להחליף'));
+  row('edit','בניית הקיצור ביד','חמש פעולות באפליקציה ״קיצורים״',voiceShortcutHelp);
+  body.append(list); Sheet.show(body);
+}
 function voiceShortcutHelp(){
   const url=PB_URL+'/api/setim/voice', key=voiceKey();
   const step=(t,d,extra)=>h('li',{},h('div',{class:'grow'},h('div',{class:'st'},t),d?h('div',{class:'sd'},d):null,extra||null));
   const code=(txt,label)=>h('div',{class:'vkey'},h('code',{},txt),h('button',{type:'button',onclick:()=>copyText(txt,label+' הועתק')},'העתקה'));
-  Sheet.show(h('div',{},h('h2',{},'בונים את הקיצור, פעם אחת'),h('p',{class:'small muted',style:'margin:0 0 4px;line-height:1.55'},'באפליקציה ״קיצורים״ (Shortcuts) באייפון. שמות הפעולות כתובים באנגלית, כי כך מוצאים אותן בחיפוש.'),
+  Sheet.show(h('div',{},h('h2',{},'בונים את הקיצור ביד'),h('p',{class:'small muted',style:'margin:0 0 4px;line-height:1.55'},'באפליקציה ״קיצורים״ באייפון, לוחצים על + ומוסיפים חמש פעולות. ליד כל פעולה גם השם האנגלי, כדי למצוא אותה בחיפוש בכל שפה.'),
     h('ol',{class:'vsteps'},
-      step('קיצור חדש','לוחצים על + למעלה.'),
-      step('Ask for Input','סוג הקלט: Text. השאלה: מה לרשום?'),
-      step('Get Contents of URL','מדביקים את הכתובת. פותחים את החץ ובוחרים בשיטה POST ובגוף בקשה מסוג JSON.',code(url,'הכתובת')),
-      step('שני שדות בגוף הבקשה','שדה בשם key עם הקוד האישי, ושדה בשם text עם התשובה מהשלב השני (Provided Input).',key?code(key,'הקוד'):null),
-      step('Get Dictionary Value','בשדה Get Value for כותבים את המילה say, כדי שהקיצור ייקח את המשפט שחזר.'),
-      step('Show Result','כך Siri מקריאה את התשובה. נותנים לקיצור את השם סטים.'))));
+      step('Text','מדביקים את הקוד האישי.',key?code(key,'הקוד'):null),
+      step('בקש קלט (Ask for Input)','סוג הקלט: Text. השאלה: מה לרשום?'),
+      step('קבלת תוכן של כתובת אינטרנט (Get Contents of URL)','מדביקים את הכתובת ומקישים ״הצגת עוד״. בוחרים בשיטה POST ובגוף בקשה מסוג JSON, ומוסיפים שני שדות: key עם המלל מהפעולה הראשונה, ו-text עם התשובה מהפעולה השנייה.',code(url,'הכתובת')),
+      step('קבל ערך מילון (Get Dictionary Value)','בשדה המפתח כותבים את המילה say, כדי שהקיצור ייקח את המשפט שחזר.'),
+      step('Show Result','כך Siri אומרת את התשובה. נותנים לקיצור את השם סטים.'))));
 }
 function voicePhone(wrap){
   if(!STANDALONE){ wrap.append(h('div',{class:'card'},h('p',{class:'small muted',style:'margin:0;line-height:1.6'},'רישום דרך Siri עובד בגרסה שבכתובת getonekeyai.com, עם חשבון.'))); return; }
-  voicePing(); const key=voiceKey(), android=/Android/i.test(navigator.userAgent); if(!key) voiceKeyInfo();
+  voicePing(); const key=voiceKey(), android=/Android/i.test(navigator.userAgent);
   const head=(t,s)=>h('div',{class:'vc-h'},h('span',{class:'vc-i'},ic('phone')),h('div',{class:'grow'},h('div',{class:'k'},t),h('div',{class:'small muted',style:'line-height:1.45'},s)));
   const step=(t,d,extra)=>h('li',{},h('div',{class:'grow'},h('div',{class:'st'},t),d?h('div',{class:'sd'},d):null,extra||null));
+  const note=(cls,icn,t)=>h('div',{class:'banner'+(cls?' '+cls:''),style:'margin:12px 0 0'},ic(icn),h('span',{},t));
   const ios=h('div',{class:'card vcard'},head('iPhone, דרך Siri','אומרים ״היי סירי, סטים״, Siri שואלת מה לרשום, ועונים במשפט אחד.'));
   if(!PB.user) ios.append(h('p',{class:'small muted',style:'margin:12px 0;line-height:1.6'},'Siri שולחת את המשפט לחשבון שלך, ולכן צריך להתחבר קודם.'),h('button',{class:'btn sm',type:'button',onclick:()=>authSheet('login')},'כניסה או הרשמה'));
-  else if(VO.ping===false) ios.append(h('div',{class:'banner',style:'margin:12px 0 0'},ic('info'),h('span',{},'החיבור ל-Siri עוד לא הופעל בשרת של סטים. הרישום מתוך האפליקציה כבר עובד.')));
-  else ios.append(h('ol',{class:'vsteps'},
-    step('קוד אישי',key?'הקוד שמור במכשיר הזה. מי שמחזיק בו יכול להוסיף סטים לחשבון שלך ולשמוע מה נרשם היום, ולא יותר מזה.':(VO.keyInfo?'לחשבון כבר יש קוד פעיל, והקיצור שלך ממשיך לעבוד. הקוד עצמו שמור רק במכשיר שבו נוצר. קוד חדש מחליף אותו, ואז מעדכנים אותו גם בקיצור.':'קוד שמזהה אותך מול Siri. אפשר להחליף אותו בכל רגע.'),key?h('div',{class:'vkey'},h('code',{},key.slice(0,10)+'…'),h('button',{type:'button',onclick:()=>copyText(key,'הקוד הועתק')},'העתקה'),h('button',{type:'button',onclick:()=>confirmSheet('להחליף את הקוד?','הקוד הישן יפסיק לעבוד, וצריך לעדכן אותו בקיצור של Siri.',voiceKeyNew,'כן, להחליף')},'החלפה')):h('button',{class:'btn sm',type:'button',disabled:VO.busy,onclick:voiceKeyNew},VO.busy?'רגע…':(VO.keyInfo?'קוד חדש במקום הקיים':'יצירת קוד אישי'))),
-    step('הקיצור של Siri',SIRI_SHORTCUT_URL?'מוסיפים את הקיצור המוכן ומדביקים בו את הקוד.':'בונים אותו פעם אחת, בארבע פעולות.',h('button',{class:'btn sm sec2',type:'button',onclick:()=>{ if(SIRI_SHORTCUT_URL) window.open(SIRI_SHORTCUT_URL,'_blank','noopener'); else voiceShortcutHelp(); }},SIRI_SHORTCUT_URL?'הוספת הקיצור':'איך בונים את הקיצור')),
-    step('מדברים','״היי סירי, סטים״. ״מה לרשום?״ ״בנץ׳, 10 חזרות, 60 קילו.״ Siri עונה מה נרשם ואיך זה ביחס לפעם הקודמת. הסט מופיע ביומן בפעם הבאה שהאפליקציה נפתחת.')));
+  else if(VO.ping===false) ios.append(note('','info','החיבור ל-Siri עוד לא הופעל בשרת של סטים. הרישום מתוך האפליקציה כבר עובד.'));
+  else if(VO.ping===true){
+    const link=VO.shortcut||'', added=siriAdded();
+    if(!key){ voiceKeyInfo(); if(VO.keyInfo===null&&!VO.busy&&!VO.autoKey){ VO.autoKey=true; voiceKeyNew(true); } }      // a first time on this account: the code is made ahead, so the tap has nothing to wait for
+    else voiceTest();
+    if(link){
+      ios.append(h('a',{class:'btn siri-add'+(added?' sec2':''),href:link,target:'_blank',rel:'noopener',onclick:siriTap},ic('plus'),h('span',{},added?'הוספת Siri מחדש':'הוספת Siri')));
+      ios.append(h('p',{class:'small muted',style:'margin:10px 0 0;line-height:1.6'},added?'אחרי ההוספה אומרים ״היי סירי, סטים״. הסט מופיע ביומן בפעם הבאה שהאפליקציה נפתחת.':'נפתח מסך של Apple: לוחצים ״קבל קיצור״, וכשמתבקשים מדביקים את הקוד. הוא כבר הועתק.'));
+    } else ios.append(note('blue','info','הוספה בלחיצה אחת תיפתח כאן בקרוב. עד אז אפשר לבנות את הקיצור ביד, דרך ״עוד אפשרויות״.'));
+    if(key&&VO.test) ios.append(VO.test.ok?note('good','check','הקוד שלך בתוקף והשרת עונה.'):note('',  'info',VO.test.why==='key'?'הקוד שבמכשיר הזה כבר לא בתוקף, כנראה הוחלף ממכשיר אחר. מוסיפים את Siri מחדש.':'לא הצלחתי לבדוק את החיבור כרגע.'));
+    ios.append(h('button',{class:'lnkline',type:'button',style:'margin-top:6px',onclick:siriMore},ic('dots'),h('span',{},'עוד אפשרויות')));
+  }
   const and=h('div',{class:'card vcard'},head('Android','קיצור דרך במסך הבית שפותח את סטים ישר בהאזנה.'),
     h('p',{class:'small muted',style:'margin:12px 0 0;line-height:1.6'},'Google הסירה את Assistant מהטלפונים, ו-Gemini עוד לא יודע להעביר משפט בעברית לאפליקציה כמו סטים. לכן ב-Android אין היום רישום בלי לגעת בטלפון.'),
     h('ol',{class:'vsteps'},step('לחיצה ארוכה על הסמל של סטים','במסך הבית, אחרי שהאפליקציה הותקנה.'),step('גוררים את ״רישום בקול״ למסך הבית','נוצר סמל נפרד.'),step('נגיעה אחת, ומדברים','האפליקציה מקשיבה, רושמת ומקריאה את התשובה.')));

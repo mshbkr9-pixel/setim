@@ -24,6 +24,18 @@ function readJson(G, rec) {
 }
 
 module.exports = {
+  /* is the server side switched on, and where is the ready-made Siri shortcut. siri.json sits next to this file:
+     {"shortcut": "https://www.icloud.com/shortcuts/..."}; an empty or odd value means "not yet" */
+  info: function (e, G) {
+    var link = '';
+    try {
+      var raw = G.os.readFile(G.hooks + '/siri.json');
+      var cfg = JSON.parse(typeof raw === 'string' ? raw : G.text(raw));
+      if (cfg && typeof cfg.shortcut === 'string' && /^https:\/\/www\.icloud\.com\/shortcuts\/[0-9a-zA-Z]{16,64}\/?$/.test(cfg.shortcut)) link = cfg.shortcut;
+    } catch (err) { link = ''; }
+    return e.json(200, { ok: true, v: 2, shortcut: link });
+  },
+
   post: function (e, G) {
     var VL = require(G.hooks + '/voice.js');
     var body = {};

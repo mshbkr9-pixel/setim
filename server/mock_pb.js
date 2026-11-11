@@ -16,6 +16,7 @@ const USERS = {};   // email -> {id,email,name,password}
 const TOKENS = {};  // token -> user id
 const DOCS = {};    // id -> {id,user,key,data}
 const VKEYS = {};   // id -> {id,user,hash,label}
+let TEST_LINK = '';   // set through POST /__test/shortcut, only in this stand-in
 const uid = () => crypto.randomBytes(8).toString('hex');
 const pub = u => ({ id: u.id, email: u.email, name: u.name });
 
@@ -29,7 +30,7 @@ class Rec {
 const G = {
   hooks: HOOKS, Record: Rec,
   text: b => Buffer.from(b).toString('utf8'),
-  os: { readFile: p => fs.readFileSync(p) },
+  os: { readFile: p => (TEST_LINK && /siri\.json$/.test(p)) ? Buffer.from(JSON.stringify({ shortcut: TEST_LINK })) : fs.readFileSync(p) },
   security: { sha256: s => crypto.createHash('sha256').update(s).digest('hex') },
   app: {
     findFirstRecordByData(coll, field, value) { const hit = Object.values(coll === 'voice_keys' ? VKEYS : DOCS).find(o => o[field] === value); if (!hit) throw new Error('sql: no rows in result set'); return new Rec(coll, hit); },
@@ -57,7 +58,8 @@ http.createServer((req, res) => {
       if (req.method === 'OPTIONS') return send(res, 204);
       if (p === '/api/health') return send(res, 200, { code: 200, message: 'API is healthy.' });
 
-      if (p === '/api/setim/voice' && req.method === 'GET') return send(res, 200, { ok: true, v: 1 });
+      if (p === '/__test/shortcut' && req.method === 'POST') { TEST_LINK = String(b.link || ''); return send(res, 200, { link: TEST_LINK }); }
+      if (p === '/api/setim/voice' && req.method === 'GET') return lib.info({ json: (code, body) => send(res, code, body) }, G);
       if (p === '/api/setim/voice' && req.method === 'POST') {
         const e = { requestInfo: () => ({ body: b }), request: { header: { get: n => req.headers[String(n).toLowerCase()] || '' } }, json: (code, body) => send(res, code, body) };
         return lib.post(e, G);

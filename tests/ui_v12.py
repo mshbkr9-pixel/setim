@@ -57,6 +57,8 @@ def run(pw, scheme):
     ctx = b.new_context(viewport={'width': 375, 'height': 812}, device_scale_factor=2, locale='he-IL', color_scheme=scheme,
                         user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1')
     ctx.add_init_script("try{ localStorage.setItem('gt:theme','%s'); localStorage.setItem('gt:onboarded','1'); }catch(e){}" % scheme)
+    ctx.grant_permissions(['clipboard-read', 'clipboard-write'], origin='http://127.0.0.1:8791')
+    ctx.route('https://www.icloud.com/**', lambda r: r.fulfill(status=200, content_type='text/html', body='<title>shortcut</title>the add-shortcut screen would be here'))
     page = ctx.new_page()
     page.on('pageerror', lambda e: errors.append('%s pageerror: %s' % (scheme, e)))
     page.on('console', lambda m: errors.append('%s console: %s' % (scheme, m.text)) if (m.type == 'error' and 'vibrate' not in m.text and 'ERR_CONNECTION' not in m.text and '404' not in m.text) else None)
@@ -149,11 +151,26 @@ def run(pw, scheme):
     goto('#ex-pull-up'); t = ev("document.querySelector('#view').innerText"); check(tag + 'a pull-up reads as body weight in the app', 'ק״ג × ' not in t.split('סטים')[0] and ('משקל גוף' in t or 'חזרות' in t), t[:200])
 
     # ---- the phone assistant, through the local stand-in server ----
+    LINK = 'https://www.icloud.com/shortcuts/0123456789abcdef0123456789abcdef'
+    mock = lambda link: page.request.post('http://127.0.0.1:8090/__test/shortcut', data=json.dumps({'link': link}), headers={'Content-Type': 'application/json'})
+    mock('')
     ok = ev("""async () => { try{ const mail='ui'+Date.now().toString(36)+'@example.test', pw=Array.from(crypto.getRandomValues(new Uint8Array(9))).map(x=>x.toString(36)).join('');
-        await PB.signup(mail,pw,'ui'); S.storageMode='pb'; await syncFromCloud(); await voiceKeyNew(); return !!voiceKey(); }catch(e){ return String(e&&e.message); } }""")
-    check(tag + 'sign up on the stand-in server and get a personal code', ok is True, ok)
+        await PB.signup(mail,pw,'ui'); S.storageMode='pb'; await syncFromCloud(); return !!PB.user; }catch(e){ return String(e&&e.message); } }""")
+    check(tag + 'sign up on the stand-in server', ok is True, ok)
     if ok is True:
+        ev("VO.ping=null"); goto('#voice')
+        try:
+            page.wait_for_function("voiceKey().length > 20 && VO.test", timeout=10000); made = True
+        except Exception:
+            made = False
+        check(tag + 'a first visit makes the personal code by itself and checks it against the server', made and ev("VO.test.ok") is True, ev("({key:voiceKey().length,info:VO.keyInfo,test:VO.test,ping:VO.ping})"))
         key = ev("voiceKey()")
+        card = ev("[...document.querySelectorAll('.vcard')].find(c=>c.innerText.includes('Siri')).innerText")
+        check(tag + 'with no shared shortcut yet the card says so, and still confirms the code', 'בקרוב' in card and 'בתוקף' in card and not ev("!!document.querySelector('.siri-add')"), card)
+        page.click('button:has-text("עוד אפשרויות")'); settle(700); page.click('#sheetBody .item:has-text("בניית הקיצור ביד")'); settle(1100)
+        hs = ev("document.querySelector('#sheetBody').innerText"); check(tag + 'the by-hand instructions: five actions, the address, the fields', ev("document.querySelectorAll('#sheetBody .vsteps > li').length") == 5 and '/api/setim/voice' in hs and 'key' in hs and 'say' in hs, hs[:200])
+        shot('17-shortcut-help'); ev("Sheet.close()"); settle(700)
+
         post = lambda text: page.request.post('http://127.0.0.1:8090/api/setim/voice', data=json.dumps({'key': key, 'text': text}), headers={'Content-Type': 'application/json'}).json()
         r1 = post('סקוואט 8 חזרות 77.5 קילו'); r2 = post('עוד סט'); r3 = post('deadlift 5 reps 100 kilos')
         check(tag + 'the assistant gets spoken answers', r1['ok'] and 'שיא חדש' in r1['say'] and 'סט 2' in r2['say'] and r3['say'].startswith('Logged'), (r1, r2, r3))
@@ -162,9 +179,23 @@ def run(pw, scheme):
         st = ev("({sq:S.logs.squat.sessions.slice(-1)[0],dl:!!S.logs.deadlift,toast:document.querySelector('#toastTx').textContent,done:Object.keys(S.vdone.ids).length})")
         check(tag + 'the app takes the three sets into the journal, once', st['sq']['d'] == today and len(st['sq']['sets']) == 2 and st['dl'] and 'נרשם בקול: 3 סטים' in st['toast'] and st['done'] == 3, st)
         ev("voicePull(true)"); settle(900); check(tag + 'a second look adds nothing', ev("S.logs.squat.sessions.slice(-1)[0].sets.length") == 2)
-        goto('#voice'); settle(700); vt = ev("document.querySelector('#view').innerText"); check(tag + 'the voice page shows the code, the steps and what Siri logged', 'קוד אישי' in vt and 'העתקה' in vt and 'Siri' in vt and 'נרשמו בקול' in vt, vt[-400:])
-        ev("document.querySelector('#scroll').scrollTop=520"); settle(200); shot('16-voice-siri'); contrast('voice page, signed in')
-        page.click('button:has-text("איך בונים את הקיצור")'); settle(700); hs = ev("document.querySelector('#sheetBody').innerText"); check(tag + 'the shortcut instructions name the address and the fields', '/api/setim/voice' in hs and 'key' in hs and 'say' in hs, hs[:200]); shot('17-shortcut-help'); ev("Sheet.close()"); settle(600)
+
+        # the shared shortcut exists: one button, the code is copied inside the tap, Apple's screen opens
+        mock(LINK); ev("VO.ping=null"); goto('#home'); goto('#voice'); page.wait_for_function("VO.shortcut", timeout=8000); settle(300)
+        b1 = ev("(() => { const a=document.querySelector('.siri-add'); return a?{href:a.href,text:a.innerText.trim(),tag:a.tagName,n:document.querySelectorAll('.vcard .btn').length}:null; })()")
+        check(tag + 'one button: "הוספת Siri", a real link to the shortcut', bool(b1) and b1['href'] == LINK and b1['text'] == 'הוספת Siri' and b1['tag'] == 'A', b1)
+        ev("document.querySelector('.siri-add').scrollIntoView({block:'center'})"); settle(200); shot('16-voice-siri'); contrast('voice page, signed in')
+        ev("document.querySelectorAll('#toastTx').forEach(e=>e.classList.remove('on'))")
+        with ctx.expect_page() as pi:
+            page.click('.siri-add')
+        newp = pi.value; opened = newp.url; newp.close(); page.bring_to_front(); settle(1200)
+        clip = ev("navigator.clipboard.readText().catch(e=>'ERR '+e.name)")
+        st = ev("({added:siriAdded(),text:document.querySelector('.siri-add').innerText.trim(),toast:document.querySelector('#toastTx').textContent})")
+        check(tag + 'the tap copies the code and opens the shortcut', opened.startswith(LINK) and clip == key and bool(st['added']) and st['text'] == 'הוספת Siri מחדש' and 'הועתק' in st['toast'], (opened, clip == key, st))
+        vt = ev("document.querySelector('#view').innerText"); check(tag + 'the voice page lists what Siri logged', 'נרשמו בקול' in vt and 'Siri' in vt, vt[-300:])
+        ev("(() => { localStorage.setItem('gtv:key','stm_'+'x'.repeat(40)); VO.test=null; render(); })()"); page.wait_for_function("VO.test && !VO.testing", timeout=8000); settle(200)
+        card = ev("[...document.querySelectorAll('.vcard')].find(c=>c.innerText.includes('Siri')).innerText"); check(tag + 'a code that was replaced elsewhere is noticed', 'כבר לא בתוקף' in card, card)
+        ev("k => { localStorage.setItem('gtv:key',k); VO.test=null; render(); }", key); mock('')
 
     # ---- profile and backup ----
     goto('#profile'); pt = ev("document.querySelector('#view').innerText"); check(tag + 'the profile links to the goal and calls the old select a focus', 'לרדת ל-76 ק״ג' in pt and 'דגש באימונים' in pt, pt[-300:])

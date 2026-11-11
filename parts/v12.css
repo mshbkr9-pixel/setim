@@ -126,4 +126,6 @@
 .vkey{display:flex;align-items:center;gap:4px;margin-top:8px;background:var(--card2);border-radius:var(--r-m);padding:4px;padding-inline-start:12px}
 .vkey code{flex:1;min-width:0;direction:ltr;text-align:left;font:600 13px ui-monospace,Menlo,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vkey button{flex:none;font-size:var(--fs-2);font-weight:800;color:var(--accent-t);padding:8px 10px;min-height:40px}
+.siri-add{margin-top:14px}
+.siri-add svg.i{stroke-width:2.6}
 .ltr{direction:ltr;unicode-bidi:isolate}

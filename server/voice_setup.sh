@@ -15,7 +15,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SRC="$HERE/pb_hooks"
 PB=/opt/pocketbase/pocketbase
-FILES="setim_voice.pb.js setim_voice_lib.js voice.js exnames.json"
+FILES="setim_voice.pb.js setim_voice_lib.js voice.js exnames.json siri.json"
 for f in $FILES; do test -f "$SRC/$f" || { echo "missing $SRC/$f (run python build.py on the computer first)"; exit 1; }; done
 "$PB" serve --help | grep -q -- '--hooksDir' || { echo "this PocketBase build has no --hooksDir flag; stopping"; exit 1; }
 healthy() { for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do curl -fsS "http://127.0.0.1:$1/api/health" >/dev/null 2>&1 && return 0; sleep 1; done; return 1; }
@@ -40,7 +40,11 @@ STAMP="$(date +%Y%m%d%H%M)"
 HAD_FLAG=0; grep -q -- '--hooksDir' "$UNIT" && HAD_FLAG=1
 cp "$UNIT" "$UNIT.bak-$STAMP"
 install -d -o root -g root -m 755 /opt/pocketbase/pb_hooks
-for f in $FILES; do install -o root -g root -m 644 "$SRC/$f" /opt/pocketbase/pb_hooks/; done
+for f in $FILES; do
+  # the shortcut link is set on the server with siri_link.sh; a new install must not reset it to the empty one from the repo
+  if [ "$f" = siri.json ] && [ -f /opt/pocketbase/pb_hooks/siri.json ]; then continue; fi
+  install -o root -g root -m 644 "$SRC/$f" /opt/pocketbase/pb_hooks/
+done
 if [ "$HAD_FLAG" = 0 ]; then
   sed -i 's#--dir=/var/lib/pocketbase#--dir=/var/lib/pocketbase --hooksDir=/opt/pocketbase/pb_hooks#' "$UNIT"
   grep -q -- '--hooksDir=/opt/pocketbase/pb_hooks' "$UNIT" || { cp "$UNIT.bak-$STAMP" "$UNIT"; echo "could not add --hooksDir to $UNIT; nothing was restarted"; exit 1; }
