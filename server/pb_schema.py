@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """Creates/updates the PocketBase schema for the "setim" app (idempotent).
 
-Usage:  python -I -X utf8 pb_schema.py <PB_URL> <ADMIN_EMAIL> <ADMIN_PASSWORD>
+Usage:  python -I -X utf8 pb_schema.py <PB_URL> <ADMIN_EMAIL> <ADMIN_PASSWORD> [only]
+        `only` is a comma-separated list of collections to touch, e.g. `voice_keys`. On a database that already holds
+        people's data, name the one collection you are adding, so the others are not rewritten.
 
 Schema:
   users       (auth, built-in)  — email + password sign-up, no verification required.
@@ -14,6 +16,7 @@ Schema:
 import json, sys, urllib.request, urllib.error
 
 URL, EMAIL, PW = sys.argv[1].rstrip('/'), sys.argv[2], sys.argv[3]
+ONLY = set(sys.argv[4].split(',')) if len(sys.argv) > 4 else None
 
 def call(method, path, body=None, token=None):
     req = urllib.request.Request(URL + path, method=method, data=json.dumps(body).encode() if body is not None else None,
@@ -55,6 +58,8 @@ voice_keys = {
 }
 for coll in (docs, voice_keys):
     name = coll['name']
+    if ONLY is not None and name not in ONLY:
+        continue
     st, existing = call('GET', '/api/collections/' + name, token=tok)
     if st == 200:
         st2, res = call('PATCH', '/api/collections/' + name, coll, token=tok)
@@ -64,6 +69,9 @@ for coll in (docs, voice_keys):
         print(name, 'collection created' if st2 == 200 else ('create failed', st2, res))
 
 # users: make sure password auth is on, and signing up does not require a verified email
+if ONLY is not None and 'users' not in ONLY:
+    print('health:', call('GET', '/api/health')[0])
+    sys.exit(0)
 st, users = call('GET', '/api/collections/users', token=tok)
 assert st == 200, ('users collection missing', st)
 patch = {'passwordAuth': {'enabled': True, 'identityFields': ['email']},
