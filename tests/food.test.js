@@ -106,6 +106,32 @@ test('a training day eats a little more and a rest day a little less, and the we
   assert.ok(Math.abs(4 * up.kcal + 3 * down.kcal - 7 * T.kcal) <= 60);
   assert.strictEqual(FK.dayTargets(T, true, 4, false).kcal, T.kcal);
 });
+test('a rest day never goes under the safe floor', () => {
+  const small = { sex: 'f', age: 45, height: 150, weight: 50, weekly: 1, activity: 1.2 };
+  const T = FK.targets(small, { goal: 'lose', pace: 'fast' }); assert.strictEqual(T.kcal, 1200); assert.strictEqual(T.floor, 1200);
+  for (let wk = 1; wk <= 6; wk++) assert.ok(FK.dayTargets(T, false, wk, true).kcal >= 1200, 'weekly ' + wk);
+  assert.ok(FK.dayTargets(T, true, 3, true).kcal > 1200);
+  const man = FK.targets({ sex: 'm', age: 50, height: 165, weight: 60, weekly: 1, activity: 1.2 }, { goal: 'lose', pace: 'fast' });
+  assert.strictEqual(man.kcal, 1500); assert.ok(FK.dayTargets(man, false, 3, true).kcal >= 1500);
+  const cu = FK.targets(MAN, { goal: 'lose', custom: { kcal: 1550, p: 150, c: 120, f: 50 } });      // a manual target is held to the same floor
+  assert.strictEqual(FK.dayTargets(cu, false, 4, true).kcal, 1500);
+});
+test('with the pace of a weight goal, the calories come from that pace: one number for the goal and for the plate', () => {
+  const keep = FK.targets(MAN, { goal: 'keep' }), lose = FK.targets(MAN, { goal: 'lose', rate: 0.5 });
+  assert.ok(Math.abs(lose.kcal - (keep.tdee - 550)) <= 10, lose.kcal + ' against ' + (keep.tdee - 550)); assert.strictEqual(lose.rate, 0.5);
+  const fast = FK.targets(MAN, { goal: 'lose', rate: 2 });      // never faster than 1% of body weight a week
+  assert.ok(Math.abs(fast.kcal - (keep.tdee - 0.82 * 1100)) <= 10, String(fast.kcal));
+  const gain = FK.targets(MAN, { goal: 'muscle', rate: 0.25 }), gain2 = FK.targets(MAN, { goal: 'muscle', rate: 1 });      // never more than 400 over
+  assert.ok(Math.abs(gain.kcal - (keep.tdee + 275)) <= 10, String(gain.kcal)); assert.ok(Math.abs(gain2.kcal - (keep.tdee + 400)) <= 10, String(gain2.kcal));
+  const teen = { sex: 'm', age: 16, height: 170, weight: 80, weekly: 3 };      // the guards win over the pace, and so does a manual target
+  assert.strictEqual(FK.targets(teen, { goal: 'lose', rate: 0.6 }).kcal, FK.targets(teen, { goal: 'keep' }).kcal);
+  assert.strictEqual(FK.targets(MAN, { goal: 'lose', rate: 0.5, custom: { kcal: 2000, p: 150, c: 200, f: 60 } }).kcal, 2000);
+  assert.strictEqual(FK.targets(MAN, { goal: 'keep', rate: 0.5 }).kcal, keep.kcal);      // keeping has no pace
+  assert.ok(Math.abs(FK.targets(MAN, { goal: 'lose' }).kcal - keep.tdee * 0.83) <= 10);      // and without a pace nothing changed
+  const tiny = FK.targets({ sex: 'f', age: 45, height: 150, weight: 50, weekly: 1, activity: 1.2 }, { goal: 'lose', rate: 0.5 });
+  assert.strictEqual(tiny.kcal, 1200);      // the floor still holds
+  [lose, gain].forEach(T => assert.ok(Math.abs(T.p * 4 + T.c * 4 + T.f * 9 - T.kcal) < 60, JSON.stringify(T)));
+});
 test('a day far below the target is called low, never a success', () => {
   const T = FK.targets(MAN, { goal: 'lose' });
   assert.strictEqual(FK.judgeDay({ k: T.kcal * 0.5, p: 60 }, T).state, 'low');

@@ -93,7 +93,7 @@ with sync_playwright() as pw:
         settle = lambda ms=500: page.wait_for_timeout(ms)
         goto = lambda h: (ev("h => { location.hash = h; }", h), settle())
         tabs = ev("[...document.querySelectorAll('#tabbar .tab')].map(t=>t.textContent)")
-        check('the app opens with the three sectors', tabs == ['אימונים', 'תזונה', 'המאמן'], tabs)
+        check('the app opens with the two sectors and the coach', tabs == ['כושר', 'תזונה', 'המאמן'], tabs)
         check('the app talks to the real server', ev("PB_URL") == PBU, ev("PB_URL"))
         ev("() => { S.profile={...S.profile,name:'בדיקה',weight:80,height:178,age:30,sex:'m',weekly:3}; save('profile',S.profile); render(); }"); settle()
 

@@ -29,7 +29,7 @@ function goalsSync(){
   goalsOn().forEach(g=>{ const r=GoalKit.sync(g,D); if(!r.fresh.length) return; const last=r.fresh[r.fresh.length-1], k=n++; setTimeout(()=>stageBanner(g,last,r.finished,r.fresh.length),k*1300); });
   if(!n) return;
   saveGoals(); goalAch(n*1300);
-  if(['goals','goal','home','more','ach'].includes(route.page)) render();
+  if(['goals','goal','home','more','ach','food','coach'].includes(route.page)) render();      // v14: the goal is also on top of nutrition and at the coach's door
 }
 function goalAch(delay){ try{ checkAch().forEach((a,i)=>setTimeout(()=>achBanner(a),(delay||0)+i*1000)); }catch(e){} }
 function stageBanner(g,st,finished,count){
@@ -78,11 +78,35 @@ function goalNow(g,P){
   const card=h('div',{class:'card gnow'});
   card.append(h('div',{class:'gn-h'},h('span',{class:'k'},'מה עושים עכשיו'),h('span',{class:'small muted'},`שלב ${P.idx+1} מתוך ${P.total}`)),h('div',{class:'gn-t'},st.t),st.sub?h('div',{class:'small muted',style:'margin-top:2px'},st.sub):null);
   card.append(h('div',{class:'hbar2','aria-hidden':'true',style:'margin-top:10px'},h('i',{style:`width:${Math.round(P.stagePct*100)}%`})));
-  if(st.todo&&st.todo.length) card.append(h('ul',{class:'gtodo'},...st.todo.map(t=>h('li',{},ic('check'),h('span',{},t)))));
+  const todo=stageTodo(g,st,true); if(todo.length) card.append(h('ul',{class:'gtodo'},...todo.map(t=>h('li',{},ic('check'),h('span',{},t)))));
+  const hint=goalFoodHint(g); if(hint) card.append(hint);
   if(P.need) card.append(h('div',{class:'banner',style:'margin:14px 0 0'},ic('info'),h('span',{},P.need==='weighin'?'עבר יותר משבוע מאז השקילה האחרונה. בלי שקילה אי אפשר לדעת איפה עומדים.':(P.need==='run'?'בעשרת הימים האחרונים לא נרשם אימון סבולת.':'בעשרת הימים האחרונים לא נרשם סט בתרגיל הזה.'))));
   if(st.why) card.append(h('p',{class:'gwhy'},st.why));
   const k=(st.m||{}).k; if(k==='manual'||k==='event') card.append(h('button',{class:'btn sec2',type:'button',style:'margin-top:12px',onclick:()=>doneStage(g,P.idx)},k==='event'?'סיימתי את המרוץ':'השלב הושלם'));
   return card;
+}
+/* v14: one number. The food lines of a weight goal are not read from the plan as it was written the day the goal was made: they are the real
+   target of the nutrition side (nutBase and nutT in parts/v13.js), so this page and the plate can never disagree. In a stage that is measured by
+   weight the first two lines are the calories and the protein; a keeping stage opens with the calories, and is rewritten only once it is the
+   stage in force (until then the target on the plate is still the one for losing or gaining). */
+function stageTodo(g,s,cur){
+  const todo=(s.todo||[]).slice(), k=(s.m||{}).k;
+  if(g.status!=='on'||s.done||!todo.length||(g.kind!=='lose'&&g.kind!=='gain')||goalsOn()[0]!==g||(k!=='weight'&&!(k==='keep'&&cur))) return todo;
+  let B=null,T=null; try{ B=nutBase(); T=nutT(todayKey()); }catch(e){ return todo; }
+  if(!B||!B.ok||(!nutGoal()&&!B.custom)) return todo;
+  const gap=Math.round((B.tdee-B.kcal)/10)*10, today=T&&T.ok&&T.shift?` היום, ${T.training?'יום אימון':'יום מנוחה'}: ${fmtK(T.kcal)}.`:'';
+  todo[0]=B.custom?`אוכלים ${fmtK(B.kcal)} קק״ל ביום, לפי היעד הידני שקבעת.${today}`
+    :`אוכלים ${today?'בממוצע ':''}כ-${fmtK(B.kcal)} קק״ל ביום, ${gap>=30?`כ-${fmtK(gap)} פחות ממה שהגוף שורף`:(gap<=-30?`כ-${fmtK(-gap)} מעל מה שהגוף שורף`:'כמו שהגוף שורף')}.${today}`;
+  if(k==='weight'&&todo.length>1) todo[1]=`${B.p} גרם חלבון ביום${g.kind==='lose'?', כדי שהירידה תהיה משומן ולא משריר':''}`;
+  return todo;
+}
+/* someone who set the plate by hand before there was a goal keeps it. The page only says that the pace of the goal fits another number, with one tap to follow it */
+function goalFoodHint(g){
+  if(S.nut.by==='goal'||(g.kind!=='lose'&&g.kind!=='gain')||goalsOn()[0]!==g) return null;
+  let cur=null,want=null; try{ cur=nutBase(); want=FoodKit.targets(S.profile,nutOf(g)); }catch(e){ return null; }
+  if(!cur||!cur.ok||cur.custom||!S.nut.goal||!want||!want.ok||Math.abs(cur.kcal-want.kcal)<100) return null;
+  return h('div',{class:'banner blue',style:'margin:14px 0 0;align-items:center'},ic('info'),h('span',{class:'grow'},`היעד שבחרת בתזונה הוא ${fmtK(cur.kcal)} קק״ל ביום. לקצב של המטרה הזאת מתאימים ${fmtK(want.kcal)}.`),
+    h('button',{class:'btn sm sec2',type:'button',style:'flex:none;width:auto',onclick:()=>{ S.nut.by='goal'; saveNut(); toast('היעד היומי נגזר עכשיו מהמטרה'); render(); }},'לפי המטרה'));
 }
 function goalWeekData(g){ if(g.status!=='on') return null; const wk=GoalKit.week(g,goalData(),1); return g.created>=wk.until?null:wk; }      // null: the goal did not exist yet that week
 function goalWeekCard(g){
@@ -101,7 +125,7 @@ function stageSheet(g,i){
   const s=g.stages[i], P=GoalKit.progress(g,goalData()); const body=h('div',{},h('div',{class:'small b muted'},`שלב ${i+1} מתוך ${g.stages.length}`),h('h2',{},s.t));
   if(s.sub) body.append(h('p',{class:'small muted',style:'margin:0 0 10px'},s.sub));
   if(s.why) body.append(h('p',{style:'margin:0 0 4px;line-height:1.6'},s.why));
-  if(s.todo&&s.todo.length) body.append(h('ul',{class:'gtodo'},...s.todo.map(t=>h('li',{},ic('check'),h('span',{},t)))));
+  const todo=stageTodo(g,s,i===P.idx); if(todo.length) body.append(h('ul',{class:'gtodo'},...todo.map(t=>h('li',{},ic('check'),h('span',{},t)))));
   body.append(h('p',{class:'small muted',style:'margin:14px 0 0;line-height:1.55'},s.done?`הושלם ב-${gDate(s.done)}.`:`מתוכנן מ-${gDate(s.from)} עד ${gDate(s.until)}, ${GoalKit.heWeeks(s.weeks)}. ${stageHow(s)}`));
   const k=(s.m||{}).k;
   if(!s.done&&g.status==='on'&&i===P.idx&&(k==='manual'||k==='event')) body.append(h('button',{class:'btn',type:'button',style:'margin-top:14px',onclick:()=>{ Sheet.close(); setTimeout(()=>doneStage(g,i),320); }},k==='event'?'סיימתי את המרוץ':'השלב הושלם'));
@@ -188,27 +212,64 @@ function goalPage(){
 function goReplace(hash){ if(NAVS.length>1&&NAVS[NAVS.length-2]===hash){ history.back(); return; } NAV_REPL=true; location.replace(hash); }
 
 /* ---------- goals: taking in a new one. three steps: the goal, what is still missing, the plan ---------- */
-const GW={step:0,text:'',kind:'',p:{},due:'',dueMode:'',ans:{},res:null,params:null,err:'',fromText:false};
-function newGoal(){ Object.assign(GW,{step:0,text:'',kind:'',p:{},due:'',dueMode:'',ans:{},res:null,params:null,err:'',fromText:false}); go('#goalnew'); }
+/* v14: this is also where a person is set up, once. Between the goal and its questions comes one more screen, "כמה פרטים עליך" (sub:'body'),
+   shown only the first time the app is opened (first:true, from the opening screen) or when the profile has no body numbers yet. What is typed
+   there is not asked again, and the plan at the end says what the goal means for training and for the plate. */
+const GW={step:0,sub:'',first:false,body:false,bd:null,text:'',kind:'',p:{},due:'',dueMode:'',ans:{},res:null,params:null,err:'',fromText:false};
+function newGoal(o){ Object.assign(GW,{step:0,sub:'',first:!!(o&&o.first===true),body:false,bd:null,text:'',kind:'',p:{},due:'',dueMode:'',ans:{},res:null,params:null,err:'',fromText:false}); go('#goalnew'); }
 function gwTo(step){ GW.step=step; render(); $('#scroll').scrollTop=0; }
+function gwNeedBody(){ return !GW.body&&(GW.first||!bodyMetrics(S.profile)); }
+function gwAfterStart(){ if(gwNeedBody()){ GW.sub='body'; gwTo(0); } else { GW.sub=''; gwTo(1); } }
 function goalNewPage(){
-  header('מטרה חדשה',{back:'#goals'}); const wrap=h('div',{class:'gwiz'});
-  wrap.append(h('div',{class:'gw-dots','aria-hidden':'true'},...[0,1,2].map(i=>h('i',{class:i===GW.step?'on':(i<GW.step?'was':'')}))));
-  if(GW.step===1&&GW.kind) gwAsk(wrap); else if(GW.step===2&&GW.res) gwPlan(wrap); else gwStart(wrap);
+  header('מטרה חדשה',{back:GW.first?'#home':'#goals'}); const wrap=h('div',{class:'gwiz'});
+  const four=GW.first||GW.body||GW.sub==='body', at=GW.sub==='body'?1:(GW.step===0?0:GW.step+(four?1:0));
+  wrap.append(h('div',{class:'gw-dots','aria-hidden':'true'},...Array.from({length:four?4:3},(_,i)=>h('i',{class:i===at?'on':(i<at?'was':'')}))));
+  if(GW.sub==='body'&&GW.kind) gwBody(wrap); else if(GW.step===1&&GW.kind) gwAsk(wrap); else if(GW.step===2&&GW.res) gwPlan(wrap); else gwStart(wrap);
   return wrap;
+}
+/* the body, once: sex, age, height and weight; the very first time also how often and where, which is what the first week is built from */
+function gwBody(wrap){
+  const p=S.profile, T=GoalKit.typeOf(GW.kind), need=GW.kind==='lose'||GW.kind==='gain';
+  const b=GW.bd||(GW.bd={sex:p.sex==='f'?'f':'m',age:+p.age||'',height:+p.height||'',weight:(lastWeigh()||{}).kg||+p.weight||'',weekly:+p.weekly||3,place:p.place||'gym'});
+  const seg=(k,opts,label)=>h('div',{class:'seg',role:'group','aria-label':label},...opts.map(([v,l])=>h('button',{class:String(b[k])===String(v)?'on':'',type:'button','aria-pressed':String(b[k])===String(v)?'true':'false',onclick:()=>{ b[k]=v; render(); }},l)));
+  const num=(k,ph,min,max,step,mode,label)=>{ const i=h('input',{type:'number',inputmode:mode,value:b[k]===''?'':String(b[k]),placeholder:ph,min:String(min),max:String(max),step:String(step),'aria-label':label}); i.addEventListener('input',()=>{ b[k]=i.value===''?'':pnum(i.value); }); return i; };
+  wrap.append(h('div',{class:'gk',style:`--c:var(--g-${T.col})`},ic(T.icon),h('span',{},GW.fromText&&GW.kind!=='free'?'הבנתי: '+T.t:T.t)));
+  wrap.append(h('div',{class:'display',style:'font-size:26px;margin-bottom:6px'},'כמה פרטים עליך'),h('p',{class:'lead'},'ממלאים פעם אחת. מהם מחושבים יעד הקלוריות והחלבון, והקצב שמתאים לגוף שלך.'));
+  wrap.append(h('div',{class:'fld'},h('label',{},'מין'),seg('sex',[['m','גבר'],['f','אישה']],'מין')));
+  wrap.append(h('div',{class:'grid3'},h('div',{class:'fld'},h('label',{},'גיל'),num('age','שנים',10,100,1,'numeric','גיל בשנים')),h('div',{class:'fld'},h('label',{},'גובה'),num('height','ס״מ',120,230,1,'numeric','גובה בסנטימטרים')),h('div',{class:'fld'},h('label',{},'משקל'),num('weight','ק״ג',30,250,0.1,'decimal','משקל בקילוגרם'))));
+  if(GW.first) wrap.append(h('div',{class:'fld'},h('label',{},'כמה אימונים בשבוע?'),seg('weekly',[[2,'2'],[3,'3'],[4,'4'],[5,'5']],'אימונים בשבוע')),h('div',{class:'fld'},h('label',{},'איפה מתאמנים?'),seg('place',[['gym','בחדר כושר'],['home','בבית']],'מקום האימון')));
+  if(GW.err) wrap.append(h('div',{class:'banner',role:'alert'},ic('info'),h('span',{},GW.err)));
+  wrap.append(h('button',{class:'btn',type:'button',onclick:gwBodyNext},'המשך'));
+  if(!need) wrap.append(h('button',{class:'lnkline center',type:'button',onclick:()=>{ GW.err=''; GW.sub=''; GW.body=true; if(GW.first) gwFirstAnswers(); gwTo(1); }},'אחר כך'));
+  wrap.append(h('button',{class:'lnkline center',type:'button',onclick:()=>{ GW.err=''; GW.sub=''; gwTo(0); }},'חזרה'));
+}
+function gwFirstAnswers(){ const b=GW.bd||{}, p=S.profile; p.weekly=+b.weekly||3; p.place=b.place==='home'?'home':'gym'; p.program=p.weekly<=3?'full':(p.weekly===4?'ul':'ppl'); save('profile',p); }
+function gwBodyNext(){
+  const b=GW.bd, need=GW.kind==='lose'||GW.kind==='gain', age=Math.round(+b.age||0), hgt=Math.round(+b.height||0), w=Math.round((+b.weight||0)*10)/10;
+  const bad=!(w>=30&&w<=250)?'מקלידים משקל בקילוגרם.':(!(hgt>=120&&hgt<=230)?'מקלידים גובה בסנטימטרים.':(!(age>=10&&age<=100)?'מקלידים גיל בשנים.':''));
+  if(bad){ GW.err=bad; render(); return; }
+  const p=S.profile, lw=lastWeigh(); p.sex=b.sex==='f'?'f':'m'; p.age=age; p.height=hgt; p.weight=w; save('profile',p);
+  if(!lw||lw.kg!==w) addWeigh(w);      // the weight typed here is a weigh-in like any other
+  if(GW.first) gwFirstAnswers();
+  GW.err=''; GW.sub=''; GW.body=true;
+  if(need){      // "לרדת 8 קילו" could not be turned into a target before the weight was known
+    if(GW.fromText){ const u=GoalKit.understand(GW.text,{today:todayKey(),weight:w,parse:VoiceLog.parse}); if(u.kind===GW.kind){ GW.p=u.p; if(!GW.due&&u.due){ GW.due=u.due; GW.dueMode='date'; } } }
+    GW.ans.from=w; delete GW.ans.to;
+  }
+  gwTo(1);
 }
 function gwStart(wrap){
   const ta=h('textarea',{rows:'2',placeholder:'למשל: לרדת 8 קילו עד הקיץ',maxlength:'200','aria-label':'המטרה במילים שלך'}); ta.value=GW.text;
   const btn=h('button',{class:'btn',type:'button',disabled:!GW.text.trim()},'המשך');
   const next=()=>{ const t=ta.value.trim(); if(!t) return; const u=GoalKit.understand(t,{today:todayKey(),weight:(lastWeigh()||{}).kg||S.profile.weight,parse:VoiceLog.parse});
-    Object.assign(GW,{text:t,kind:u.kind,p:u.p,due:u.due,dueMode:u.due?'date':'',ans:{},err:'',fromText:true}); gwTo(1); };
+    Object.assign(GW,{text:t,kind:u.kind,p:u.p,due:u.due,dueMode:u.due?'date':'',ans:{},err:'',fromText:true}); gwAfterStart(); };
   ta.addEventListener('input',()=>{ GW.text=ta.value; btn.disabled=!ta.value.trim(); });
   ta.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); next(); } });
   btn.addEventListener('click',next);
   wrap.append(h('div',{class:'display'},'מה המטרה שלך?'),h('p',{class:'lead'},'כותבים אותה במילים שלך. למשל: חצי מרתון עד מרץ, בנץ׳ 100 קילו, איירונמן.'),h('div',{class:'fld'},ta),btn);
   wrap.append(h('div',{class:'sec'},h('h2',{},'או בוחרים מהרשימה')));
   const grid=h('div',{class:'gtiles'});
-  GoalKit.TYPES.forEach(T=>grid.append(h('button',{class:'gtile pressable',type:'button',style:`--c:var(--g-${T.col})`,onclick:()=>{ Object.assign(GW,{text:'',kind:T.k,p:{},due:'',dueMode:'',ans:{},err:'',fromText:false}); gwTo(1); }},h('span',{class:'ic'},ic(T.icon)),h('span',{class:'t'},T.t),h('span',{class:'s'},T.s))));
+  GoalKit.TYPES.forEach(T=>grid.append(h('button',{class:'gtile pressable',type:'button',style:`--c:var(--g-${T.col})`,onclick:()=>{ Object.assign(GW,{text:'',kind:T.k,p:{},due:'',dueMode:'',ans:{},err:'',fromText:false}); gwAfterStart(); }},h('span',{class:'ic'},ic(T.icon)),h('span',{class:'t'},T.t),h('span',{class:'s'},T.s))));
   wrap.append(grid);
 }
 function gwAsk(wrap){
@@ -222,7 +283,9 @@ function gwAsk(wrap){
     const fs=h('div',{class:'fld'},h('label',{},'השלבים בדרך (אפשר להשאיר ריק)'));
     GW.ans.stages.forEach((sv,i)=>{ const si=h('input',{type:'text',value:sv,placeholder:`שלב ${i+1}`,maxlength:'60','aria-label':`שלב ${i+1}`}); si.addEventListener('input',()=>{ GW.ans.stages[i]=si.value; }); fs.append(si); }); wrap.append(fs);
   }
-  GoalKit.ask(GW.kind,Object.assign({},GW.p,GW.ans),D).forEach(f=>{
+  const weighed=GW.body&&(GW.kind==='lose'||GW.kind==='gain');      // the weight was typed a screen ago: it is not asked twice
+  if(weighed) GW.ans.from=(lastWeigh()||{}).kg||+S.profile.weight||GW.ans.from;
+  GoalKit.ask(GW.kind,Object.assign({},GW.p,GW.ans),D).filter(f=>!(weighed&&f.k==='from')).forEach(f=>{
     const val=(GW.ans[f.k]!=null&&GW.ans[f.k]!=='')?GW.ans[f.k]:f.def;
     if(f.type==='num'){
       const inp=h('input',{type:'number',inputmode:'decimal',step:String(f.step||1),min:String(f.min),max:String(f.max),value:(val===''||val==null)?'':val,placeholder:f.unit});
@@ -272,17 +335,30 @@ function gwPlan(wrap){
   wrap.append(h('div',{class:'gk',style:`--c:var(--g-${T.col})`},ic(T.icon),h('span',{},'התוכנית שלך')),h('div',{class:'display',style:'font-size:28px;margin-bottom:12px'},g.title));
   wrap.append(h('div',{class:'banner'+(v.state==='ok'?' good':'')},ic(v.state==='ok'?'check':'info'),h('span',{},v.text)));
   (r.notes||[]).forEach(n=>wrap.append(h('div',{class:'banner blue'},ic('info'),h('span',{},n))));
+  wrap.append(gwBoth(g));
   wrap.append(h('div',{class:'sec'},h('h2',{},plural(g.stages.length,'שלב אחד','שלבים')),h('span',{class:'small muted'},`יעד: ${gDate(g.due)}`)),goalStages(g,{idx:-1},true));
   wrap.append(h('button',{class:'btn',type:'button',onclick:gwSave},'מתחילים'),h('button',{class:'lnkline center',type:'button',onclick:()=>gwTo(1)},'חזרה לשינוי'));
 }
+/* someone who never set the plate, or who already eats by their goal, gets the plate from this goal; someone who chose a nutrition target by hand keeps it */
+function gwWillFollow(){ return S.nut.by==='goal'||(!S.nut.goal&&!(S.nut.custom&&S.nut.custom.kcal>0)); }
+/* what the goal means for the two sectors, said before it is saved: how often to train, and how much to eat */
+function gwBoth(g){
+  const P=S.profile, wk=g.kind==='habit'?(+g.p.perWeek||3):(+P.weekly||3), follow=gwWillFollow(), main=goalsOn()[0]||g, own=main===g; let T=null;      // the plate follows the main goal: this one, unless another goal is already running
+  try{ T=FoodKit.targets(own?{...P,weight:(g.kind==='lose'||g.kind==='gain')?g.p.from:P.weight,height:+P.height||+((GW.params||{}).height)||0,weekly:wk}:P,follow?nutOf(main):nutEff()); }catch(e){ T=null; }
+  const row=(icn,k,t,col)=>h('div',{class:'row',style:'gap:12px;align-items:center'},h('div',{class:'th',style:`width:40px;height:40px;flex:none;border-radius:var(--r-s);display:grid;place-items:center;color:var(--g-${col});background:color-mix(in srgb,var(--g-${col}) 14%,transparent)`},ic(icn)),h('div',{class:'grow'},h('div',{class:'small b muted'},k),h('div',{class:'k',style:'font-size:16px;line-height:1.35'},t)));
+  const food=T&&T.ok&&(follow||S.nut.goal||T.custom)?`כ-${fmtK(T.kcal)} קק״ל ו-${T.p} ג׳ חלבון ביום`:'היעד היומי יחושב אחרי שממלאים גובה, משקל וגיל';
+  return h('div',{class:'card',style:'display:grid;gap:14px'},row('gym','כושר',`${hcount(wk,'אימון אחד','אימונים')} בשבוע · ${fmtK(stepsGoal())} צעדים ביום`,'chest'),row('apple','תזונה',food,'legs'));
+}
 function gwSave(){
-  const r=GW.res; if(!r||!r.goal) return; const g=r.goal, p=GW.params||{}, P=S.profile;
+  const r=GW.res; if(!r||!r.goal) return; const g=r.goal, p=GW.params||{}, P=S.profile, first=GW.first, follow=gwWillFollow();
   if(g.kind==='lose'||g.kind==='gain'){ if(p.height>0&&!(+P.height>0)) P.height=p.height; addWeigh(g.p.from); }
   if(g.kind==='habit') P.weekly=g.p.perWeek;
   const focus={lose:'fatloss',gain:'hypertrophy',lift:'strength',run:'endurance',tri:'endurance'}[g.kind]; if(focus) P.goal=focus;
   save('profile',P);
-  S.goals.list=S.goals.list||[]; S.goals.list.push(g); saveGoals(); GW.res=null; GW.step=0; GW.text='';
-  toast('המטרה נשמרה. מתחילים.'); haptic(15); goalAch(900); goReplace('#goals');
+  S.goals.list=S.goals.list||[]; S.goals.list.push(g); saveGoals(); GW.res=null; GW.step=0; GW.text=''; GW.first=false; GW.body=false; GW.bd=null;
+  if(follow&&S.nut.by!=='goal'){ S.nut.by='goal'; saveNut(); }      // one goal, and the plate follows it
+  const week=first&&firstWeek(g.kind);      // the very first time: the first week of training is filled in, as the opening questions used to do
+  toast(week?'המטרה נשמרה, והשבוע הראשון מוכן.':'המטרה נשמרה. מתחילים.'); haptic(15); goalAch(900); goReplace(first?'#home':'#goals');
 }
 
 /* ---------- goals: on the other screens ---------- */
@@ -330,6 +406,7 @@ function voiceSay(text,opts){
   opts=opts||{}; const env=voiceEnv(), R=VoiceLog.handle(text,env), L=VoiceLog.text(R.lang);
   if(R.cmd==='undo'){ R.ok=voiceUndo(); R.say=R.ok?L.undo:L.undoNone; }
   else if(R.cmd==='today') R.say=VoiceLog.todayLine(R.lang,S.logs,env.index,todayKey());
+  else if(sigCmd(R.cmd)){ const r=sigVoice(R,text); R.ok=r.ok; R.say=r.say; if(r.ok){ haptic(15); Snd.ok(); } }      // v14: steps, heart rate, an injury (parts/v14.js)
   else if(R.ok){ voiceApply(R.item,'app'); save('vdone',S.vdone); haptic(15); if(R.judge&&/^pr/.test(R.judge.k)) Snd.pr(); else Snd.ok(); }
   VO.say=R.say; VO.ok=!!R.ok; VO.heard=text;
   if(opts.speak) voiceSpeak(R.say,R.lang);
@@ -367,16 +444,17 @@ function voiceHeard(t,err){
   if(!VO.qBox) return;      // the sheet was closed while listening
   if(!t){ VO.q='edit'; VO.qMsg=(err==='not-allowed'||err==='service-not-allowed')?'mic':(err&&err!=='no-speech'&&err!=='aborted'?'fail':'empty'); voicePaint(); return; }
   const R=VoiceLog.handle(t,voiceEnv()); VO.qt=t; VO.qMsg='';
-  if(R.cmd||(R.ok&&voiceAuto())){ voiceDo(t,true); return; }
+  if((R.cmd&&!sigCmd(R.cmd))||(R.ok&&voiceAuto())){ voiceDo(t,true); return; }      // the body's numbers wait for "אישור" like a set does
   VO.q='edit'; VO.qR=R; voicePaint();
   if(!R.ok&&voiceAuto()) voiceSpeak(R.say,R.lang);      // with "log at once" nobody may be looking: say what went wrong
 }
 function voiceDo(t,speak){
   const R=voiceSay(t,{speak}); VO.qt=t; VO.qR=R; VO.q='done'; voicePaint(); render();
-  if(R.ok&&!R.cmd){ clearTimeout(VO.qClose); VO.qClose=setTimeout(()=>{ if(VO.q==='done'&&VO.qBox&&Sheet.open) Sheet.close(); },voiceAuto()?2800:1800); }
+  if(R.ok&&(!R.cmd||sigCmd(R.cmd))){ clearTimeout(VO.qClose); VO.qClose=setTimeout(()=>{ if(VO.q==='done'&&VO.qBox&&Sheet.open) Sheet.close(); },voiceAuto()?2800:1800); }
   return R;
 }
 function voicePreview(R){
+  if(sigCmd(R.cmd)) return sigPreview(R);
   const e=R.ok&&getEx(R.item.ex); if(!e) return h('div',{class:'vq-err'},ic('info'),h('span',{},R.say));
   const what=setStr(R.item.sets.map(s=>({...s,t:true})),e), no=isCardio(e)||R.count>1?'':`סט ${R.setNo}`;
   return h('div',{class:'vq-card'},h('div',{class:'th'},thumb(e,{still:true})),h('div',{class:'grow'},h('div',{class:'t'},e.he),h('div',{class:'n'},what),h('div',{class:'s'},[no,'היום'].filter(Boolean).join(' · '))));
@@ -399,7 +477,7 @@ function voiceEditView(){
   const prev=h('div',{class:'vq-prev','aria-live':'polite'}), okb=h('button',{class:'btn',type:'button'},ic('check'),h('span',{},'אישור'));
   let R=null, tm=null;
   const upd=()=>{ const t=inp.value.trim(); VO.qt=t; R=t?VoiceLog.handle(t,voiceEnv()):null;
-    prev.replaceChildren(!t?h('p',{class:'small muted',style:'margin:10px 2px 14px;line-height:1.5'},'כותבים תרגיל, חזרות ומשקל.'):R.cmd?h('p',{class:'small muted',style:'margin:10px 2px 14px'},'״'+t+'״'):voicePreview(R));
+    prev.replaceChildren(!t?h('p',{class:'small muted',style:'margin:10px 2px 14px;line-height:1.5'},'כותבים תרגיל, חזרות ומשקל.'):(R.cmd&&!sigCmd(R.cmd))?h('p',{class:'small muted',style:'margin:10px 2px 14px'},'״'+t+'״'):voicePreview(R));
     okb.disabled=!(R&&(R.ok||R.cmd)); };
   inp.addEventListener('input',()=>{ clearTimeout(tm); tm=setTimeout(upd,200); });
   inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); okb.click(); } });

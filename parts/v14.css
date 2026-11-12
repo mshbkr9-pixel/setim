@@ -1,0 +1,49 @@
+/* ========================= v14: one goal on top of both sectors, and the body's numbers ========================= */
+/* Every class here starts with "px-": older styles already own short names (fin, coach, steps, ring, stat, body, pop), and a name used twice
+   once squeezed a sheet into a strip. tests/css.test.js holds this file to the prefix. */
+
+/* the card on top of a sector: the goal and what is left, the coach's words, today's numbers, one step */
+.px-top{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:6px;margin:0 0 12px;display:grid}
+.px-goal{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:12px;row-gap:10px;width:100%;text-align:start;padding:10px 10px 12px;border-radius:var(--r-m)}
+.px-ic{width:40px;height:40px;border-radius:var(--r-m);display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--c,var(--accent)) 16%,transparent);color:var(--c,var(--accent-t))}
+.px-ic svg.i{width:22px;height:22px}
+.px-gt{display:grid;gap:1px;min-width:0}
+.px-gt b{font-weight:900;font-size:var(--fs-4);line-height:1.25;letter-spacing:-.01em}
+.px-gt span{font-size:var(--fs-2);font-weight:700;color:var(--ink2);line-height:1.4}
+.px-pc{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em;direction:ltr}
+.px-bar{grid-column:1/-1;height:6px;border-radius:var(--r-s);background:var(--card3);overflow:hidden}
+.px-bar i{display:block;height:100%;border-radius:var(--r-s);background:var(--c,var(--accent))}
+.px-none{grid-template-columns:auto minmax(0,1fr)}
+.px-none .btn{grid-column:1/-1}
+.px-alt{grid-column:1/-1;justify-self:center;min-height:36px;padding:4px 10px;font-size:var(--fs-2);font-weight:700;color:var(--ink2)}
+
+.px-coach{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:start;padding:11px 10px;border-top:1px solid var(--line)}
+.px-ci{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--card2);color:var(--ink2);margin-top:1px}
+.px-ci svg.i{width:16px;height:16px}
+.px-say{display:grid;gap:3px;min-width:0;flex:1;font-size:var(--fs-3);font-weight:600;line-height:1.45;color:var(--ink)}
+.px-hi{font-weight:800;color:var(--accent-t)}
+.px-good .px-ci{background:var(--accent-soft);color:var(--accent-t)}
+
+.px-foot{display:flex;align-items:stretch;gap:4px;padding:4px 2px 2px;border-top:1px solid var(--line)}
+.px-n{flex:1 1 0;min-width:0;display:grid;gap:4px;justify-items:center;align-content:center;padding:10px 4px 9px;border-radius:var(--r-m);min-height:56px}
+.px-n b{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}
+.px-n span{font-size:var(--fs-1);font-weight:700;color:var(--ink2);white-space:nowrap}
+.px-n.px-empty b{color:var(--ink3)}
+.px-step{flex:none;align-self:center;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;margin-inline-start:4px;border-radius:var(--r-m);background:var(--accent-soft);color:var(--accent-t);font-size:var(--fs-2);font-weight:800;white-space:nowrap}
+.px-step svg.i{width:16px;height:16px}
+.px-step.px-wide{flex:1;justify-content:center;margin:0}
+
+/* the two rows of the watch in the body sheet (hooks for the sheet to find them; they look like the rows beside them) */
+.px-photo,.px-watch{cursor:pointer}
+
+/* two fields side by side in a sheet */
+.px-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* the coach's door: the same two sentences, one for each sector */
+.px-both{display:grid;gap:8px;margin:10px 0 12px}
+.px-both div{display:flex;align-items:flex-start;gap:8px;font-size:var(--fs-3);font-weight:600;line-height:1.45;color:var(--ink)}
+.px-both svg.i{width:18px;height:18px;flex:none;margin-top:3px;color:var(--ink2)}
+.px-both b{font-weight:800}
+
+/* the "more" sheet of a sector: the things that go with it, one row each */
+.px-more{display:grid;gap:8px;margin-top:4px}

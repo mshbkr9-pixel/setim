@@ -102,7 +102,7 @@ test('the schema of the answer is one the API accepts: every object closed, ever
     (s.anyOf || []).forEach((x, i) => walk(x, where + '|' + i));
     ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems', 'pattern', 'multipleOf'].forEach(k => assert.strictEqual(s[k], undefined, where + ' has ' + k)); };
   walk(CK.SCHEMA, 'answer');
-  assert.strictEqual(CK.SCHEMA.properties.acts.items.anyOf.length, 10);
+  assert.strictEqual(CK.SCHEMA.properties.acts.items.anyOf.length, 11);      // v14: "body" joined (a watch screen read from a picture)
 });
 test('the answer is read by block type, checked, and trimmed to what the app knows', () => {
   const good = { say: 'הכנתי לרישום', acts: [{ t: 'meal', slot: 'l', date: '', title: '', items: [{ name: 'המבורגר', grams: 180, kcal: 450, p: 25, c: 30, f: 25, est: true }] }, { t: 'bogus' }, { t: 'weigh', kg: 5000, date: 'x' }, { t: 'go', to: 'nowhere' }, { t: 'targets', kcal: 300, p: 1, c: 1, f: 1, why: '' }] };
@@ -242,4 +242,54 @@ test('server: a call that never reached an answer gives its place in the count b
   const S1 = server({ answer: () => 'throw' }); assert.strictEqual(S1.ask({ text: 'שאלה' }).why, 'net');
   const row = Object.values(S1.USAGE)[0]; assert.deepStrictEqual([row.cheap, row.cost || 0], [0, 0]); assert.strictEqual(S1.info('u1').left.total, 20);
   const S2 = server({ answer: () => ({ statusCode: 529, json: {} }) }); S2.ask({ text: '', img: 'data:image/jpeg;base64,AAAA' }); const r2 = Object.values(S2.USAGE)[0]; assert.deepStrictEqual([r2.smart, r2.img], [0, 0]);
+});
+
+/* ---------- v14: the body's numbers and an injury, with no model ---------- */
+const BodyKit = require('../parts/body.js');
+/* the hook the app hands in (sigRead in parts/v14.js): what parts/voice.js understood of the sentence, with the words to say back */
+const sigRead = active => text => {
+  const F = VoiceLog.parse(text); if (!['body', 'injury', 'healed'].includes(F.cmd)) return null;
+  if (F.cmd === 'body') return { cmd: 'body', body: F.body, back: F.back || 0, say: BodyKit.say(F.body, { goal: 8000, back: F.back }) };
+  if (F.cmd === 'injury') return { cmd: 'injury', part: F.part, he: F.part === 'other' ? '' : BodyKit.partHe(F.part), care: BodyKit.CARE };
+  const n = active.filter(p => !F.part || p === F.part).length; return { cmd: 'healed', part: F.part || '', n, say: BodyKit.sayHealed(n) };
+};
+test('the body: steps and a heart rate are written down at once, an injury waits for a tap', () => {
+  const body = sigRead(['shoulder']);
+  let L = local('עשיתי 10,000 צעדים והדופק היה 62', { body });
+  assert.deepStrictEqual(L.acts, [{ t: 'body', day: { st: 10000, hr: 62 }, back: 0, auto: true }]); assert.ok(/10,000 צעדים/.test(L.say) && /כל הכבוד/.test(L.say), L.say);
+  L = local('אתמול עשיתי 6000 צעדים', { body }); assert.strictEqual(L.acts[0].back, 1); assert.ok(/לאתמול/.test(L.say));
+  L = local('נפצעתי בכתף', { body }); assert.deepStrictEqual(L.acts.map(a => [a.t, a.part, !!a.auto]), [['injury', 'shoulder', false]]); assert.ok(/רופא/.test(L.say) && /כתף/.test(L.say), L.say);
+  L = local('יש לי כאב בברך', { body }); assert.strictEqual(L.acts[0].t, 'injury'); assert.strictEqual(L.acts[0].part, 'knee');      // not read as something in the pantry
+  L = local('הכתף החלימה', { body }); assert.deepStrictEqual(L.acts, [{ t: 'healed', part: 'shoulder', auto: true }]);
+  L = local('החלמתי', { body: sigRead([]) }); assert.deepStrictEqual(L.acts, []); assert.ok(/לא רשומה/.test(L.say));
+});
+test('questions about the body: the day\'s numbers come from the data, a question about an injury goes to a model', () => {
+  const body = sigRead([]);
+  assert.ok(/8,240 צעדים/.test(local('כמה צעדים עשיתי היום?', { body, sig: { today: { st: 8240, hr: 61 }, goal: 8000 } }).say));
+  assert.ok(/דופק 61/.test(local('מה הדופק שלי היום?', { body, sig: { today: { st: 8240, hr: 61 }, goal: 8000 } }).say));
+  assert.ok(/עוד לא נרשמו/.test(local('כמה צעדים עשיתי?', { body, sig: { today: {}, goal: 8000 } }).say));
+  assert.strictEqual(local('מה לעשות עם כאב בברך?', { body }), null);
+  assert.strictEqual(local('נפצעתי בכתף, מה לעשות?', { body }), null);
+  assert.ok(CK.score('מה לעשות עם כאב בברך?', {}).why.some(w => /^health/.test(w)));      // and there it is weighed as a health matter
+});
+test('the other kinds of sentence are still themselves, with the hook and without it', () => {
+  const body = sigRead([]);
+  assert.strictEqual(local('שקלתי 82.4', { body }).acts[0].t, 'weigh'); assert.strictEqual(local('בנץ 8 חזרות 60 קילו', { body }).kind, 'sets'); assert.strictEqual(local('אכלתי שתי ביצים', { body }).acts[0].t, 'meal');
+  assert.strictEqual(local('יש לי קילו חזה עוף ושש ביצים', { body }).acts[0].t, 'pantry'); assert.strictEqual(local('אכלתי 500 קלוריות', { body }), null);
+  assert.deepStrictEqual(local('עשיתי 10,000 צעדים').acts, [{ t: 'voice', text: 'עשיתי 10,000 צעדים', auto: true }]);      // a caller that hands in no hook: the sentence takes the voice road, which stores it the same way
+});
+test('the model is told about the body and about active injuries', () => {
+  const sys = CK.system('');
+  assert.ok(/DATA\.body/.test(sys) && /DATA\.injuries/.test(sys) && /do not suggest exercises that load that place/.test(sys));
+});
+
+test('a body action from the model: only numbers that make sense are kept, and 0 means "not given"', () => {
+  const clean = a => CK.cleanActs([Object.assign({ t: 'body', steps: 0, hr: 0, kcal: 0, sleep: 0, date: '' }, a)]);
+  assert.deepStrictEqual(clean({ steps: 9412.4, hr: 58, kcal: 0, sleep: 7.6 }), [{ t: 'body', day: { st: 9412, hr: 58, sl: 7.5 }, date: '' }]);
+  assert.deepStrictEqual(clean({ steps: 9000, date: '2026-11-11' }), [{ t: 'body', day: { st: 9000 }, date: '2026-11-11' }]);
+  assert.deepStrictEqual(clean({ steps: 9000, date: 'yesterday' })[0].date, '');
+  assert.deepStrictEqual(clean({ hr: 12 }), []);      // not a heart rate
+  assert.deepStrictEqual(clean({}), []);      // nothing was read: no action at all
+  assert.deepStrictEqual(clean({ steps: 99999999, hr: 999 })[0].day, { st: 150000, hr: 230 });      // clamped like every other number the model gives
+  assert.ok(/body: the day/.test(CK.system('')) && /screen of a watch/.test(CK.system('')));
 });

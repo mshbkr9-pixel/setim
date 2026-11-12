@@ -25,7 +25,7 @@ const USAGE = {};   // id -> {id,user,day,cheap,smart,deep,img,tin,tout,cost}
 const ACCESS = {};  // id -> {id,user,role,by}          who was invited to the coach
 const INVITES = {}; // id -> {id,hash,role,by,exp,used,used_at}
 const CONFIG = {};  // id -> {id,key,total,usd}        the owner's limits
-let TEST_LINK = '';   // set through POST /__test/shortcut, only in this stand-in
+let TEST_LINK = '', TEST_HEALTH = '';   // set through POST /__test/shortcut ({link} and, since v14, {health}), only in this stand-in
 const COACH = { mode: '', calls: [], cfg: null };   // set through POST /__test/coach: how the stand-in model behaves, and the knobs for a test
 
 /* ---- a stand-in for the Claude API. It answers in the shape of POST /v1/messages, so the real request-building and
@@ -46,7 +46,8 @@ function fakeClaude(body) {
   if (COACH.mode === 'refuse') return { statusCode: 200, json: { id: 'msg_x', type: 'message', role: 'assistant', model: body.model, content: [], stop_reason: 'refusal', stop_details: { type: 'refusal', category: null }, usage } };
   let out;
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-  if (hasImg) out = { say: 'בתמונה נראים אורז וחזה עוף. הכנתי לרישום, הכמויות הן הערכה.', acts: [{ t: 'meal', slot: 'l', date: '', title: '', items: [{ name: 'אורז', grams: 180, kcal: 234, p: 4.9, c: 50, f: 0.5, est: true }, { name: 'חזה עוף', grams: 150, kcal: 264, p: 49.5, c: 0, f: 5.7, est: true }] }] };
+  if (hasImg && /נתוני הגוף/.test(text)) out = { say: 'בתמונה: 9,412 צעדים ודופק במנוחה 58.', acts: [{ t: 'body', steps: 9412, hr: 58, kcal: 0, sleep: 0, date: '' }] };      // a watch screen, not a plate
+  else if (hasImg) out = { say: 'בתמונה נראים אורז וחזה עוף. הכנתי לרישום, הכמויות הן הערכה.', acts: [{ t: 'meal', slot: 'l', date: '', title: '', items: [{ name: 'אורז', grams: 180, kcal: 234, p: 4.9, c: 50, f: 0.5, est: true }, { name: 'חזה עוף', grams: 150, kcal: 264, p: 49.5, c: 0, f: 5.7, est: true }] }] };
   else if (/המבורגר/.test(text)) out = { say: 'הכנתי לרישום: המבורגר בלחמנייה וצ׳יפס. הכמויות הן הערכה.', acts: [{ t: 'meal', slot: 'l', date: '', title: 'המבורגר וצ׳יפס', items: [{ name: 'המבורגר בלחמנייה', grams: 220, kcal: 560, p: 30, c: 40, f: 30, est: true }, { name: 'צ׳יפס', grams: 120, kcal: 370, p: 4, c: 45, f: 19, est: true }] }] };
   else if (/תפריט/.test(text)) out = { say: 'הכנתי תפריט למחר לפי היעדים שלך.', acts: [{ t: 'plan', days: [{ date: tomorrow, meals: ['b', 'l', 'd'].map(s => ({ slot: s, recipe: ids(s)[0] || '', servings: 1, title: ids(s)[0] ? '' : 'ארוחה', kcal: 500, p: 35 })) }] }] };
   else if (/תזכור עליי/.test(text)) out = { say: 'רשמתי לעצמי.', acts: [{ t: 'remember', text: 'מעדיף אימונים בבוקר' }] };
@@ -85,7 +86,7 @@ const G = {
   hooks: HOOKS, Record: Rec,
   text: b => Buffer.from(b).toString('utf8'),
   os: {
-    readFile: p => (TEST_LINK && /siri\.json$/.test(p)) ? Buffer.from(JSON.stringify({ shortcut: TEST_LINK })) : ((COACH.cfg && /coach\.json$/.test(p)) ? Buffer.from(JSON.stringify(COACH.cfg)) : fs.readFileSync(p)),
+    readFile: p => ((TEST_LINK || TEST_HEALTH) && /siri\.json$/.test(p)) ? Buffer.from(JSON.stringify({ shortcut: TEST_LINK, health: TEST_HEALTH })) : ((COACH.cfg && /coach\.json$/.test(p)) ? Buffer.from(JSON.stringify(COACH.cfg)) : fs.readFileSync(p)),
     getenv: n => n === 'ANTHROPIC_API_KEY' ? (LIVE ? process.env.ANTHROPIC_API_KEY : (COACH.mode === 'nokey' ? '' : 'stand-in-key')) : (process.env[n] || '')
   },
   http: { send: opts => LIVE ? liveClaude(opts) : fakeClaude(JSON.parse(opts.body)) },
@@ -95,6 +96,7 @@ const G = {
     findFirstRecordByData(coll, field, value) { const hit = Object.values(storeOf(coll)).find(o => o[field] === value); if (!hit) throw new Error('sql: no rows in result set'); return new Rec(coll, hit); },
     findRecordsByFilter(coll, filter, sort, limit, offset, params) {
       if (COACH_STORES[coll]) return Object.values(COACH_STORES[coll]).filter(o => matches(o, filter, params || {})).map(o => new Rec(coll, o));
+      if (/key = 'hinbox'/.test(filter)) return Object.values(DOCS).filter(d => d.user === params.u && d.key === 'hinbox').map(d => new Rec('docs', d));      // the watch's inbox is asked for by itself
       return Object.values(DOCS).filter(d => d.user === params.u && (d.key.startsWith('log-') || ['vinbox', 'vdone', 'deck', 'week', 'days'].includes(d.key))).map(d => new Rec('docs', d));
     },
     findRecordById(coll, id) { const hit = Object.values(USERS).find(x => x.id === id); if (!hit) throw new Error('sql: no rows in result set'); return new Rec(coll, hit); },
@@ -123,7 +125,7 @@ http.createServer((req, res) => {
       if (req.method === 'OPTIONS') return send(res, 204);
       if (p === '/api/health') return send(res, 200, { code: 200, message: 'API is healthy.' });
 
-      if (p === '/__test/shortcut' && req.method === 'POST') { TEST_LINK = String(b.link || ''); return send(res, 200, { link: TEST_LINK }); }
+      if (p === '/__test/shortcut' && req.method === 'POST') { if ('link' in b || !('health' in b)) TEST_LINK = String(b.link || ''); if ('health' in b) TEST_HEALTH = String(b.health || ''); return send(res, 200, { link: TEST_LINK, health: TEST_HEALTH }); }
       if (p === '/api/setim/voice' && req.method === 'GET') return lib.info({ json: (code, body) => send(res, code, body) }, G);
       if (p === '/api/setim/voice' && req.method === 'POST') {
         const e = { requestInfo: () => ({ body: b }), request: { header: { get: n => req.headers[String(n).toLowerCase()] || '' } }, json: (code, body) => send(res, code, body) };

@@ -94,7 +94,9 @@ def run(pw, scheme):
     check(tag + 'the coach door has the goal box first', boxes[0] == 'מטרות והישגים' and 'הגדרות' in boxes, boxes)
     shot('1-hub'); contrast('hub')
     goto('#home'); boxes = ev("[...document.querySelectorAll('.hubbox .t')].map(e=>e.textContent)")
-    check(tag + 'the training door ends with the voice box', boxes[-1] == 'רישום בקול ו-Siri' and 'הישגים' in boxes, boxes)
+    check(tag + 'the fitness door ends with the box of everything else', boxes[-1] == 'עוד' and 'הישגים' in boxes, boxes)
+    page.click('#view .hubbox.wide:has-text("עוד")'); settle(700); more = ev("[...document.querySelectorAll('#sheetBody .item .t')].map(e=>e.textContent)")
+    check(tag + 'and voice logging is one of its rows', more == ['התקדמות', 'המכון שלי', 'מדריכים', 'רישום בקול ו-Siri'], more); shot('1b-more'); contrast('the more sheet', '#sheetBody'); ev("Sheet.close()"); settle(700)
 
     # ---- an empty goals page, then the three steps ----
     goto('#goals'); check(tag + 'goals page invites to choose a goal', 'מה המטרה שלך?' in ev("document.querySelector('#view').innerText")); shot('2-goals-empty'); contrast('goals, empty')
@@ -308,12 +310,14 @@ def run(pw, scheme):
     page.goto(APP); page.wait_for_function("typeof S !== 'undefined' && S.ex && S.ex.length > 700"); ev(SEED)
     ev("""() => { const back=n=>addDays(todayKey(),-n); const r=GoalKit.build('lose',{from:84,to:76},Object.assign(goalData(),{today:back(21)}),'',''); const g=r.goal; S.goals.list=[g]; saveGoals();
         S.body.w=[{d:back(21),kg:84},{d:back(8),kg:83.2},{d:back(2),kg:82.6}]; save('body',S.body); delete S.prefs.seen.week; homeDay=null; homeWeek=0; location.hash='#home'; render(); }""")
-    settle(700); cards = ev("[...document.querySelectorAll('.recap')].map(e=>e.innerText.replace(/\\n/g,' | '))")
-    check(tag + 'on Sunday, Today shows one card and it is about the goal', ev("new Date(todayKey()).getDay()") == 0 and len(cards) == 1 and 'התקדמת לעבר המטרה' in cards[0] and 'ירדת 0.6' in cards[0], cards)
+    settle(700); top = ev("({goal:(document.querySelector('.px-top .px-goal')||{innerText:''}).innerText.replace(/\\n/g,' | '),say:[...document.querySelectorAll('.px-top .px-say span')].map(e=>e.textContent)})")
+    check(tag + 'on Sunday, the card on top of fitness tells the goal and the week that brought it closer', ev("new Date(todayKey()).getDay()") == 0 and 'לרדת ל-76' in top['goal'] and any('קירב אותך למטרה' in x and 'ירדת 0.6' in x for x in top['say']), top)
     page.screenshot(path=os.path.join(OUT, '%s-18-home-week.png' % scheme))
-    page.click('.recap'); settle(700); ws = ev("document.querySelector('#sheetBody').innerText"); check(tag + 'the card opens the week in words', 'יפה מאוד' in ws and 'למטרה ולשלבים' in ws, ws); page.screenshot(path=os.path.join(OUT, '%s-19-week-sheet.png' % scheme))
-    ev("Sheet.close()"); settle(700); cards = ev("[...document.querySelectorAll('.recap')].map(e=>e.innerText.replace(/\\n/g,' | '))")
-    check(tag + 'once seen, the usual weekly recap takes the place', len(cards) == 1 and 'השבוע שעבר שלך' in cards[0], cards)
+    cards = ev("[...document.querySelectorAll('.recap')].map(e=>e.innerText.replace(/\\n/g,' | '))")
+    check(tag + 'under it, the usual weekly recap', len(cards) == 1 and 'השבוע שעבר שלך' in cards[0], cards)
+    page.click('.px-top .px-goal'); settle(700); ws = ev("({page:route.page,week:(document.querySelector('.gweek')||{innerText:''}).innerText})")
+    check(tag + 'the goal line opens the goal, with the week in words', ws['page'] == 'goals' and 'יפה מאוד' in ws['week'], ws); page.screenshot(path=os.path.join(OUT, '%s-19-week-goal.png' % scheme))
+    page.click('#hdr .back'); settle(700); check(tag + 'and back from the goal returns to fitness, where it was opened', ev("route.page") == 'home')
     ctx.close(); b.close()
 
 with sync_playwright() as pw:

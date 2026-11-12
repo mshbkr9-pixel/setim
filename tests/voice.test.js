@@ -166,3 +166,44 @@ test('for someone with no history, a bare name is the standard exercise', () => 
   const got = {}; Object.keys(want).forEach(q => { got[q] = pick(q); });
   assert.deepStrictEqual(got, want);
 });
+
+/* ---------- v14: thousands, and the body's own sentences ---------- */
+const nums = t => VL.words(t).filter(x => x.k === 'n').map(x => x.v);
+test('thousands: with a comma, in words, and after a digit; a decimal comma stays a decimal', () => {
+  const want = { '10,000 צעדים': [10000], '12,345': [12345], '1,500': [1500], '62,5 קילו': [62.5], '47.5': [47.5], 'עשרת אלפים': [10000], 'שמונת אלפים': [8000], 'אלפיים': [2000], 'אלפיים חמש מאות': [2500],
+    'אלף וחמש מאות': [1500], 'אלף מאתיים': [1200], 'שלושת אלפים מאתיים': [3200], 'עשרת אלפים וחמש מאות': [10500], 'שבעת אלפים שלוש מאות חמישים': [7350], '8 אלף': [8000], '10 אלפים': [10000], 'עשרים וחמש אלף': [25000],
+    'ten thousand': [10000], 'שלוש מאות': [300], 'מאה עשרים וחמש': [125], 'שתיים וחצי': [2.5], 'שלוש עשרה': [13], 'two hundred': [200] };
+  const got = {}; Object.keys(want).forEach(q => { got[q] = nums(q); });
+  assert.deepStrictEqual(got, want);
+});
+test('the body: steps, heart rate, calories the watch counted, sleep', () => {
+  const body = t => { const F = VL.parse(t); return F.cmd === 'body' ? Object.assign({}, F.body, F.back ? { back: F.back } : {}) : F.cmd || null; };
+  const want = { 'עשיתי 10,000 צעדים': { st: 10000 }, 'עשיתי עשרת אלפים צעדים': { st: 10000 }, 'הלכתי היום 8 אלף צעדים': { st: 8000 }, 'הדופק שלי היה 62': { hr: 62 }, 'דופק 58 במנוחה': { hr: 58 },
+    'צעדים 9200 דופק 61': { st: 9200, hr: 61 }, 'השעון אמר 540 קלוריות': { kc: 540 }, 'שרפתי 430 קלוריות באימון': { kc: 430 }, 'ישנתי 7 שעות': { sl: 7 }, 'ישנתי שבע וחצי שעות': { sl: 7.5 },
+    'אתמול עשיתי 12,000 צעדים': { st: 12000, back: 1 }, 'I did 9000 steps': { st: 9000 }, 'my heart rate was 64': { hr: 64 }, 'slept 8 hours': { sl: 8 } };
+  const got = {}; Object.keys(want).forEach(q => { got[q] = body(q); });
+  assert.deepStrictEqual(got, want);
+});
+test('an injury and a recovery are heard as such, with the place', () => {
+  const inj = t => { const F = VL.parse(t); return F.cmd ? [F.cmd, F.part] : null; };
+  const want = { 'נפצעתי בכתף': ['injury', 'shoulder'], 'כואבת לי הברך': ['injury', 'knee'], 'כואב לי הגב': ['injury', 'lower_back'], 'כואב לי הגב העליון': ['injury', 'upper_back'], 'נקעתי את הקרסול': ['injury', 'ankle'],
+    'כואב לי שורש כף היד': ['injury', 'wrist'], 'כואבת לי כף הרגל': ['injury', 'ankle'], 'נפצעתי באימון': ['injury', 'other'], 'I hurt my knee': ['injury', 'knee'], 'החלמתי': ['healed', ''], 'הכתף החלימה': ['healed', 'shoulder'] };
+  const got = {}; Object.keys(want).forEach(q => { got[q] = inj(q); });
+  assert.deepStrictEqual(got, want);
+});
+test('a sentence that is about something else stays what it was', () => {
+  // a set with a heart rate in it, a goal in words, food, a question, a headache, numbers out of range, a lone word
+  for (const t of ['ריצה 30 דקות דופק 150', 'להגיע ל-10,000 צעדים ביום', 'אכלתי 500 קלוריות', 'מה לעשות עם כאב בברך?', 'למה כואב לי הגב', 'כואב לי הראש', 'עשיתי 500000 צעדים', 'דופק 500', 'צעדים', 'עשיתי 10 צעדים קדימה בלאנג׳', 'לרדת 5 קילו כי כואב לי הגב'])
+    assert.ok(!['body', 'injury', 'healed'].includes(VL.parse(t).cmd), t + ' -> ' + VL.parse(t).cmd);
+  assert.deepStrictEqual(set('בנץ 8 חזרות 60 קילו'), ['bench-press', 8, 60, 1, 0]);
+  assert.deepStrictEqual(set('סקוואט 5 על 5 100 קילו').slice(0, 4), ['squat', 5, 100, 5]);
+  assert.strictEqual(VL.parse('בטל').cmd, 'undo'); assert.strictEqual(VL.parse('מה עשיתי היום').cmd, 'today');
+});
+test('the body is the app\'s to store: one sentence gives it what was understood, and the server sends such a sentence to the app', () => {
+  const r = say('עשיתי 10,000 צעדים והדופק היה 62');
+  assert.deepStrictEqual([r.ok, r.cmd, r.body, r.back, r.item], [true, 'body', { st: 10000, hr: 62 }, 0, undefined]);
+  assert.deepStrictEqual([say('נפצעתי בכתף').cmd, say('נפצעתי בכתף').part], ['injury', 'shoulder']);
+  const store = {}, io = { catalog: { ex: ex, popular: [] }, get: k => store[k] || null, logs: () => ({}), put: (k, d) => { store[k] = d; } };
+  const out = VL.serve({ text: 'עשיתי 10,000 צעדים', now: Date.parse(D + 'T10:00:00Z') }, io);
+  assert.deepStrictEqual([out.ok, out.why], [false, 'app']); assert.ok(/בתוך האפליקציה/.test(out.say)); assert.strictEqual(store.vinbox, undefined);      // nothing is put in the sets' inbox
+});

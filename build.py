@@ -10,6 +10,9 @@
    /*__V13_CSS__*/  -> parts/v13.css      (nutrition and the coach: styles)
    /*__FOOD__*/     -> parts/food.js + parts/menu.js + parts/coach.js   (FoodKit, MenuKit, CoachKit: no screens in them)
    /*__V13__*/      -> parts/v13.js + parts/v13b.js   (the nutrition screens; the coach and the three sectors)
+   /*__V14_CSS__*/  -> parts/v14.css      (the card on top of each sector, the body's numbers: styles, every class starts with "px-")
+   /*__V14_KITS__*/ -> parts/body.js + parts/pulse.js   (BodyKit: steps, heart rate, sleep and injuries; PulseKit: what the coach says with no model. No screens)
+   /*__V14__*/      -> parts/v14.js       (one goal on top of both sectors: screens and glue)
 Also writes what the server-side voice hook needs, so the server always understands exactly what the app understands:
    server/pb_hooks/voice.js      a copy of parts/voice.js
    server/pb_hooks/exnames.json  the exercise names (id, Hebrew, English, group, category, equipment, body weight)
@@ -28,7 +31,8 @@ t = rd('index.template.html')
 src = t
 for marker, paths in (('/*__CATALOG__*/', 'parts/catalog.js'), ('/*__POOL__*/', 'parts/pool.js'), ('/*__ARTICLES__*/', 'articles.js'),
                       ('/*__V12_CSS__*/', 'parts/v12.css'), ('/*__VOICE__*/', 'parts/voice.js'), ('/*__GOALS__*/', 'parts/goals.js'), ('/*__V12__*/', 'parts/v12.js'),
-                      ('/*__V13_CSS__*/', 'parts/v13.css'), ('/*__FOOD__*/', 'parts/food.js parts/menu.js parts/coach.js'), ('/*__V13__*/', 'parts/v13.js parts/v13b.js')):
+                      ('/*__V13_CSS__*/', 'parts/v13.css'), ('/*__FOOD__*/', 'parts/food.js parts/menu.js parts/coach.js'), ('/*__V13__*/', 'parts/v13.js parts/v13b.js'),
+                      ('/*__V14_CSS__*/', 'parts/v14.css'), ('/*__V14_KITS__*/', 'parts/body.js parts/pulse.js'), ('/*__V14__*/', 'parts/v14.js')):
     assert t.count(marker) == 1, marker
     part = '\n'.join(rd(path) for path in paths.split())
     assert '</script' not in part.lower() and '</style' not in part.lower(), paths

@@ -763,6 +763,7 @@ html[data-nav="back"]::view-transition-new(root){animation:vt-in-b .26s cubic-be
 .sheet .body h2:first-child,.sheet .body>div>h2:first-child{padding-inline-end:44px}
 /*__V12_CSS__*/
 /*__V13_CSS__*/
+/*__V14_CSS__*/
 </style>
 </head>
 <body>
@@ -1086,7 +1087,7 @@ function home(){
   swipeNav(wrap,dir=>{ let k=homeDay+dir; if(k>6){ k=0; homeWeek++; } else if(k<0){ k=6; homeWeek--; } homeDay=k; editMode=false; render(); });
   if(!isToday){ homeOther(wrap,selDate,sel,cur,byDate[selDate]||[]); return wrap; }
   if(!editMode) Dock.fab=voiceFab();      // the mic: one tap, say the set, and it is in the journal
-  const gc=goalCard(), rc=gc?null:recapCard(), nd=(gc||rc)?null:installNudge(); [gc,rc,nd].forEach(c=>{ if(c) wrap.append(c); });      // one card at a time: the goal, then the recap, then the install hint
+  const top=editMode?null:sectorTop('fit'), rc=recapCard(), nd=rc?null:installNudge(); [top,rc,nd].forEach(c=>{ if(c) wrap.append(c); });      // v14: the goal and the coach's words open the day (parts/v14.js); then at most one passing card, the recap or the install hint
   const d=wkDay(sel); const ids=todayList(); const strk=weekStreak();
   const streakEl=strk.n>=2?h('div',{class:'streak'},ic('flame'),h('span',{},`${hcount(strk.n,'שבוע','שבועות')} ברצף`)):null;
   if(d.rest&&!ids.length){
@@ -1553,7 +1554,8 @@ function setStr(sets,e){
 }
 function toastUndo(text,undo){ const el=$('#toastTx'); el.replaceChildren(h('span',{},text),h('button',{onclick:()=>{ el.classList.remove('on'); undo(); }},'בטל')); el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),4000); }
 function saveRoutines(){ save('routines',S.routines); }
-function recordDay(){ const i=new Date(todayKey()).getDay(); const d=wkDay(i); const rec={label:d.rest?'':(d.label||''),routine:d.routine||'',ids:todayList()}; const cur=S.days.map[todayKey()]; if(JSON.stringify(cur)===JSON.stringify(rec)) return; S.days.map[todayKey()]=rec; const keys=Object.keys(S.days.map).sort(); if(keys.length>400) keys.slice(0,keys.length-400).forEach(k=>delete S.days.map[k]); clearTimeout(recordDay.t); recordDay.t=setTimeout(()=>save('days',S.days),800); }
+/* what today's record already holds (the workout's length and start, a plan for this date only) stays: only the label, the routine and the list are refreshed */
+function recordDay(){ const i=new Date(todayKey()).getDay(); const d=wkDay(i); const cur=S.days.map[todayKey()]; const rec={...(cur||{}),label:d.rest?'':(d.label||''),routine:d.routine||'',ids:todayList()}; if(JSON.stringify(cur)===JSON.stringify(rec)) return; S.days.map[todayKey()]=rec; const keys=Object.keys(S.days.map).sort(); if(keys.length>400) keys.slice(0,keys.length-400).forEach(k=>delete S.days.map[k]); clearTimeout(recordDay.t); recordDay.t=setTimeout(()=>save('days',S.days),800); }
 function workoutOnDate(dt){ const rec=S.days.map[dt]; if(!rec) return null; const ex=rec.ids.map(id=>{ const s=(S.logs[id]?.sessions||[]).find(x=>x.d===dt); return {id,sets:s?Math.max(1,s.sets.length):3,reps:s?(+s.sets[0].r||10):10}; }).filter(x=>getEx(x.id)); return ex.length?{label:rec.label,routine:rec.routine,ex,date:dt}:null; }
 function suggestNext(){
   const today=todayKey(); const dates=Object.keys(S.days.map).filter(d=>d<today&&S.days.map[d].ids.length).sort(); if(!dates.length) return null;
@@ -1692,7 +1694,7 @@ function settings(){
   return wrap;
 }
 function exportSheet(){ const data={profile:S.profile,deck:S.deck,logs:S.logs,yt:S.yt,week:S.week,routines:S.routines,days:S.days,goals:S.goals,body:S.body,...backupExtra()}; const ta=h('textarea',{style:'width:100%;min-height:160px;font-size:12px',readonly:true}); ta.value=JSON.stringify(data); Sheet.show(h('div',{},h('h2',{},'גיבוי הנתונים'),h('p',{class:'small muted'},'מעתיקים את הטקסט ושומרים אותו במקום בטוח.'),ta,h('button',{class:'btn',style:'margin-top:10px',onclick:async()=>{ try{ await navigator.clipboard.writeText(ta.value); toast('הועתק'); }catch(e){ ta.select(); } }},'העתק'))); }
-function restoreSheet(){ const ta=h('textarea',{style:'width:100%;min-height:120px;font-size:12px',placeholder:'מדביקים כאן גיבוי'}); Sheet.show(h('div',{},h('h2',{},'שחזור מגיבוי'),ta,h('button',{class:'btn',style:'margin-top:10px',onclick:()=>{ try{ const d=JSON.parse(ta.value); if(d.profile){ S.profile={...S.profile,...d.profile}; save('profile',S.profile); } if(d.deck){ S.deck=d.deck; save('deck',S.deck); } if(d.yt){ S.yt=d.yt; save('yt',{map:S.yt}); } if(d.week){ S.week={days:{},...d.week}; save('week',S.week); } if(d.routines){ S.routines={list:[],...d.routines}; save('routines',S.routines); } if(d.days){ S.days={map:{},...d.days}; save('days',S.days); } if(d.goals){ S.goals={list:[],...d.goals}; save('goals',S.goals); } if(d.body){ S.body={w:[],...d.body}; save('body',S.body); } if(d.logs){ Object.entries(d.logs).forEach(([k,v])=>{ S.logs[k]=v; save('log-'+k,v); }); } Sheet.close(); render(); toast('שוחזר'); }catch(e){ toast('הגיבוי לא תקין'); } }},'שחזר'))); }
+function restoreSheet(){ const ta=h('textarea',{style:'width:100%;min-height:120px;font-size:12px',placeholder:'מדביקים כאן גיבוי'}); Sheet.show(h('div',{},h('h2',{},'שחזור מגיבוי'),ta,h('button',{class:'btn',style:'margin-top:10px',onclick:()=>{ try{ const d=JSON.parse(ta.value); if(!d||typeof d!=='object'||Array.isArray(d)) throw new Error('shape'); restoreFrom(d); Sheet.close(); render(); toast('שוחזר'); }catch(e){ toast('הגיבוי לא תקין'); } }},'שחזר'))); }      // the same road as the file: every kind of document that a backup carries comes back
 
 /* ========================= UX: theme, onboarding, checklist, rest timer ========================= */
 function applyTheme(){ let t=''; try{ t=localStorage.getItem('gt:theme')||''; }catch(e){} const root=document.documentElement; if(t==='light'||t==='dark'){ root.setAttribute('data-theme',t); } else if(STANDALONE){ root.setAttribute('data-theme', matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'); } }
@@ -1700,7 +1702,7 @@ if(STANDALONE){ try{ matchMedia('(prefers-color-scheme: light)').addEventListene
 const ONB_SLIDES=[
  {t:'סופרים סטים',p:'לוחצים על תרגיל, מסמנים משקל וחזרות, ✓ בסוף כל סט. בפעם הבאה הכול כבר ממולא מהפעם הקודמת, רק מעלים.',
   art:`<svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg"><g font-family="Heebo" font-weight="900"><rect x="40" y="40" width="240" height="44" rx="14" fill="var(--card2)"/><text x="262" y="68" text-anchor="end" font-size="16" fill="var(--ink)">1</text><rect x="150" y="50" width="70" height="24" rx="8" fill="var(--card3)"/><text x="185" y="67" text-anchor="middle" font-size="13" fill="var(--ink)">40 ק״ג</text><rect x="70" y="50" width="60" height="24" rx="8" fill="var(--card3)"/><text x="100" y="67" text-anchor="middle" font-size="13" fill="var(--ink)">10</text><rect x="40" y="94" width="240" height="44" rx="14" fill="var(--card2)"/><text x="262" y="122" text-anchor="end" font-size="16" fill="var(--ink)">2</text><rect x="150" y="104" width="70" height="24" rx="8" fill="var(--card3)"/><text x="185" y="121" text-anchor="middle" font-size="13" fill="var(--ink)">42.5</text><rect x="70" y="104" width="60" height="24" rx="8" fill="var(--card3)"/><text x="100" y="121" text-anchor="middle" font-size="13" fill="var(--ink)">10</text><rect x="40" y="148" width="240" height="44" rx="14" fill="rgba(74,222,128,.12)"/><text x="262" y="176" text-anchor="end" font-size="16" fill="var(--good)">3</text><rect x="150" y="158" width="70" height="24" rx="8" fill="var(--card3)"/><text x="185" y="175" text-anchor="middle" font-size="13" fill="var(--ink)">42.5</text><rect x="70" y="158" width="60" height="24" rx="8" fill="var(--card3)"/><text x="100" y="175" text-anchor="middle" font-size="13" fill="var(--ink)">11</text><circle cx="52" cy="170" r="11" fill="var(--good)"/><path d="M46 170l4 4 8-8" stroke="#06240F" stroke-width="2.5" fill="none" stroke-linecap="round"/></g></svg>`},
- {t:'השבוע שלך',p:'שבעה ימים למעלה בלשונית "אימונים". לוחצים על יום, בוחרים אימון ומוסיפים תרגילים. או ממלאים את כל השבוע בלחיצה אחת ב"תוכניות".',
+ {t:'השבוע שלך',p:'שבעה ימים למעלה בלשונית "כושר". לוחצים על יום, בוחרים אימון ומוסיפים תרגילים. או ממלאים את כל השבוע בלחיצה אחת ב"תוכניות".',
   art:`<svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg"><g font-family="Heebo" font-weight="900" font-size="16" text-anchor="middle">${['א','ב','ג','ד','ה','ו','ש'].map((l,i)=>`<rect x="${276-i*40}" y="40" width="34" height="46" rx="12" fill="${i===4?'var(--accent)':'var(--card2)'}"/><text x="${293-i*40}" y="69" fill="${i===4?'var(--accent-ink)':'var(--ink2)'}">${l}</text>`).join('')}</g><g fill="var(--card2)"><rect x="40" y="110" width="240" height="30" rx="10"/><rect x="40" y="150" width="240" height="30" rx="10"/></g><g font-family="Heebo" font-weight="800" font-size="12" fill="var(--ink2)"><text x="270" y="130" text-anchor="end">סקוואט</text><text x="50" y="130">3×8</text><text x="270" y="170" text-anchor="end">לחיצת חזה</text><text x="50" y="170">3×10</text></g></svg>`},
  {t:'היומן זוכר הכול',p:'כל תרגיל, כל משקל, כל סט, לפי תאריך. מאיפה התחלת ועד איפה הגעת. התחברות עם חשבון שומרת את זה בכל מכשיר.',
   art:`<svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="og3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent2)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs><g fill="var(--card3)"><rect x="40" y="130" width="26" height="50" rx="7"/><rect x="80" y="110" width="26" height="70" rx="7"/><rect x="120" y="120" width="26" height="60" rx="7"/><rect x="160" y="90" width="26" height="90" rx="7"/><rect x="200" y="100" width="26" height="80" rx="7"/></g><rect x="240" y="50" width="26" height="130" rx="7" fill="url(#og3)"/><g font-family="Heebo" font-weight="900" font-size="14" fill="var(--good)"><text x="253" y="40" text-anchor="middle">+18%</text></g><path d="M40 190H290" stroke="var(--line2)"/></svg>`},
@@ -1711,24 +1713,22 @@ function hasUserData(){ return Object.keys(S.logs).length>0||Object.keys((S.days
 function onbSettle(){ if(!hasUserData()) return false; try{ localStorage.setItem('gt:onboarded','1'); }catch(e){} if(Onb.el){ Onb.el.remove(); Onb.el=null; } return true; }
 function showOnboarding(){
   if(Onb.el) return;
-  const ans={goal:S.profile.goal||'hypertrophy',weekly:S.profile.weekly||3,place:S.profile.place||'gym'}; let step=0;
-  const el=h('div',{class:'onb'}); const body=h('div',{class:'ob-b'}); const dots=h('div',{class:'dots'});
-  const finish=plan=>{
+  /* v14: the opening screen no longer asks its own three questions. "מתחילים" leads to the one place where a person is set up: the goal,
+     the body, how often and where (the goal wizard, newGoal({first:true}) in parts/v12.js). The first week is filled in when that is saved. */
+  const el=h('div',{class:'onb'}); const body=h('div',{class:'ob-b'});
+  const finish=()=>{
     try{ localStorage.setItem('gt:onboarded','1'); }catch(e){}
-    if(plan&&hasUserData()) plan=false;
-    if(plan){ const p=S.profile; p.goal=ans.goal; p.weekly=ans.weekly; p.place=ans.place; p.program=ans.weekly<=3?'full':ans.weekly===4?'ul':'ppl'; save('profile',p); autoFillWeek(new Date(todayKey()).getDay()); }
     el.classList.remove('on'); setTimeout(()=>{ el.remove(); Onb.el=null; },300); homeDay=null; homeWeek=0;
-    if(route.page!=='home') go('#home'); else render(); if(plan) toast('השבוע מוכן. אפשר להתחיל.');
+    if(route.page!=='home') go('#home'); else render();
   };
-  const Q=[{t:'מה המטרה?',k:'goal',o:[['hypertrophy','לבנות שריר'],['strength','להתחזק'],['fatloss','לרדת בשומן'],['general','כושר כללי']]},{t:'כמה פעמים בשבוע?',k:'weekly',o:[[2,'פעמיים'],[3,'שלוש פעמים'],[4,'ארבע פעמים'],[5,'חמש פעמים']]},{t:'איפה מתאמנים?',k:'place',o:[['gym','בחדר כושר'],['home','בבית']]}];
-  const paint=()=>{
-    body.replaceChildren(); dots.replaceChildren(...[0,1,2,3].map(k=>h('i',{class:k===step?'on':''})));
-    if(step===0){ body.append(mascot('wave','lg'),h('h1',{},'סטים'),h('p',{},'רושמים סטים ורואים התקדמות. שלוש שאלות קצרות, והשבוע הראשון מוכן.'),h('button',{class:'btn',type:'button',onclick:()=>{ step=1; paint(); }},'מתחילים'),(STANDALONE&&!PB.user)?h('button',{class:'btn sec2',type:'button',onclick:()=>{ finish(false); authSheet('login'); }},'יש לי כבר חשבון'):''); return; }
-    const q=Q[step-1];
-    body.append(h('h1',{},q.t),h('div',{class:'ob-o'},...q.o.map(([v,l])=>h('button',{class:'typebtn pressable'+(ans[q.k]===v?' on':''),type:'button',onclick:()=>{ ans[q.k]=v; if(step<3){ step++; paint(); } else finish(true); }},h('span',{},l)))),h('button',{class:'lnkline center',type:'button',onclick:()=>{ step--; paint(); }},'חזרה'));
-  };
-  el.append(h('div',{class:'top'},h('button',{class:'skip',type:'button',onclick:()=>finish(false)},'דילוג'),dots),body);
-  $('#app').append(el); Onb.el=el; requestAnimationFrame(()=>el.classList.add('on')); el.classList.add('on'); paint();
+  body.append(mascot('wave','lg'),h('h1',{},'סטים'),h('p',{},'מגדירים מטרה פעם אחת, ומכאן הכול מחובר: האימונים, האוכל והדרך למטרה.'),h('button',{class:'btn',type:'button',onclick:()=>{ finish(); newGoal({first:true}); }},'מתחילים'),(STANDALONE&&!PB.user)?h('button',{class:'btn sec2',type:'button',onclick:()=>{ finish(); authSheet('login'); }},'יש לי כבר חשבון'):'');
+  el.append(h('div',{class:'top'},h('button',{class:'skip',type:'button',onclick:()=>finish()},'דילוג')),body);
+  $('#app').append(el); Onb.el=el; requestAnimationFrame(()=>el.classList.add('on')); el.classList.add('on');
+}
+/* the first week of training, from how often and where: only for someone with no plan and no history, and never a week of lifting for a running goal */
+function firstWeek(kind){
+  if(hasUserData()||kind==='run'||kind==='tri') return false;
+  const p=S.profile, wk=+p.weekly||3; p.program=wk<=3?'full':(wk===4?'ul':'ppl'); save('profile',p); autoFillWeek(new Date(todayKey()).getDay()); homeDay=null; homeWeek=0; return true;
 }
 function setupSheet(){
   const p=S.profile; const name=h('input',{type:'text',value:p.name||'',placeholder:'איך לקרוא לך',autocomplete:'given-name'});
@@ -1802,7 +1802,7 @@ function woFinish(){
   const vol=sess.reduce((n,x)=>n+(isCardio(getEx(x.id))?0:volume(x.s.sets.filter(t=>t.t))),0);
   const prs=sess.map(x=>{ const b=bestSet(x.id), e=getEx(x.id); return e&&b&&b.d===tk&&prInfo(x.id).n?{e,b}:null; }).filter(Boolean);
   w.done=true; w.dur=dur; woSave(); Wake.off(); recordDay();
-  const rec=S.days.map[tk]; if(rec){ rec.dur=dur; rec.start=w.start; clearTimeout(recordDay.t); save('days',S.days); }
+  const rec=S.days.map[tk]; if(rec){ woRecord(rec,w,dur); clearTimeout(recordDay.t); save('days',S.days); }
   stopRest(); haptic([60,40,60]);
   showFinish({dur,sets,vol,prs,ids:sess.map(x=>x.id),label:wkDay(new Date(tk).getDay()).label||'אימון'});
 }
@@ -2223,7 +2223,9 @@ function swapSheet(i,e){
 
 /* ---------- a workout that was left open ---------- */
 function stillThereSheet(){ Sheet.show(h('div',{},h('h2',{},'עדיין מתאמנים?'),h('p',{class:'small muted',style:'margin:0 0 14px;line-height:1.5'},'עברו 20 דקות בלי סט מסומן, אז הסטופר נעצר.'),h('button',{class:'btn',type:'button',onclick:()=>{ Sheet.close(); const w=woActive(); if(w){ w.last=Date.now(); w.asked=false; if(woPaused(w)) woTogglePause(); else woSave(); } }},'כן, ממשיכים'),h('button',{class:'btn sec2',type:'button',style:'margin-top:8px',onclick:()=>{ Sheet.close(); setTimeout(woFinish,320); }},'סיימתי את האימון'))); }
-function woCloseAt(w,endTs){ w.done=true; if(endTs){ const paused=(w.pauses||[]).reduce((n,p)=>n+Math.max(0,Math.min(p[1]||endTs,endTs)-Math.min(p[0],endTs)),0); w.dur=Math.max(0,Math.round((endTs-w.start-paused)/1000)); const rec=S.days.map[w.d]; if(rec&&w.dur>0){ rec.dur=w.dur; rec.start=w.start; save('days',S.days); } } woSave(); Wake.off(); }
+function woCloseAt(w,endTs){ w.done=true; if(endTs){ const paused=(w.pauses||[]).reduce((n,p)=>n+Math.max(0,Math.min(p[1]||endTs,endTs)-Math.min(p[0],endTs)),0); w.dur=Math.max(0,Math.round((endTs-w.start-paused)/1000)); const rec=S.days.map[w.d]; if(rec&&w.dur>0){ woRecord(rec,w,w.dur); save('days',S.days); } } woSave(); Wake.off(); }
+/* a second workout on the same day adds its time to the first one's: the day keeps one length and the first start */
+function woRecord(rec,w,dur){ const again=!!rec.start&&rec.start!==w.start; rec.dur=(again?(+rec.dur||0):0)+dur; if(!again) rec.start=w.start; }
 function woSweep(){ const w=S.wo; if(!w||w.done) return; if(w.d!==todayKey()){ woCloseAt(w,w.last||0); return; } if(!woPaused(w)&&Date.now()-(w.last||w.start)>45*60000){ woCloseAt(w,w.last||0); if(S.loaded){ toast('האימון נסגר לבד, עם המשך עד הסט האחרון'); render(); } } }
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) woSweep(); });
 /* ---------- today: week strip, hero, streak ---------- */
@@ -2252,7 +2254,8 @@ function homeRow(e,tg,i,cur,isToday){
   let right;
   if(editMode&&tg&&cur) right=h('div',{class:'row',style:'gap:0'},h('button',{class:'iconbtn sm',type:'button',html:I('trash'),style:'color:var(--bad);background:none','aria-label':'הסרה מהיום',onclick:ev=>{ ev.stopPropagation(); removeFromDay(i,id); }}),h('span',{class:'grip',role:'img','aria-label':'גרירה לסידור',html:I('grip')}));
   else right=h('span',{class:'prog'+(isToday&&b&&a===b?' done':'')},isToday&&b?`${a}/${b}`:(tg?plural(tg.sets||3,'סט אחד','סטים'):''),isToday&&b&&a===b?ic('check'):null);
-  return exItem(e,{sub:prevS?`פעם שעברה ${setStr(prevS.sets,e)}`:subName(e),right,onclick:ev=>{ if(editMode) return; heroFrom(ev.currentTarget); go('#ex-'+id); }});
+  const warn=isToday?sigWarn(e):'';      // v14: an active injury that this exercise may load is said on the row (parts/v14.js)
+  return exItem(e,{sub:warn||(prevS?`פעם שעברה ${setStr(prevS.sets,e)}`:subName(e)),right,onclick:ev=>{ if(editMode) return; heroFrom(ev.currentTarget); go('#ex-'+id); }});
 }
 function homeOther(wrap,k,i,cur,ss){
   const past=k<todayKey(); const p=cur?wkDay(i):planFor(k); const rec=S.days.map[k];
@@ -2574,6 +2577,8 @@ function cacheExMini(){ try{ const ids=new Set(Object.keys(S.logs)); Object.valu
 /*__V12__*/
 /*__FOOD__*/
 /*__V13__*/
+/*__V14_KITS__*/
+/*__V14__*/
 
 /* ========================= boot ========================= */
 (async function boot(){

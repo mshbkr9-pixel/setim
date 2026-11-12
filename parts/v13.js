@@ -50,7 +50,19 @@ const g1=n=>String(Math.round(n));
 
 /* ---------- targets ---------- */
 function isTrainDay(d){ try{ if(sessionsOn(d).length) return true; const p=planFor(d); return !!(p&&!p.rest&&p.ex&&p.ex.length); }catch(e){ return false; } }
-function nutT(d){ const T=FoodKit.targets(S.profile,S.nut); return T.ok?FoodKit.dayTargets(T,isTrainDay(d),S.profile.weekly,S.nut.cycle!==false):T; }
+/* which nutrition settings are in force. Someone who follows their goal (S.nut.by==='goal') eats by the goal's own pace: the main goal says whether to lose,
+   build or keep, and how many kilos a week. None of that is stored, so a goal that was paused, finished or moved down the list stops steering the plate
+   at once. Everyone else keeps exactly what they chose on the targets page. A manual target wins over both. */
+function nutOf(g){      // what a goal asks of the plate (g may be a goal that is not saved yet, on the last screen of the wizard)
+  const n=S.nut; if(!g) return {...n,goal:'keep',pace:'',rate:0};
+  let keep=false; try{ const st=GoalKit.progress(g,goalData()).stage; keep=!!(st&&st.m&&st.m.k==='keep'); }catch(e){}
+  const goal=keep?'keep':({lose:'lose',gain:'muscle',lift:'muscle'}[g.kind]||'keep');
+  return {...n,goal,pace:'',rate:!keep&&(g.kind==='lose'||g.kind==='gain')?(+((g.p||{}).pace)||0):0};
+}
+function nutEff(){ const n=S.nut; return n.by==='goal'?nutOf(goalsOn()[0]):n; }
+function nutGoal(){ return nutEff().goal||''; }
+function nutBase(){ return FoodKit.targets(S.profile,nutEff()); }
+function nutT(d){ const T=nutBase(); return T.ok?FoodKit.dayTargets(T,isTrainDay(d),S.profile.weekly,S.nut.cycle!==false):T; }
 function nutPrefs(){ return {kosher:!!S.nut.kosher,veg:+S.nut.veg||0,al:S.nut.al||[],no:S.nut.no||[],thrifty:(+S.nut.budget||0)>0,meals:+S.nut.meals||4}; }
 function saveNut(){ return save('nut',S.nut); }
 
@@ -106,10 +118,11 @@ function foodPage(){
   wrap.append(h('div',{class:'hm-top'},
     h('div',{class:'grow'},isToday?h('div',{class:'hm-g'},'תזונה'):h('button',{class:'hm-g link',type:'button',onclick:()=>{ foodDay=tk; render(); }},'חזרה להיום'),h('div',{class:'display'},`${isToday?'היום':'יום '+DAY_NAMES[dd.getDay()]}, ${dd.getDate()} ב${MONTHS[dd.getMonth()]}`)),
     h('div',{class:'hm-nav'},h('button',{class:'iconbtn',type:'button','aria-label':'היום הקודם',html:I('chev'),onclick:()=>{ foodDay=addDays(d,-1); render(); }}),h('button',{class:'iconbtn',type:'button','aria-label':'היום הבא',html:I('back'),disabled:isToday,style:isToday?'opacity:.4':'',onclick:()=>{ if(!isToday){ foodDay=addDays(d,1); render(); } }}))));
+  if(isToday){ const top=sectorTop('food'); if(top) wrap.append(top); }      // v14: the goal and the coach's words open the day (parts/v14.js)
   if(!FD.core){ if(!FD.failed) foodCore(); wrap.append(foodWait()); return wrap; }
   const T=nutT(d), tot=FoodKit.totalsOf(S.food,d), meals=FoodKit.mealsOf(S.food,d), J=FoodKit.judgeDay(tot,T);
-  if(!T.ok||!S.nut.goal){
-    wrap.append(h('div',{class:'todaybox'},h('div',{class:'hero-row'},mascot('idle')||h('div',{class:'restico'},ic('apple')),h('div',{class:'grow'},h('div',{class:'k',style:'font-size:22px;line-height:1.2'},'כמה לאכול ביום?'),h('div',{class:'small muted',style:'margin-top:4px;line-height:1.5'},'בוחרים מטרה, והאפליקציה מחשבת יעד קלוריות וחלבון לפי הגוף והאימונים שלך.'))),
+  if(!T.ok||!nutGoal()){
+    if(!isToday) wrap.append(h('div',{class:'todaybox'},h('div',{class:'hero-row'},mascot('idle')||h('div',{class:'restico'},ic('apple')),h('div',{class:'grow'},h('div',{class:'k',style:'font-size:22px;line-height:1.2'},'כמה לאכול ביום?'),h('div',{class:'small muted',style:'margin-top:4px;line-height:1.5'},'בוחרים מטרה, והאפליקציה מחשבת יעד קלוריות וחלבון לפי הגוף והאימונים שלך.'))),
       h('button',{class:'btn',type:'button',style:'margin-top:14px',onclick:()=>go('#nut')},'קובעים יעד')));
     if(tot.k) wrap.append(h('div',{class:'card'},h('div',{class:'row'},h('div',{class:'grow'},h('div',{class:'k'},`${kc(tot.k)} קק״ל עד עכשיו`),h('div',{class:'small muted'},`${g1(tot.p)} ג׳ חלבון · ${g1(tot.c)} ג׳ פחמימות · ${g1(tot.f)} ג׳ שומן`)))));
   } else {
@@ -125,7 +138,7 @@ function foodPage(){
   plan.forEach(m=>{ const r=m.rid?MenuKit.byId(m.rid):null, n=r?MenuKit.nut(r,m.sv):(m.n||[0,0,0,0]);
     list.append(h('div',{class:'meal plan',style:`--c:var(--g-${SLOT_COL[m.slot]||'full'})`},h('div',{class:'mi'},ic(SLOT_ICON[m.slot]||'fork')),h('button',{class:'grow',type:'button',style:'text-align:start',onclick:()=>r?go('#recipe-'+r.id):go('#mplan')},h('div',{class:'t ell'},r?r.t:(m.t||'ארוחה')),h('div',{class:'s'},`בתפריט · ${FoodKit.SLOT_HE[m.slot]} · ${kc(n[0])} קק״ל`)),h('button',{class:'do pressable',type:'button',onclick:()=>{ planEat(d,m); render(); }},'אכלתי'))); });
   if(meals.length||plan.length) wrap.append(list);
-  else if(T.ok&&S.nut.goal) wrap.append(h('div',{class:'empty'},ic('fork'),h('div',{},isToday?'כותבים, אומרים או מצלמים מה אכלת, והיומן מחשב את השאר.':'אפשר לרשום גם ארוחות מימים קודמים.')));
+  else if(T.ok&&nutGoal()) wrap.append(h('div',{class:'empty'},ic('fork'),h('div',{},isToday?'כותבים, אומרים או מצלמים מה אכלת, והיומן מחשב את השאר.':'אפשר לרשום גם ארוחות מימים קודמים.')));
   Dock.set(h('button',{class:'btn sgo',type:'button',onclick:()=>mealSheet(d)},ic('plus'),h('span',{},'רישום ארוחה')));
   /* everything about food, in boxes */
   const pn=S.pantry.items.length, sn=S.shop.items.filter(x=>!x.done).length, hasPlan=Object.keys(S.mplan.days).some(k=>k>=tk&&(S.mplan.days[k].meals||[]).length);
@@ -134,9 +147,9 @@ function foodPage(){
     hubBox('fridge','המטבח שלי',pn?plural(pn,'מצרך אחד','מצרכים')+' בבית':'מה יש במקרר ובארון','#pantry','back','low'),
     hubBox('pot','מתכונים',`${FoodKit.recipes().length} מתכונים עם ערכים`,'#recipes','shoulders','low'),
     hubBox('cart','רשימת קניות',sn?plural(sn,'פריט אחד','פריטים')+' לקנות':'מה חסר לתפריט','#shop','arms','low'),
-    hubBox('trend','התקדמות','קלוריות, חלבון ומשקל','#nprog','cardio','low'),
-    hubBox('target','יעדים והעדפות',T.ok&&S.nut.goal?(FoodKit.NGOALS.find(x=>x[0]===S.nut.goal)||[])[1]||'':'מטרה, כשרות, אלרגיות','#nut','full','low'),
-    wideBox('chat','שאלה למאמן','מה לאכול עכשיו, מה להכין ממה שיש, תפריט לשבוע',()=>go('#chat'),'glutes'))));
+    /* v14: five boxes, not seven. The targets are behind the ⋯ of the day's box (and, with no target yet, behind the card on top);
+       the question to the coach is the coach's own sentence on top, which opens the conversation */
+    wideBox('trend','התקדמות','קלוריות, חלבון ומשקל לאורך זמן',()=>go('#nprog'),'cardio'))));
   wrap.append(h('div',{class:'credit'},'הערכים התזונתיים: מאגר התזונה הלאומי, משרד הבריאות. המידע אינו ייעוץ רפואי.'));
   return wrap;
 }
@@ -290,15 +303,20 @@ function nutPage(){
   wrap.append(h('div',{class:'display'},'יעדי התזונה'));
   if(!m){ wrap.append(h('div',{class:'card'},h('div',{class:'k',style:'margin-bottom:4px'},'קודם כמה פרטים על הגוף'),h('p',{class:'small muted',style:'margin:0 0 12px;line-height:1.5'},'גובה, משקל וגיל. בלעדיהם אי אפשר לחשב כמה הגוף שורף.'),h('button',{class:'btn',type:'button',onclick:editBodySheet},'ממלאים עכשיו'))); }
   wrap.append(h('div',{class:'sec'},h('h2',{},'המטרה בתזונה')));
-  const grid=h('div',{class:'typegrid one'}); FoodKit.NGOALS.forEach(([k,t,s])=>grid.append(h('button',{class:'typebtn pressable'+(n.goal===k?' on':''),type:'button','aria-pressed':n.goal===k?'true':'false',style:'flex-direction:column;align-items:flex-start;gap:2px',onclick:()=>{ n.goal=k; n.custom=null; saveNut(); nutAch(500); render(); }},h('span',{},t),h('span',{class:'small muted',style:'font-weight:600'},s))));
+  /* the first choice, when there is a goal: eat by it. The five below stay for anyone who would rather set the plate by hand */
+  const g=goalsOn()[0], byGoal=n.by==='goal', follow=byGoal&&!!g, eg=nutGoal(), grid=h('div',{class:'typegrid one'});
+  const opt=(on,t,s,fn)=>h('button',{class:'typebtn pressable'+(on?' on':''),type:'button','aria-pressed':on?'true':'false',style:'flex-direction:column;align-items:flex-start;gap:2px',onclick:fn},h('span',{},t),h('span',{class:'small muted',style:'font-weight:600'},s));
+  if(g) grid.append(opt(follow,'לפי המטרה שלי',`${g.title}. היעד היומי נגזר מהמטרה ומהקצב שלה`,()=>{ n.by='goal'; n.custom=null; saveNut(); nutAch(500); render(); }));
+  FoodKit.NGOALS.forEach(([k,t,s])=>grid.append(opt(!byGoal&&n.goal===k,t,s,()=>{ n.by=''; n.goal=k; n.custom=null; saveNut(); nutAch(500); render(); })));
   wrap.append(grid);
-  const T=FoodKit.targets(p,n);
-  if(T.ok&&n.goal){
-    if(n.goal==='lose'&&!T.custom) wrap.append(h('div',{class:'card',style:'margin-top:12px'},h('div',{class:'sfld'},h('div',{class:'sl'},'קצב הירידה'),h('div',{class:'seg'},...[['slow','רגוע'],['','רגיל'],['fast','מהיר']].map(([v,l])=>h('button',{class:(n.pace||'')===v?'on':'',type:'button',onclick:()=>{ n.pace=v; saveNut(); render(); }},l))))));
+  if(byGoal&&!g) wrap.append(h('div',{class:'banner',style:'margin:12px 0 0'},ic('info'),h('span',{},'אין כרגע מטרה פעילה, ולכן היעד כאן הוא שמירה על המשקל. אפשר לקבוע מטרה חדשה, או לבחור אחת מהאפשרויות שלמעלה.')));
+  const T=nutBase();
+  if(T.ok&&eg){
+    if(!byGoal&&n.goal==='lose'&&!T.custom) wrap.append(h('div',{class:'card',style:'margin-top:12px'},h('div',{class:'sfld'},h('div',{class:'sl'},'קצב הירידה'),h('div',{class:'seg'},...[['slow','רגוע'],['','רגיל'],['fast','מהיר']].map(([v,l])=>h('button',{class:(n.pace||'')===v?'on':'',type:'button',onclick:()=>{ n.pace=v; saveNut(); render(); }},l))))));
     const box=h('div',{class:'hero-stats',style:'margin-top:12px'});
     box.append(h('div',{class:'xs b muted',style:'letter-spacing:.06em;margin-bottom:6px'},T.custom?'היעד שקבעת':'היעד היומי שלך'),h('div',{class:'big-num'},kc(T.kcal),h('small',{},'קק״ל')),
       h('div',{class:'mbars'},mbar('חלבון',T.p,0,'var(--accent)'),mbar('פחמימות',T.c,0,'var(--blue)'),mbar('שומן',T.f,0,'var(--accent2)')),
-      h('div',{class:'small muted',style:'margin-top:12px;line-height:1.55'},T.custom?'יעד ידני. אפשר לחזור ליעד המחושב בכל רגע.':`הגוף שלך שורף כ-${kc(T.tdee)} קק״ל ביום. ${({lose:'היעד נמוך מזה, כדי לרדת בלי לאבד שריר.',muscle:'היעד מעט מעל, כדי לתת לשריר ממה לגדול.',gain:'היעד מעל, כדי לעלות לאט ובשליטה.',keep:'היעד שווה לזה, כדי לשמור על המשקל.',habits:'היעד שווה לזה. הדגש כאן הוא סדר ועקביות, לא ספירה.'})[n.goal]||''}`));
+      h('div',{class:'small muted',style:'margin-top:12px;line-height:1.55'},T.custom?'יעד ידני. אפשר לחזור ליעד המחושב בכל רגע.':`הגוף שלך שורף כ-${kc(T.tdee)} קק״ל ביום. ${T.rate?`היעד נגזר מהמטרה: ${eg==='lose'?'ירידה':'עלייה'} של כ-${fmtW(Math.round(T.rate*10)/10)} ק״ג בשבוע.`:(({lose:'היעד נמוך מזה, כדי לרדת בלי לאבד שריר.',muscle:'היעד מעט מעל, כדי לתת לשריר ממה לגדול.',gain:'היעד מעל, כדי לעלות לאט ובשליטה.',keep:'היעד שווה לזה, כדי לשמור על המשקל.',habits:'היעד שווה לזה. הדגש כאן הוא סדר ועקביות, לא ספירה.'})[eg]||'')}`));
     (T.notes||[]).forEach(t=>box.append(h('div',{class:'banner',style:'margin:12px 0 0'},ic('info'),h('span',{},t))));
     box.append(h('div',{class:'row',style:'gap:8px;margin-top:12px'},h('button',{class:'btn sm sec2',type:'button',onclick:()=>customTargets(T)},T.custom?'שינוי היעד הידני':'יעד ידני'),T.custom?h('button',{class:'btn sm sec2',type:'button',onclick:()=>{ n.custom=null; saveNut(); render(); }},'חזרה למחושב'):null));
     wrap.append(box);
@@ -440,7 +458,7 @@ function mplanPage(){
   wrap.append(h('div',{class:'display'},'התפריט שלי'));
   if(!FD.core){ if(!FD.failed) foodCore(); wrap.append(foodWait()); return wrap; }
   const T0=nutT(tk);
-  if(!T0.ok||!S.nut.goal){ wrap.append(h('div',{class:'card'},h('div',{class:'k',style:'margin-bottom:4px'},'קודם קובעים יעד'),h('p',{class:'small muted',style:'margin:0 0 12px;line-height:1.5'},'התפריט נבנה כך שהארוחות של כל יום יסתכמו ליעד הקלוריות והחלבון שלך.'),h('button',{class:'btn',type:'button',onclick:()=>go('#nut')},'קובעים יעד'))); return wrap; }
+  if(!T0.ok||!nutGoal()){ wrap.append(h('div',{class:'card'},h('div',{class:'k',style:'margin-bottom:4px'},'קודם קובעים יעד'),h('p',{class:'small muted',style:'margin:0 0 12px;line-height:1.5'},'התפריט נבנה כך שהארוחות של כל יום יסתכמו ליעד הקלוריות והחלבון שלך.'),h('button',{class:'btn',type:'button',onclick:()=>go('#nut')},'קובעים יעד'))); return wrap; }
   const strip=h('div',{class:'ds'}); for(let i=0;i<7;i++){ const d=addDays(tk,i), dt=new Date(d+'T12:00:00'), has=((S.mplan.days[d]||{}).meals||[]).length>0;
     strip.append(h('button',{class:'dsd pressable'+(d===planDay?' on':'')+(i===0?' today':''),type:'button',style:'--c:var(--g-legs)','aria-label':`יום ${DAY_NAMES[dt.getDay()]}, ${fmtDate(d)}${has?', יש תפריט':''}`,onclick:()=>{ planDay=d; render(); }},h('span',{class:'l'},DAY_LETTERS[dt.getDay()]),h('span',{class:'n '+(has?'done':'')},String(dt.getDate())))); }
   wrap.append(strip);

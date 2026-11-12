@@ -31,6 +31,8 @@ var VoiceLog=(function(){
   addNum(60,'T','שישים ששים sixty'); addNum(70,'T','שבעים seventy'); addNum(80,'T','שמונים eighty'); addNum(90,'T','תשעים ninety');
   addNum(100,'H','מאה hundred'); addNum(200,'h','מאתיים'); addNum(100,'x','מאות'); addNum(1000,'K','אלף thousand');
   addNum(0.5,'f','חצי half'); addNum(0.25,'f','רבע quarter');
+  addNum(3,'u','שלושת'); addNum(4,'u','ארבעת'); addNum(5,'u','חמשת'); addNum(6,'u','ששת'); addNum(7,'u','שבעת'); addNum(8,'u','שמונת'); addNum(9,'u','תשעת'); addNum(10,'t','עשרת');      // the forms said before "אלפים"
+  addNum(2000,'M','אלפיים אלפים');      // alone it is two thousand; after a number it multiplies ("עשרת אלפים")
   var ORD={};
   function addOrd(v,words){ words.split(' ').forEach(function(w){ ORD[norm(w)]=v; }); }
   addOrd(1,'ראשון ראשונה first'); addOrd(2,'שנייה שניה second'); addOrd(3,'שלישי שלישית third'); addOrd(4,'רביעי רביעית fourth');
@@ -119,6 +121,7 @@ var VoiceLog=(function(){
   function tokens(text){
     var s=String(text||'').toLowerCase();
     s=s.replace(/[֑-ׇ]/g,'').replace(/[‎‏‪-‮⁦-⁩]/g,'');
+    s=s.replace(/(^|[^\d.,])([1-9]\d{0,2}(?:,\d{3})+)(?!\d)/g,function(m,a,n){ return a+n.replace(/,/g,''); });      // "10,000" is ten thousand; "62,5" stays sixty-two and a half
     s=s.replace(/(\d)[.,](\d)/g,'$1\u0001$2');
     s=s.replace(/[×*]/g,' x ');
     s=s.replace(/[.,;:!?()\[\]{}…|\-–—־\/\\+=]/g,' ');
@@ -152,6 +155,7 @@ var VoiceLog=(function(){
       if(t.k==='and'){ i++; continue; }
       if(t.k==='n'){
         var v=t.v, raw=t.raw, j=i+1;
+        var kq=numAt(j); if(kq&&(kq[1]==='K'||kq[1]==='M')&&v>0&&v<1000&&v===Math.floor(v)){ v=v*1000; j++; }      // "8 אלף", "10 אלפים"
         var skipAnd=(L[j]&&L[j].k==='and')?1:0; var nx=numAt(j+skipAnd); var nt=L[j+skipAnd];
         var a=nt&&nt.k==='w'&&nt.n==='a'&&numAt(j+skipAnd+1)&&numAt(j+skipAnd+1)[1]==='f';
         if(a){ v+=numAt(j+skipAnd+1)[0]; j=j+skipAnd+2; }
@@ -160,21 +164,23 @@ var VoiceLog=(function(){
       }
       var q=numAt(i);
       if(!q){ out.push(t); i++; continue; }
-      var total=0, last='', first=t.n, used=0, k=i, started=false;
+      var total=0, last='', lastVal=0, first=t.n, used=0, k=i, started=false;
       while(k<L.length){
         var c=L[k]; var andTok=false;
         if(c.k==='and'){ if(!started) break; andTok=true; c=L[k+1]; if(!c) break; }
         if(c.k==='w'&&c.n==='a'&&started){ var h=numAt(k+(andTok?2:1)); if(h&&h[1]==='f'&&andTok){ total+=h[0]; k+=andTok?3:2; last='f'; break; } }
         if(c.k!=='w'||!has(NUM,c.n)) break;
         var val=NUM[c.n][0], kind=NUM[c.n][1], joined=andTok||c.and, he=isHe(c.n);
-        if(!started){ total=val; last=kind; started=true; k++; continue; }
+        if(!started){ total=val; lastVal=val; last=kind==='M'?'K':kind; started=true; k++; continue; }
         if(kind==='f'){ if(!joined) break; total+=val; last='f'; k+=andTok?2:1; break; }
-        if(kind==='t'&&last==='u'&&val===10&&he&&!joined){ total+=10; last='t'; k++; continue; }        // שלוש עשרה
-        if(kind==='x'&&last==='u'){ total=total*100; last='H'; k++; continue; }                          // שלוש מאות
-        if(kind==='H'&&last==='u'&&!he){ total=total*100; last='H'; k+=andTok?2:1; continue; }           // two hundred
-        if(kind==='K'&&(last==='u'||last==='t'||last==='T')){ total=total*1000; last='K'; k+=andTok?2:1; continue; }
-        if((last==='H'||last==='h'||last==='K')&&(kind==='T'||((kind==='t'||kind==='u')&&(joined||!he)))){ total+=val; last=kind; k+=andTok?2:1; continue; }
-        if(last==='T'&&kind==='u'&&(joined||!he)){ total+=val; last='u2'; k+=andTok?2:1; continue; }     // עשרים וחמש / twenty five
+        if(kind==='t'&&last==='u'&&val===10&&he&&!joined){ total+=10; lastVal+=10; last='t'; k++; continue; }        // שלוש עשרה
+        if(kind==='x'&&last==='u'){ total=total-lastVal+lastVal*100; lastVal=lastVal*100; last='H'; k++; continue; }      // שלוש מאות; in "אלף וחמש מאות" only the five becomes hundreds
+        if(kind==='H'&&last==='u'&&!he){ total=total-lastVal+lastVal*100; lastVal=lastVal*100; last='H'; k+=andTok?2:1; continue; }           // two hundred
+        if((kind==='K'||kind==='M')&&(last==='u'||last==='t'||last==='T'||last==='u2')){ total=total*1000; lastVal=total; last='K'; k+=andTok?2:1; continue; }      // עשרת אלפים, עשרים וחמש אלף
+        if(last==='K'&&(kind==='h'||kind==='H')){ total+=val; lastVal=val; last=kind; k+=andTok?2:1; continue; }      // אלף מאתיים, אלף ומאה
+        if(last==='K'&&kind==='u'&&numAt(k+(andTok?2:1))&&numAt(k+(andTok?2:1))[1]==='x'){ total+=val; lastVal=val; last='u'; k+=andTok?2:1; continue; }      // אלפיים חמש מאות
+        if((last==='H'||last==='h'||last==='K')&&(kind==='T'||((kind==='t'||kind==='u')&&(joined||!he)))){ total+=val; lastVal=val; last=kind; k+=andTok?2:1; continue; }
+        if(last==='T'&&kind==='u'&&(joined||!he)){ total+=val; lastVal=val; last='u2'; k+=andTok?2:1; continue; }     // עשרים וחמש / twenty five
         break;
       }
       used=k-i; if(used<1) used=1;
@@ -182,6 +188,67 @@ var VoiceLog=(function(){
       i+=used;
     }
     return out;
+  }
+
+  /* ---------- the body's own numbers and an injury: not sets, but said the same way (v14) ----------
+     "עשיתי עשרת אלפים צעדים", "הדופק היה 62", "השעון אמר 540 קלוריות", "ישנתי 7 שעות", "נפצעתי בכתף", "החלמתי".
+     Returned only for a sentence that is about nothing else: a set with a heart rate in it ("ריצה 30 דקות דופק 150") stays a set, and a goal
+     written in words ("להגיע ל-10,000 צעדים ביום") stays a goal. What comes back: {cmd:'body', body:{st,hr,kc,sl}, back (1 for yesterday)},
+     {cmd:'injury', part} or {cmd:'healed', part}. Storing it is the app's business (BodyKit, parts/body.js). */
+  var B_STEPS=setOf('צעדים צעד steps step'), B_HR=setOf('דופק pulse bpm heartrate'), B_KCAL=setOf('קלוריות קלוריה קקל calories calorie kcal'),
+      B_BURN=setOf('שרפתי שרפנו שרף שריפה נשרפו שורף burned burnt burn'), B_WATCH=setOf('שעון watch garmin גרמין'), B_SLEEP=setOf('ישנתי שינה sleep slept'),
+      B_VERB=setOf('נפצעתי נפגעתי נקעתי מתחתי פציעה injured injury sprained pulled'), B_ACHE=setOf('כואב כואבת כואבים כואבות כאב כאבים hurt hurts pain sore'),
+      B_HEAL=setOf('החלמתי החלים החלימה הבריא הבריאה נרפא healed recovered'), B_YDAY=setOf('אתמול yesterday'),
+      B_ASK=setOf('מה איך למה האם כמה מתי איזה איזו אפשר כדאי what how why should can which when'),
+      B_OK=setOf('שלי היה היו היתה הייתה אמר אומר מראה הראה הראתה לפי מנוחה אימון זמן ממוצע בערך כבר רק סך הכול הכל קצת מאוד חזק יש בי מה זה אבל ממש שוב פעם נשרפו לילה הלילה הלכתי צעדתי ' +
+        'resting average avg about says said showed walked night last rate heart from were active during workout');
+  var B_PART={}; (function(){ var add=function(k,words){ words.split(' ').forEach(function(w){ B_PART[norm(w)]=k; }); };
+    add('shoulder','כתף כתפיים כתפים shoulder shoulders'); add('elbow','מרפק מרפקים elbow elbows'); add('wrist','שורש wrist wrists'); add('neck','צוואר neck');
+    add('lower_back','גב מותן מותניים'); add('upper_back','שכמות שכמה'); add('hip','ירך ירכיים מפשעה אגן hip hips groin'); add('knee','ברך ברכיים ברכים knee knees'); add('ankle','קרסול קרסוליים עקב ankle ankles foot'); })();
+  var B_RANGE={st:[1,150000],hr:[25,230],kc:[1,15000],sl:[0.5,24]};
+  /* a word with the little letters that Hebrew glues to its front taken off, when what is left is a word of the set: "בכתף", "מהברך", "והדופק" */
+  function bare(n,set){ var k=0; while(k<3&&n.length>2&&'בהלמוש'.indexOf(n.charAt(0))>=0&&!has(set,n)){ n=n.slice(1); k++; } return n; }
+  function inSet(set,n){ return has(set,n)||has(set,bare(n,set)); }
+  function bodyOf(L,text){
+    var raw=String(text||''), i, t, n, used=[], body={}, part='', verb=false, ache=false, heal=false, back=0, other=0, nums=0, kcalAt=-1, burn=false, sleepWord=false;
+    for(i=0;i<L.length;i++) used.push(false);
+    function take(j){ if(L[j]&&L[j].k==='n'&&!used[j]){ used[j]=true; return L[j].v; } return null; }
+    function near(j,forward){      // the number that belongs to the word at j: right before it ("10,000 צעדים"), or the first one after it ("דופק היה 62")
+      var v=forward?null:take(j-1), k; if(v!=null) return v;
+      for(k=j+1;k<L.length&&k<=j+4;k++){ if(L[k].k==='n'){ return take(k); } if(L[k].k==='w'&&(inSet(B_STEPS,L[k].n)||inSet(B_HR,L[k].n)||inSet(B_KCAL,L[k].n))) break; }
+      return forward?take(j-1):null;
+    }
+    function put(key,v){ if(v==null) return; var r=B_RANGE[key]; if(v>=r[0]&&v<=r[1]) body[key]=key==='sl'?Math.round(v*4)/4:Math.round(v); else body.bad=true; }
+    for(i=0;i<L.length;i++){ if(L[i].k==='n') nums++; }
+    for(i=0;i<L.length;i++){
+      t=L[i]; if(t.k!=='w') continue; n=t.n;
+      if(inSet(B_STEPS,n)){ put('st',near(i,false)); continue; }
+      if(n==='heart'&&L[i+1]&&L[i+1].k==='w'&&L[i+1].n==='rate'){ put('hr',near(i+1,true)); i++; continue; }
+      if(inSet(B_HR,n)){ put('hr',near(i,true)); continue; }
+      if(inSet(B_KCAL,n)){ kcalAt=i; continue; }
+      if(inSet(B_BURN,n)||inSet(B_WATCH,n)){ burn=true; continue; }
+      if(inSet(B_SLEEP,n)){ sleepWord=true; continue; }
+      if(has(U_HOUR,n)){ continue; }
+      if(inSet(B_VERB,n)){ verb=true; continue; }
+      if(inSet(B_ACHE,n)){ ache=true; continue; }
+      if(inSet(B_HEAL,n)){ heal=true; continue; }
+      if(inSet(B_YDAY,n)){ back=1; continue; }
+      var pk=B_PART[n]||B_PART[bare(n,B_PART)];
+      if(!pk&&bare(n,{'כפ':1,'כף':1})===norm('כף')){ var nx=L[i+1]&&L[i+1].k==='w'?L[i+1].n:''; pk=/רגל/.test(nx)?'ankle':'wrist'; }
+      if(pk){ if(pk==='lower_back'){ var up=L[i+1]&&L[i+1].k==='w'?L[i+1].n:''; if(up===norm('עליון')||up===norm('העליון')) pk='upper_back'; } if(!part) part=pk; continue; }
+      if(has(FILL,n)||inSet(B_OK,n)||n===norm('עליון')||n===norm('תחתון')||n===norm('העליון')||n===norm('התחתון')||n===norm('רגל')||n===norm('הרגל')||n===norm('יד')||n===norm('היד')) continue;
+      other++;
+    }
+    if(kcalAt>=0&&burn) put('kc',near(kcalAt,false));      // calories count as the body's only when they were burned, or the watch said them: eaten ones belong to the plate
+    if(sleepWord){ for(i=0;i<L.length;i++){ if(L[i].k==='n'&&!used[i]&&L[i+1]&&L[i+1].k==='w'&&has(U_HOUR,L[i+1].n)){ put('sl',take(i)); break; } } if(body.sl==null){ for(i=0;i<L.length;i++){ if(L[i].k==='w'&&inSet(B_SLEEP,L[i].n)){ put('sl',near(i,true)); break; } } } }
+    var first=''; for(i=0;i<L.length;i++){ if(L[i].k==='w'){ first=L[i].n; break; } }
+    var asking=/[?？]/.test(raw)||has(B_ASK,first);
+    if(heal&&!asking&&!nums) return {cmd:'healed',part:part||''};
+    if((verb||(ache&&part))&&!asking&&!nums) return {cmd:'injury',part:part||'other'};
+    var keys=0, k; for(k in body){ if(has(body,k)&&k!=='bad') keys++; }
+    if(!keys||other||body.bad||asking) return null;
+    for(i=0;i<L.length;i++){ if(L[i].k==='n'&&!used[i]) return null; }      // a number that belongs to nothing here: this is some other sentence
+    delete body.bad; return {cmd:'body',body:body,back:back};
   }
 
   /* ---------- tokens -> what was said ---------- */
@@ -195,6 +262,7 @@ var VoiceLog=(function(){
       var rest=words.slice(1).filter(function(t){ return !has(UNDO_TAIL,t.n)&&!has(FILL,t.n)&&!has(U_SET,t.n); });
       if(!rest.length){ F.cmd='undo'; return F; }
     }
+    var B=bodyOf(L,text); if(B){ F.cmd=B.cmd; if(B.body){ F.body=B.body; F.back=B.back||0; F.hasNum=true; } if(B.part!=null) F.part=B.part; return F; }
     var used=[], i; for(i=0;i<L.length;i++) used.push(false);
     function w(j){ var t=L[j]; return (t&&t.k==='w'&&!used[j])?t.n:''; }
     function isN(j){ return !!(L[j]&&L[j].k==='n'); }
@@ -473,6 +541,7 @@ var VoiceLog=(function(){
   function handle(text,env){
     env=env||{}; var F=parse(text); var lang=env.lang||F.lang; var L=T(lang);
     if(!norm(text)) return {ok:false,why:'empty',lang:lang,say:L.err.empty};
+    if(F.cmd==='body'||F.cmd==='injury'||F.cmd==='healed') return {ok:true,cmd:F.cmd,lang:lang,say:'',body:F.body||null,back:F.back||0,part:F.part||''};      // stored by the app, not here
     if(F.cmd) return {ok:true,cmd:F.cmd,lang:lang,say:''};
     var ix=env.index, m=F.query?match(F.query,ix,env):null, exId=m?m.id:'', viaLast=false;
     var recent=env.last&&env.last.ex&&ix.byId[env.last.ex]&&(env.now||0)-(env.last.at||0)<45*60000;
@@ -535,6 +604,7 @@ var VoiceLog=(function(){
       inbox.items.pop(); io.put('vinbox',inbox); return {ok:true,say:L.undo,undone:lastIt.id};
     }
     if(R.cmd==='today') return {ok:true,say:todayLine(R.lang,logs,ix,date)};
+    if(R.cmd==='body'||R.cmd==='injury'||R.cmd==='healed') return {ok:false,why:'app',say:R.lang==='en'?'That one is logged inside the app: open it and say it there.':'את זה רושמים בתוך האפליקציה: פותחים את סטים ואומרים שם.'};
     if(!R.ok) return {ok:false,why:R.why,say:R.say};
     var item={id:'v'+now.toString(36)+Math.floor(Math.random()*46656).toString(36),at:now,d:date,ex:R.item.ex,sets:R.item.sets,idx:R.item.idx||0,text:text,lang:R.lang,src:input.src||'siri'};
     inbox.items.push(item);

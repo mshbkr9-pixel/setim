@@ -4,6 +4,7 @@ would see. Needs two local servers, on ports of their own so that they can run b
     python -m http.server 8793 --bind 127.0.0.1        (the app; the "v13-app" preview does this)
     node server/mock_pb.js 8094                        (accounts, and the coach's address with a stand-in for the Claude API)
 Run:  python -X utf8 tests/ui_v13.py [output folder for screenshots]
+Other addresses, for a run beside another session's servers:  SETIM_APP=http://127.0.0.1:8795/index.html  SETIM_PB=http://127.0.0.1:8096
 Nothing here costs money: the stand-in answers in the shape of the real API, so the real request and checking code runs.
 Exit code 0 only when every check passed. Screenshots are for the eye; the checks read the page itself."""
 import base64, json, os, re, sys
@@ -11,8 +12,8 @@ from playwright.sync_api import sync_playwright
 
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')      # one pixel: a stand-in for a picture of a plate
 
-APP = 'http://127.0.0.1:8793/index.html'
-PBM = 'http://127.0.0.1:8094'
+APP = os.environ.get('SETIM_APP') or 'http://127.0.0.1:8793/index.html'
+PBM = os.environ.get('SETIM_PB') or 'http://127.0.0.1:8094'
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out13')
 os.makedirs(OUT, exist_ok=True)
 if hasattr(sys.stdout, 'reconfigure'):
@@ -93,9 +94,9 @@ def run(pw, scheme):
 
     # ---- three doors ----
     tabs = ev("[...document.querySelectorAll('#tabbar .tab')].map(t=>t.textContent)")
-    check(tag + 'the tab bar has the three sectors', tabs == ['אימונים', 'תזונה', 'המאמן'], tabs)
-    st = ev("({cal:!!document.querySelector('#view .cal'),boxes:[...document.querySelectorAll('#view .hubbox .t')].map(e=>e.textContent),fab:!!document.querySelector('#dock .vfab'),strip:document.querySelectorAll('#view .dsd').length})")
-    check(tag + 'training: today, the calendar and every training box on one page', st['cal'] and st['strip'] == 7 and st['boxes'][:6] == ['הישגים', 'כל האימונים', 'תרגילים', 'תוכניות', 'המכון שלי', 'מדריכים'] and st['fab'], st)
+    check(tag + 'the tab bar: the two sectors, and the coach', tabs == ['כושר', 'תזונה', 'המאמן'], tabs)
+    st = ev("({cal:!!document.querySelector('#view .cal'),boxes:[...document.querySelectorAll('#view .hubbox .t')].map(e=>e.textContent),fab:!!document.querySelector('#dock .vfab'),strip:document.querySelectorAll('#view .dsd').length,top:!!document.querySelector('#view .px-top'),stats:!!document.querySelector('#view .jstats')})")
+    check(tag + 'fitness: the card on top, today, the calendar, and five boxes', st['top'] and not st['stats'] and st['cal'] and st['strip'] == 7 and st['boxes'] == ['הישגים', 'כל האימונים', 'תרגילים', 'תוכניות', 'עוד'] and st['fab'], st)
     shot('1-training'); contrast('training')
     ev("document.querySelector('#scroll').scrollTop=600"); settle(200); shot('1b-training-hub')
     goto('#journal'); t = view(); check(tag + 'the old journal is now the list of every workout', 'כל האימונים' in t and not ev("!!document.querySelector('#view .cal')") and ev("activeTab()") == 'home', t[:120])
@@ -104,8 +105,9 @@ def run(pw, scheme):
     goto('#home'); goto('#library'); check(tag + 'a training page lights the training tab', ev("activeTab()") == 'home'); page.click('#hdr .back'); settle(); check(tag + 'and back from it returns to the training sector', ev("route.page") == 'home')
 
     # ---- nutrition: from nothing to a target ----
-    goto('#food'); t = view(); check(tag + 'nutrition starts by asking for a target', 'כמה לאכול ביום?' in t and 'התפריט שלי' in t and 'המטבח שלי' in t, t[:200]); shot('2-food-empty'); contrast('nutrition, empty')
-    page.click('#view .btn:has-text("קובעים יעד")'); settle(); check(tag + 'the target page opens', ev("route.page") == 'nut')
+    goto('#food'); t = view(); boxes = ev("[...document.querySelectorAll('#view .hubbox .t')].map(e=>e.textContent)")
+    check(tag + 'nutrition starts by asking for the goal, with five boxes under it', 'מה המטרה שלך?' in t and 'קובעים מטרה' in t and 'כמה לאכול ביום?' not in t and boxes == ['התפריט שלי', 'המטבח שלי', 'מתכונים', 'רשימת קניות', 'התקדמות'], [t[:200], boxes]); shot('2-food-empty'); contrast('nutrition, empty')
+    page.click('#view .px-alt'); settle(); check(tag + 'a calorie target alone is one tap away', ev("route.page") == 'nut')
     page.click('.typebtn:has-text("ירידה במשקל")'); settle()
     st = ev("({T:FoodKit.targets(S.profile,S.nut),goal:S.nut.goal,big:document.querySelector('.big-num').innerText})")
     check(tag + 'a goal gives a daily target with macros, above the safe floor', st['goal'] == 'lose' and 1500 <= st['T']['kcal'] < st['T']['tdee'] and st['T']['p'] >= 150 and str(st['T']['kcal'])[:1] in st['big'], st)
@@ -215,7 +217,7 @@ def run(pw, scheme):
     cfgs = calls()['config']; check(tag + 'the number of answers a day is changed from the app', ev("CREW.st.total") == 15 and len(cfgs) == 1 and cfgs[0]['total'] == 15 and ev("CO.info.limit") == 15, cfgs)
     page.click('#view .stepper >> nth=0 >> button >> nth=1'); settle(1600)
     page.click('#dock .btn'); settle(1300); t = sheet(); link = ev("(document.querySelector('#sheetBody input')||{}).value||''")
-    check(tag + 'an invitation is a link to this app with a code in it, and one more link is waiting', re.match(r'^http://127\.0\.0\.1:8793/index\.html#join-[A-Za-z0-9]{24}$', link) is not None and 'קישור הזמנה' in t and ev("CREW.st.pending") == 1 and ev("CREW.st.total") == 20, [link, t[:120]])
+    check(tag + 'an invitation is a link to this app with a code in it, and one more link is waiting', re.match('^' + re.escape(APP) + r'#join-[A-Za-z0-9]{24}$', link) is not None and 'קישור הזמנה' in t and ev("CREW.st.pending") == 1 and ev("CREW.st.total") == 20, [link, t[:120]])
     contrast('invitation link', '#sheetBody'); close()
 
     goto('#chat'); settle(300)

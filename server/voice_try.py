@@ -100,6 +100,27 @@ check('nonsense is not logged', st == 200 and r.get('ok') is False, (st, r))
 st, r = call('GET', '/api/collections/voice_keys/records?perPage=5', token=None)
 check('voice codes cannot be listed without signing in', st in (200, 400, 401, 403) and not (r.get('items') or []), (st, r))
 
+# ---- v14: the day's numbers from the phone's health app (the watch fills it) ----
+st, r = call('GET', '/api/setim/voice')
+check('the info answer has a place for the health shortcut', st == 200 and r.get('v') == 3 and 'health' in r, (st, r))
+st, r = call('POST', '/api/setim/voice', {'key': key, 'kind': 'health', 'steps': 9412, 'hr': 58, 'kcal': '540', 'sleep': 7.5})
+check('steps, a heart rate, calories and sleep from the watch are taken', st == 200 and r.get('ok') is True and '9412' in r.get('say', '') and (r.get('item') or {}).get('st') == 9412 and r['item'].get('hr') == 58 and r['item'].get('kc') == 540 and r['item'].get('sl') == 7.5, (st, r))
+hb = doc(tok, uid, 'hinbox') or {}
+check('they wait in an inbox of their own, one item for the day', len(hb.get('items', [])) == 1 and hb['items'][0].get('st') == 9412 and len(hb['items'][0].get('d', '')) == 10, hb)
+st, r = call('POST', '/api/setim/voice', {'key': key, 'kind': 'health', 'steps': 10020})
+hb = doc(tok, uid, 'hinbox') or {}
+check('a later reading of the same day takes its place', st == 200 and r.get('ok') is True and len(hb.get('items', [])) == 1 and hb['items'][0].get('st') == 10020, (r, hb))
+st, r = call('POST', '/api/setim/voice', {'key': key, 'kind': 'health', 'steps': 999999, 'hr': 500})
+check('numbers that make no sense are refused, with words to say', st == 200 and r.get('ok') is False and r.get('why') == 'empty' and r.get('say'), (st, r))
+st, r = call('POST', '/api/setim/voice', {'key': key, 'kind': 'health', 'steps': 5000, 'date': '2020-01-01'})
+hb = doc(tok, uid, 'hinbox') or {}
+check('a date far in the past is taken as today', st == 200 and r.get('ok') is True and len(hb.get('items', [])) == 1 and hb['items'][0].get('st') == 5000, (r, hb))
+st, r = call('POST', '/api/setim/voice', {'key': 'stm_' + 'a' * 40, 'kind': 'health', 'steps': 5000})
+check('an unknown code is refused here too', st == 200 and r.get('ok') is False and r.get('why') == 'key', (st, r))
+check('the inbox of the sets was not touched by any of it', len((doc(tok, uid, 'vinbox') or {}).get('items', [])) == 2)
+st, r = say(key, 'עשיתי 10,000 צעדים')
+check('a spoken sentence about steps is sent to the app and is not stored as a set', st == 200 and r.get('ok') is False and r.get('why') == 'app' and len((doc(tok, uid, 'vinbox') or {}).get('items', [])) == 2, (st, r))
+
 st, r = call('DELETE', '/api/collections/users/records/' + uid, token=tok)
 check('the throwaway user deletes itself', st in (200, 204), (st, r))
 

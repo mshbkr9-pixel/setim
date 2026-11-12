@@ -16,7 +16,8 @@ function trainToday(){
 function coachEnv(){
   const tk=todayKey();
   return {FK:FoodKit,MK:MenuKit,hour:new Date().getHours(),today:tk,voice:t=>VoiceLog.handle(t,voiceEnv()),T:nutT(tk),tot:FoodKit.totalsOf(S.food,tk),mealsOn:d=>FoodKit.mealsOf(S.food,d),
-    pantry:S.pantry,shop:S.shop,prefs:nutPrefs(),lastWeigh:lastWeigh(),train:trainToday(),stock:MenuKit.stock(S.pantry),used:planUsed()};
+    pantry:S.pantry,shop:S.shop,prefs:nutPrefs(),lastWeigh:lastWeigh(),train:trainToday(),stock:MenuKit.stock(S.pantry),used:planUsed(),
+    body:sigRead,sig:{today:sigDay(tk),goal:stepsGoal()}};      // v14: the body's numbers and an injury are understood and kept with no model (parts/v14.js)
 }
 function coachSnap(){
   const tk=todayKey(), p=S.profile, T=nutT(tk), tot=FoodKit.totalsOf(S.food,tk), now=new Date(), ws=weekStats(0);
@@ -30,7 +31,7 @@ function coachSnap(){
   return {today:tk,weekday:DAY_NAMES[now.getDay()],time:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'),
     me:{name:p.name||'',sex:p.sex==='f'?'female':'male',age:+p.age||null,height_cm:+p.height||null,weight_kg:+p.weight||null,training_focus:GOALS[p.goal]||'',workouts_per_week_target:+p.weekly||3},
     goals:goalsOn().slice(0,3).map(g=>({title:g.title,now:GoalKit.line(g,goalData()),due:g.due||''})),
-    nutrition:{goal:S.nut.goal||'',target:T.ok?{kcal:T.kcal,p:T.p,c:T.c,f:T.f,training_day:!!T.training}:null,eaten_today:{kcal:tot.k,p:Math.round(tot.p),c:Math.round(tot.c),f:Math.round(tot.f)},left_today:T.ok?{kcal:Math.round(T.kcal-tot.k),p:Math.round(T.p-tot.p)}:null,meals_today:meals,
+    nutrition:{goal:nutGoal(),target:T.ok?{kcal:T.kcal,p:T.p,c:T.c,f:T.f,training_day:!!T.training}:null,eaten_today:{kcal:tot.k,p:Math.round(tot.p),c:Math.round(tot.c),f:Math.round(tot.f)},left_today:T.ok?{kcal:Math.round(T.kcal-tot.k),p:Math.round(T.p-tot.p)}:null,meals_today:meals,
       last_7_days:{days_logged:wk.days,avg_kcal:wk.avgK,avg_protein:wk.avgP,days_within_target:wk.ok,days_protein_target_met:wk.hitP}},
     PREFS:{kosher:!!S.nut.kosher,diet:['any','vegetarian','vegan'][+S.nut.veg||0],allergies:S.nut.al||[],dislikes:S.nut.no||[],weekly_food_budget_ils:+S.nut.budget||null,meals_per_day:+S.nut.meals||4},
     memory:(S.coach.mem||[]).slice(-25).map(m=>m.t),
@@ -38,7 +39,7 @@ function coachSnap(){
     shopping_list:S.shop.items.filter(x=>!x.done).slice(0,40).map(x=>x.n),
     menu:{today:menu(tk),tomorrow:menu(addDays(tk,1))},
     training:{today:tr,this_week:{workouts:ws.days,sets:ws.sets},streak_weeks:weekStreak().n,recent_sessions:recent,progress_since_start:lifts},
-    weigh_ins:((S.body&&S.body.w)||[]).slice(-8)};
+    weigh_ins:((S.body&&S.body.w)||[]).slice(-8),...sigSnap()};      // v14: body and injuries (sigSnap in parts/v14.js)
 }
 
 /* ---------- the two tiers that need a model ---------- */
@@ -50,7 +51,7 @@ async function coachCall(text,img,o){
   const hist=(o.quiet?[]:S.coach.msgs.slice(0,-1)).filter(m=>m.t&&(m.r==='u'||m.r==='a')).slice(-8).map(m=>({r:m.r,t:m.t}));
   const lastA=o.quiet?null:[...S.coach.msgs].reverse().find(m=>m.r==='a'&&m.tier&&m.tier!=='local');
   try{
-    const r=await fetch(PB_URL+'/api/setim/coach',{method:'POST',headers:{'Content-Type':'application/json',Authorization:PB.token},body:JSON.stringify({text,hist,snap:coachSnap(),img:img||'',pref:S.nut.pref||'',lastTier:lastA?lastA.tier:''})});
+    const r=await fetch(PB_URL+'/api/setim/coach',{method:'POST',headers:{'Content-Type':'application/json',Authorization:PB.token},body:JSON.stringify({text,hist,snap:coachSnap(),img:img||'',pref:o.pref||S.nut.pref||'',lastTier:lastA?lastA.tier:''})});
     const j=await r.json().catch(()=>null);
     if(r.status===404) return {ok:false,why:'off',say:'המאמן המלא עוד לא הופעל בשרת. מה שאפשר לענות בלי מודל ממשיך לעבוד.'};
     if(!j||typeof j.ok!=='boolean') return {ok:false,why:'net',say:'לא הצלחתי להגיע למאמן. מנסים שוב בעוד רגע.'};
@@ -112,6 +113,9 @@ function actApply(a){
   if(a.t==='remember'){ S.coach.mem=(S.coach.mem||[]).filter(m=>m.t!==a.text); S.coach.mem.push({t:String(a.text).slice(0,200),at:Date.now()}); return; }
   if(a.t==='prefs'){ const n=S.nut; if(a.al&&a.al.length) n.al=[...new Set((n.al||[]).concat(a.al))]; if(a.no&&a.no.length) n.no=[...new Set((n.no||[]).concat(a.no))]; if(a.veg!=null) n.veg=a.veg; if(a.kosher!=null) n.kosher=!!a.kosher; if(a.budget!=null) n.budget=a.budget; saveNut(); return; }
   if(a.t==='weigh'){ addWeigh(a.kg,a.date||tk); return; }
+  if(a.t==='body'){ const dd=a.date&&a.date<=tk&&a.date>=addDays(tk,-7)?a.date:''; if(dd){ if(BodyKit.setDay(S.sig,dd,a.day,a.src||'c',Date.now()).length) sigSave(); } else sigPut(a.day,a.src||'c',a.back||0); return; }
+  if(a.t==='injury'){ sigInjure(a.part,a.note||''); return 'הפציעה נרשמה'; }
+  if(a.t==='healed'){ sigHeal(a.part||''); return; }
   if(a.t==='meal'){ const items=a.local?a.items:actItems(a.items); logMeal(items,{date:a.date||tk,slot:a.slot||'',title:a.title||'',src:a.local?'t':'ai'}); const t=FoodKit.sum(items.map(x=>x.e)); toast(`נרשם: ${kc(t.k)} קק״ל, ${g1(t.p)} ג׳ חלבון`); return; }
   if(a.t==='pantry'){ const it=qtyItems(a.items); if(a.op==='remove') pantryRemove(it.map(x=>x.k||x.n),true); else pantryAdd(it); return; }
   if(a.t==='shop'){ shopAdd(qtyItems(a.items),'c'); return; }
@@ -135,6 +139,8 @@ function actCard(msg,a){
   if(a.t==='targets') return mk('target','יעד יומי חדש',`${kc(a.kcal)} קק״ל · ${a.p} ג׳ חלבון · ${a.c} ג׳ פחמימות · ${a.f} ג׳ שומן.${a.why?' '+a.why:''}`,'עדכון היעד');
   if(a.t==='remember') return mk('sparkle','לזכור',a.text,'לזכור');
   if(a.t==='weigh') return mk('scale','שקילה',`${a.kg} ק״ג`,'רישום');
+  if(a.t==='injury') return mk('heart','פציעה לרישום',BodyKit.partHe(a.part)+(a.note?' · '+a.note:''),'רישום');
+  if(a.t==='body') return mk('pxsteps','נתוני גוף לרישום',BodyKit.say(a.day).replace(/^נרשם: /,''),'רישום');
   if(a.t==='sets') return mk('gym','סטים לרישום',`${a.ex}: ${(a.sets||[]).map(s=>`${s.reps}${s.kg>0?'×'+s.kg+' ק״ג':''}`).join(', ')}`,'רישום');
   if(a.t==='goal') return mk('target','מטרה חדשה',a.text,'בונים שלבים');
   return null;
@@ -205,18 +211,18 @@ function coachHome(){
   header('המאמן'); const wrap=h('div'), p=S.profile; wrap.append(h('div',{class:'display'},'המאמן'));
   const last=[...S.coach.msgs].reverse().find(m=>m.r==='a'&&m.t);
   const top=h('div',{class:'coachtop'},h('div',{class:'row'},h('div',{class:'grow'},h('div',{class:'k',style:'font-size:22px;line-height:1.2'},p.name?`מה נשמע, ${p.name}?`:'מה נשמע?')),S.coach.msgs.length?h('button',{class:'btn sm sec2',type:'button',onclick:()=>go('#chat')},'לשיחה'):null),
-    h('div',{class:'last'},last?last.t:'אני מכיר את האימונים, את האוכל, את המטבח ואת המטרות שלך. מספרים לי מה אכלת או מה עשית, שואלים כמה נשאר להיום, או מבקשים תפריט.'),
+    coachBoth()||h('div',{class:'last'},last?last.t:'אני מכיר את האימונים, את האוכל, את המטבח ואת המטרות שלך. מספרים לי מה אכלת או מה עשית, שואלים כמה נשאר להיום, או מבקשים תפריט.'),
     askBar({ph:'מה בא לך לשאול?',onSend:t=>{ CO.draft=t; CO.auto=true; go('#chat'); }}));
   wrap.append(top);
   coachInfo();
   if(STANDALONE&&joinCode()&&!PB.user) wrap.append(h('div',{class:'card'},h('div',{class:'k',style:'font-size:17px'},'קיבלת הזמנה למאמן המלא'),h('p',{class:'small muted',style:'margin:6px 0 12px;line-height:1.55'},'נכנסים לחשבון או נרשמים, והמאמן נפתח.'),h('button',{class:'btn',type:'button',onclick:()=>authSheet('signup')},'כניסה או הרשמה')));
   else if(STANDALONE&&PB.user&&CO.info&&CO.info.on&&!CO.info.access) wrap.append(h('p',{class:'small muted',style:'margin:10px 4px 0;line-height:1.55'},'המאמן המלא פתוח כרגע למוזמנים בלבד. רישום, שקילה, זיכרון ושאלות על הנתונים שלך עובדים לכולם.'));
   const acct=STANDALONE?(PB.user?(SYNC.state==='off'?'ממתין לחיבור · נשמר במכשיר':`מסונכרן · ${PB.user.email}`):'בלי חשבון · נשמר במכשיר הזה'):(S.storageMode==='cloud'?'מחוברים · נשמר בחשבון':'לא מחוברים · נשמר בדפדפן הזה');
-  const T=FD.core?FoodKit.targets(p,S.nut):{ok:false}, nm=(S.coach.mem||[]).length;
+  const T=FD.core?nutBase():{ok:false}, nm=(S.coach.mem||[]).length;
   wrap.append(h('div',{class:'hub stagger'},
     goalHubBox(),
     hubBox('user','הפרופיל שלי',acct,'#profile','back','low'),
-    hubBox('apple','יעדי התזונה',T.ok&&S.nut.goal?`${kc(T.kcal)} קק״ל ביום`:'מטרה, העדפות, אלרגיות','#nut','legs','low'),
+    hubBox('apple','יעדי התזונה',T.ok&&nutGoal()?`${kc(T.kcal)} קק״ל ביום`:'מטרה, העדפות, אלרגיות','#nut','legs','low'),
     hubBox('sparkle','מה המאמן זוכר',nm?plural(nm,'דבר אחד','דברים'):'העדפות ודברים שסיפרת','#memory','arms','low'),
     hubBox('gear','הגדרות',S.prefs.seen.backup?`גיבוי אחרון ${fmtDate(S.prefs.seen.backup)}`:'צליל, מראה, גיבוי','#settings','full','low'),
     STANDALONE&&PB.user&&CO.info&&CO.info.owner?hubBox('send','הזמנות ומגבלות',`${CO.info.limit} הודעות ביום לכל אחד`,'#crew','chest','low'):null));
@@ -276,17 +282,16 @@ function crewPage(){
 /* ========================= the training door: today, then everything about training in one place ========================= */
 function trainPage(){
   const wrap=home();
-  const cur=weekStats(0), got=S.prefs.ach||{}, nA=ACH.filter(a=>got[a.id]).length, nR=(S.routines.list||[]).length, nM=(S.deck.machines||[]).length, brand=BRANDS.find(b=>b.id===S.profile.brand), nS=new Set(allSessions().map(s=>s.d)).size;
+  const got=S.prefs.ach||{}, nA=ACH.filter(a=>got[a.id]).length, nR=(S.routines.list||[]).length, nS=new Set(allSessions().map(s=>s.d)).size;
   wrap.append(h('div',{class:'sec'},h('h2',{},'לוח האימונים')),calendar());
-  wrap.append(h('button',{class:'jstats pressable',type:'button',onclick:()=>go('#progress')},h('div',{class:'r'},h('div',{},h('b',{},String(cur.days)),h('span',{},cur.days===1?'אימון השבוע':'אימונים השבוע')),h('div',{},h('b',{},String(cur.sets)),h('span',{},cur.sets===1?'סט':'סטים')),h('div',{},h('b',{},volNum(cur.vol)),h('span',{},volUnit(cur.vol)+' נפח'))),h('div',{class:'f'},h('span',{},'גרפים, שיאים והתקדמות'),ic('chev'))));
+  /* v14: the week's numbers moved up into the card that opens the page (sectorTop in parts/v14.js); five boxes, not seven: the gym, the guides,
+     voice logging and the charts are behind "עוד" (fitMoreSheet) */
   wrap.append(h('div',{class:'hub stagger'},
     hubBox('medal','הישגים',`${nA} מתוך ${ACH.length}`,'#ach','chest','low'),
     hubBox('journal','כל האימונים',nS?plural(nS,'אימון אחד','אימונים')+' ביומן':'כל מה שנרשם, לפי תאריך','#journal','back','low'),
     hubBox('lib','תרגילים',`${fmtK(allEx().length)} תרגילים עם הדגמה`,'#library','shoulders','low'),
     hubBox('plan','תוכניות',nR?plural(nR,'אימון קבוע אחד','אימונים קבועים'):'מילוי השבוע בלחיצה','#plans','arms','low'),
-    hubBox('gym','המכון שלי',brand?brand.name:(nM?plural(nM,'מכשיר אחד','מכשירים'):'המכשירים שיש לך'),'#gym','legs','low'),
-    hubBox('book','מדריכים',`${ARTICLES.length} מדריכים קצרים`,'#guides','glutes','low'),
-    STANDALONE?wideBox('mic','רישום בקול ו-Siri','אומרים משפט אחד, והסט נרשם',()=>go('#voice'),'back'):null));
+    wideBox('grid','עוד',STANDALONE?'התקדמות, המכון שלי, מדריכים, רישום בקול':'התקדמות, המכון שלי, מדריכים',fitMoreSheet,'full')));
   wrap.append(h('div',{class:'credit',html:'סטים · Exercise data by <a href="https://repdb.co" rel="nofollow" target="_blank">RepDB</a>. לא ייעוץ רפואי.'}));
   return wrap;
 }
@@ -305,11 +310,11 @@ function progressPage(){ const wrap=progress(); header('התקדמות',{back:'#
 function nprogPage(){
   header('התקדמות',{back:'#food'}); const wrap=h('div'), tk=todayKey(); wrap.append(h('div',{class:'display'},'התקדמות'),progSeg('n'));
   if(!FD.core){ if(!FD.failed) foodCore(); wrap.append(foodWait()); return wrap; }
-  const T0=FoodKit.targets(S.profile,S.nut), tf=d=>nutT(d), w7=FoodKit.stretch(S.food,addDays(tk,-6),addDays(tk,1),tf), w30=FoodKit.stretch(S.food,addDays(tk,-29),addDays(tk,1),tf);
+  const T0=nutBase(), tf=d=>nutT(d), w7=FoodKit.stretch(S.food,addDays(tk,-6),addDays(tk,1),tf), w30=FoodKit.stretch(S.food,addDays(tk,-29),addDays(tk,1),tf);
   if(!w30.days){ wrap.append(h('div',{class:'empty'},mascot('idle')||ic('trend'),h('div',{},'הגרפים יתמלאו אחרי היום הראשון ביומן האוכל.'))); return wrap; }
   const tile=(icn,l,n,u)=>h('div',{class:'stat'},h('div',{class:'l',html:I(icn)+`<span>${l}</span>`}),h('div',{class:'n'},String(n)),h('span',{class:'small muted'},u));
   wrap.append(h('div',{class:'grid3 stagger'},tile('cal','ימים ביומן',w7.days,'מתוך 7'),tile('flame','קק״ל ביום',kc(w7.avgK),'בממוצע'),tile('target','חלבון ביום',w7.avgP,'ג׳ בממוצע')));
-  if(T0.ok&&S.nut.goal){
+  if(T0.ok&&nutGoal()){
     wrap.append(h('div',{class:'card'},h('div',{class:'k',style:'font-size:17px;line-height:1.45'},w30.days===1?'ב-30 הימים האחרונים נרשם יום אחד ביומן.':`ב-30 הימים האחרונים נרשמו ${w30.days} ימים ביומן.`),h('p',{class:'small muted',style:'margin:6px 0 0;line-height:1.55'},`בתוך יעד הקלוריות: ${plural(w30.ok,'יום אחד','ימים')} · יעד החלבון הושג: ${plural(w30.hitP,'יום אחד','ימים')}`),w30.low>=3?h('p',{class:'small muted',style:'margin:8px 0 0;line-height:1.55'},`ב-${w30.low} ימים נרשם הרבה פחות מהיעד. אם אלה ימים שלא נרשמו עד הסוף, הכול בסדר. אם ככה אכלת, כדאי לאכול קרוב יותר ליעד: גוף שמקבל מעט מדי מאבד שריר.`):null));
     const days=[]; for(let i=13;i>=0;i--){ const d=addDays(tk,-i), t=FoodKit.totalsOf(S.food,d), T=tf(d), J=FoodKit.judgeDay(t,T); days.push({d,k:t.k,T:T.kcal,st:J.state}); }
     const mx=Math.max(...days.map(x=>Math.max(x.k,x.T)))*1.08||1, tg=T0.kcal, PH=96;      // time runs left to right, like the other charts
@@ -328,7 +333,7 @@ function nprogPage(){
 function pricePanel(wrap,open){ if(open&&open.length) wrap.append(h('div',{class:'credit',style:'padding-top:14px'},'השוואת מחירים בין רשתות עוד לא מחוברת בגרסה הזאת.')); }
 
 /* ========================= joining it all ========================= */
-TABS.length=0; TABS.push(['home','אימונים','gym'],['food','תזונה','apple'],['coach','המאמן','chat']);
+TABS.length=0; TABS.push(['home','כושר','gym'],['food','תזונה','apple'],['coach','המאמן','chat']);      // v14: "כושר", not "אימונים": the sector also holds the steps, the heart rate and an injury
 Object.assign(PAGES,{home:trainPage,journal:historyPage,more:coachHome,coach:coachHome,chat:chatPage,memory:memoryPage,crew:crewPage,food:foodPage,nut:nutPage,calories:nutPage,pantry:pantryPage,recipes:recipesPage,recipe:recipePage,mplan:mplanPage,shop:shopPage,progress:progressPage,nprog:nprogPage});
 Object.assign(TABOF,{journal:'home',progress:'home',ach:'home',library:'home',group:'home',machine:'home',gym:'home',guides:'home',read:'home',plans:'home',myex:'home',day:'home',dayex:'home',voice:'home',
   calories:'food',pantry:'food',recipes:'food',recipe:'food',mplan:'food',shop:'food',nut:'food',nprog:'food',
@@ -355,7 +360,7 @@ PAGES.settings=function(){
     row('chat','המאמן המלא',st,()=>PB.user||!STANDALONE?go('#chat'):authSheet('login')),
     row('gear','כמה לחשוב',({eco:'חסכוני',deep:'מעמיק'})[S.nut.pref]||'מאוזן',coachDepthSheet),
     row('sparkle','מה המאמן זוכר',plural((S.coach.mem||[]).length,'דבר אחד','דברים'),()=>go('#memory'))),
-    h('p',{class:'small muted',style:'margin:-4px 4px 0;line-height:1.55'},'רישום, שקילה, זיכרון ושאלות על הנתונים שלך נענים במכשיר, בלי מודל. שאלה שצריכה מודל נשלחת, יחד עם תקציר של הנתונים שלך, לשרת של סטים ומשם ל-Claude של Anthropic.')];
+    h('p',{class:'small muted',style:'margin:-4px 4px 0;line-height:1.55'},'רישום, שקילה, צעדים, דופק, פציעה, זיכרון ושאלות על הנתונים שלך נענים במכשיר, בלי מודל. שאלה שצריכה מודל נשלחת, יחד עם תקציר של הנתונים שלך (אימונים, אוכל, מטרות, נתוני הגוף ופציעות פעילות), לשרת של סטים ומשם ל-Claude של Anthropic.')];
   if(d) d.after(...sec); else wrap.prepend(...sec);
   return wrap;
 };
@@ -363,7 +368,7 @@ PAGES.settings=function(){
 /* achievements of the nutrition side: for logging and for landing inside the target, never for eating little */
 const achStatsV12=achStats;
 achStats=function(){
-  const s=achStatsV12(), tk=todayKey(); let T=null; try{ T=FD.core?FoodKit.targets(S.profile,S.nut):null; }catch(e){ T=null; }
+  const s=achStatsV12(), tk=todayKey(); let T=null; try{ T=FD.core?nutBase():null; }catch(e){ T=null; }
   const st=FD.core?FoodKit.stretch(S.food,addDays(tk,-90),addDays(tk,1),()=>T||{ok:false}):{days:0,ok:0,hitP:0};
   s.foodDays=FoodKit.daysLogged(S.food).length; s.foodOk=st.ok; s.foodProt=st.hitP; s.pantryN=S.pantry.items.length; s.plansMade=+S.prefs.seen.plans||0; s.cooked=+S.prefs.seen.cooked||0;
   return s;

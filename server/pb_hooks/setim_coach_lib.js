@@ -124,7 +124,7 @@ module.exports = {
     var cfg = config(G), userId = userOf(e), on = !!(cfg.on && apiKey(G)), left = null, role = '';
     if (userId) { role = roleOf(G.app, userId); if (role === null) { on = false; role = ''; } }
     if (on && role) { try { var u = usage(G.app, userId, today()); left = leftOf(cfg, u.rec); if (u.all >= cfg.dailyUsd * 1e6) left = none(); } catch (err) { on = false; } }
-    return e.json(200, { ok: true, v: 2, on: on, access: !!role, owner: role === 'owner', left: left, limit: cfg.perUser.total, score: cfg.score });
+    return e.json(200, { ok: true, v: 3, on: on, access: !!role, owner: role === 'owner', left: left, limit: cfg.perUser.total, score: cfg.score });      // v 3: the model may propose a "body" action (a watch screen read from a picture)
   },
 
   post: function (e, G) {

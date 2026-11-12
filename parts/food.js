@@ -225,25 +225,31 @@ var FoodKit=(function(){
   var NGOALS=[['lose','ירידה במשקל','פחות קלוריות ממה שהגוף שורף, עם הרבה חלבון'],['muscle','בניית שריר','מעט מעל התחזוקה, חלבון גבוה'],['gain','עלייה במסה','עודף מבוקר, כדי לעלות לאט'],['keep','שמירה על המשקל','לאכול כמה שהגוף שורף'],['habits','הרגלים טובים יותר','בלי לספור הרבה: סדר, ירקות וחלבון']];
   function bmrOf(p){ var w=+p.weight||0,h=+p.height||0,a=+p.age||0; if(!w||!h||!a) return 0; return p.sex==='f'?10*w+6.25*h-5*a-161:10*w+6.25*h-5*a+5; }
   function actOf(p){ var wk=+p.weekly||3; return +p.activity||(wk<=1?1.2:wk<=2?1.375:wk<=4?1.55:wk<=6?1.725:1.9); }
-  /* T: {ok, kcal, p, c, f, bmr, tdee, goal, notes[], custom}. Never below 1,200 (women) or 1,500 (men) kcal, no deficit under 18 or under BMI 18.5. */
+  /* T: {ok, kcal, p, c, f, bmr, tdee, goal, notes[], custom, floor, rate}. Never below 1,200 (women) or 1,500 (men) kcal, no deficit under 18 or under BMI 18.5.
+     nut.rate (kg a week, optional): the pace a weight goal asks for. With it the day's calories come from that pace (a kilo of body weight is about
+     7,700 kcal, so a kilo a week is 1,100 a day) instead of from a fixed share of what the body burns: this is how the goal page and this page
+     show one number. Losing is never faster than 1% of body weight a week, gaining never more than 400 kcal over. */
   function targets(profile,nut){
     nut=nut||{}; var p=profile||{}, bmr=bmrOf(p); if(!bmr) return {ok:false};
-    var w=+p.weight, h=+p.height/100, bmi=w/(h*h), tdee=bmr*actOf(p), goal=nut.goal||'keep', notes=[];
-    if(nut.custom&&nut.custom.kcal>0){ var c=nut.custom; return {ok:true,custom:true,kcal:Math.round(c.kcal),p:Math.round(c.p),c:Math.round(c.c),f:Math.round(c.f),bmr:Math.round(bmr),tdee:Math.round(tdee),goal:goal,notes:notes,bmi:r1(bmi)}; }
-    var factor={lose:nut.pace==='slow'?0.9:(nut.pace==='fast'?0.78:0.83),muscle:1.05,gain:1.1,keep:1,habits:1}[goal]||1;
-    if(goal==='lose'&&(+p.age||0)<18){ factor=1; notes.push('מתחת לגיל 18 האפליקציה לא בונה תפריט לירידה במשקל. היעד כאן הוא תחזוקה, וכדאי להתייעץ עם רופא או דיאטנית.'); }
-    if(goal==='lose'&&bmi<18.5){ factor=1; notes.push('לפי הגובה והמשקל שלך אין מקום לירידה נוספת. היעד כאן הוא תחזוקה.'); }
-    var kcal=tdee*factor, floor=p.sex==='f'?1200:1500;
+    var w=+p.weight, h=+p.height/100, bmi=w/(h*h), tdee=bmr*actOf(p), goal=nut.goal||'keep', notes=[], floor=p.sex==='f'?1200:1500;
+    if(nut.custom&&nut.custom.kcal>0){ var c=nut.custom; return {ok:true,custom:true,kcal:Math.round(c.kcal),p:Math.round(c.p),c:Math.round(c.c),f:Math.round(c.f),bmr:Math.round(bmr),tdee:Math.round(tdee),goal:goal,notes:notes,bmi:r1(bmi),floor:floor}; }
+    var factor={lose:nut.pace==='slow'?0.9:(nut.pace==='fast'?0.78:0.83),muscle:1.05,gain:1.1,keep:1,habits:1}[goal]||1, guard=false;
+    if(goal==='lose'&&(+p.age||0)<18){ factor=1; guard=true; notes.push('מתחת לגיל 18 האפליקציה לא בונה תפריט לירידה במשקל. היעד כאן הוא תחזוקה, וכדאי להתייעץ עם רופא או דיאטנית.'); }
+    if(goal==='lose'&&bmi<18.5){ factor=1; guard=true; notes.push('לפי הגובה והמשקל שלך אין מקום לירידה נוספת. היעד כאן הוא תחזוקה.'); }
+    var kcal=tdee*factor, rate=+nut.rate>0&&!guard&&(goal==='lose'||goal==='muscle'||goal==='gain')?+nut.rate:0;
+    if(rate){ kcal=goal==='lose'?tdee-Math.min(rate,0.01*w)*1100:tdee+Math.min(rate*1100,400); factor=kcal/tdee; }
     if(kcal<floor){ kcal=floor; notes.push('היעד הועלה ל-'+floor+' קק״ל, הרצפה הבטוחה. מתחת לזה קשה לקבל את כל מה שהגוף צריך.'); }
     var ref=bmi>30?27*h*h:w;                                          // above BMI 30 protein is counted for a reference weight, not for all of the body weight
     var pg=ref*({lose:2,muscle:1.8,gain:1.8,keep:1.6,habits:1.4}[goal]||1.6), fg=Math.max(ref*0.9,kcal*0.2/9); fg=Math.min(fg,kcal*0.35/9);
     var cg=Math.max(0,(kcal-pg*4-fg*9)/4);
-    return {ok:true,kcal:Math.round(kcal/10)*10,p:Math.round(pg/5)*5,c:Math.round(cg/5)*5,f:Math.round(fg/5)*5,bmr:Math.round(bmr),tdee:Math.round(tdee),goal:goal,notes:notes,bmi:r1(bmi),factor:factor};
+    return {ok:true,kcal:Math.round(kcal/10)*10,p:Math.round(pg/5)*5,c:Math.round(cg/5)*5,f:Math.round(fg/5)*5,bmr:Math.round(bmr),tdee:Math.round(tdee),goal:goal,notes:notes,bmi:r1(bmi),factor:factor,floor:floor,rate:rate};
   }
-  /* a training day gets a little more (as carbohydrates) and a rest day a little less, so that the week adds up to the same total */
+  /* a training day gets a little more (as carbohydrates) and a rest day a little less, so that the week adds up to the same total.
+     A rest day never goes under the safe floor: there the day simply stays at the floor. */
   function dayTargets(T,training,weekly,on){
     if(!T||!T.ok||!on) return T; var t=Math.max(1,Math.min(6,+weekly||3)), up=Math.round(T.kcal*0.06/10)*10, d=training?up:-Math.round(up*t/(7-t)/10)*10;
-    return {ok:true,kcal:T.kcal+d,p:T.p,c:Math.max(0,T.c+Math.round(d/4/5)*5),f:T.f,bmr:T.bmr,tdee:T.tdee,goal:T.goal,notes:T.notes,shift:d,training:!!training};
+    if(d<0&&T.floor&&T.kcal+d<T.floor) d=Math.min(0,T.floor-T.kcal);
+    return {ok:true,kcal:T.kcal+d,p:T.p,c:Math.max(0,T.c+Math.round(d/4/5)*5),f:T.f,bmr:T.bmr,tdee:T.tdee,goal:T.goal,notes:T.notes,shift:d,training:!!training,floor:T.floor,rate:T.rate,custom:T.custom};
   }
   /* where a day stands against its target. "low" is said when a person eats far less than the plan: that is not a success here */
   function judgeDay(tot,T){
