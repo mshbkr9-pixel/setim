@@ -34,7 +34,7 @@
 .meal .do{flex:none;font-size:var(--fs-2);font-weight:800;color:var(--accent-t);background:var(--accent-soft);border-radius:var(--r-s);padding:8px 12px;min-height:40px}
 
 /* taking a meal in: one box to write or speak, three ways beside it */
-.fin textarea{min-height:76px;font-size:var(--fs-4);line-height:1.4;resize:none}
+.mealin textarea{min-height:76px;font-size:var(--fs-4);line-height:1.4;resize:none}
 .fways{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px}
 .fway{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:68px;background:var(--card2);border-radius:var(--r-m);font-weight:800;font-size:var(--fs-2);color:var(--ink)}
 .fway svg.i{color:var(--accent-t)}
@@ -121,3 +121,15 @@
 .kbars .b.ok i{background:var(--good)} .kbars .b.over i{background:var(--warn)} .kbars .b.low i{background:var(--ink3)}
 .kbars .b span{font-size:11px;color:var(--ink2);font-weight:700}
 .kbars .tg{position:absolute;inset-inline:0;border-top:2px dashed var(--ink3);pointer-events:none}
+/* a photo waiting in the meal sheet, and what the coach saw in it */
+.fpic{display:flex;align-items:center;gap:12px;margin:10px 0 0;padding:10px;background:var(--card2);border-radius:var(--r-m)}
+.fpic img{width:64px;height:64px;object-fit:cover;border-radius:var(--r-s);flex:none}
+.fpic .rm{flex:none;width:40px;height:40px;display:grid;place-items:center;color:var(--ink3)}
+.fpic .rm svg.i{width:18px;height:18px}
+.fsaw{display:flex;gap:12px;align-items:flex-start;margin:0 0 10px}
+.fsaw img{width:84px;height:84px;object-fit:cover;border-radius:var(--r-m);flex:none}
+.fsaw p{margin:0;line-height:1.55;font-size:var(--fs-3);color:var(--ink)}
+.ftot .tk{display:flex;align-items:baseline;gap:8px}
+.ftot .tk b{font-weight:900;font-size:var(--fs-3)}
+.ftot input{width:96px;flex:none;background:var(--card2);border:1px solid var(--line);border-radius:var(--r-s);padding:9px 8px;font-size:var(--fs-4);font-weight:900;text-align:center;color:var(--ink);outline:none;font-variant-numeric:tabular-nums}
+.ftot input:focus{border-color:var(--accent)}

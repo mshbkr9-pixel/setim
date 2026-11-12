@@ -14,7 +14,7 @@ owner has agreed.
     PB   the server. Default https://getonekeyai.com. It matters only when the app runs from localhost (the app then takes
          the server's address from localStorage, gtdev:pb); a published app always talks to its own server.
 Exit code 0 only when every check passed."""
-import json, os, re, secrets, sys, urllib.error, urllib.parse, urllib.request
+import base64, json, os, re, secrets, sys, urllib.error, urllib.parse, urllib.request
 from playwright.sync_api import sync_playwright
 
 APP = sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:8793/index.html'
@@ -27,6 +27,7 @@ LOCAL = re.match(r'^https?://(localhost|127\.0\.0\.1)[:/]', APP) is not None
 EMAIL = 'uicheck-' + secrets.token_hex(5) + '@example.test'
 PW = secrets.token_urlsafe(12)
 QUESTION = 'מה כדאי לי לאכול אחרי האימון?'
+PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')      # one pixel: a stand-in for a picture of a plate
 fails, errors = [], []
 
 def check(label, ok, detail=''):
@@ -99,8 +100,16 @@ with sync_playwright() as pw:
         goto('#food'); page.click('#view .btn:has-text("קובעים יעד")'); settle(); page.click('.typebtn:has-text("ירידה במשקל")'); settle()
         st = ev("({goal:S.nut.goal,T:FoodKit.targets(S.profile,S.nut)})")
         check('a nutrition goal gives a daily target', st['goal'] == 'lose' and 1500 <= st['T']['kcal'] < st['T']['tdee'], st)
-        goto('#food'); page.click('#dock .btn'); settle(800); page.fill('#sheetBody textarea', 'שתי ביצים ושתי פרוסות לחם')
-        page.click('#sheetBody .btn:has-text("המשך")'); settle(1000); page.click('#sheetBody .btn:has-text("רישום")'); settle(1000)
+        goto('#food'); page.click('#dock .btn'); settle(900)
+        box = ev("(() => { const r=document.querySelector('#sheet').getBoundingClientRect(); return {open:Sheet.open,h:Math.round(r.height),top:Math.round(r.top),ways:[...document.querySelectorAll('#sheetBody .fway')].map(e=>e.textContent)}; })()")
+        check('the meal sheet opens at its full size, with the three ways in', box['open'] and box['h'] >= 300 and box['top'] >= 0 and box['ways'] == ['תמונה', 'ברקוד', 'חיפוש'], box)
+        page.set_input_files('#sheetBody input[type=file]', {'name': 'plate.png', 'mimeType': 'image/png', 'buffer': PNG}); settle(1000)
+        st = ev("({pic:!!document.querySelector('#sheetBody .fpic img'),off:[...document.querySelectorAll('#sheetBody .btn')].find(b=>b.textContent.includes('המשך')).disabled,ph:document.querySelector('#sheetBody textarea').placeholder})")
+        check('a picture of a meal waits in the sheet, and words can be added to it', st['pic'] and not st['off'] and 'חצי מנה' in st['ph'], st)
+        page.screenshot(path=os.path.join(OUT, 'live-0-meal-picture.png'))
+        page.click('#sheetBody .fpic .rm'); settle(300)      # the picture is taken off again: reading it needs the model, and this part of the test spends nothing
+        page.fill('#sheetBody textarea', 'שתי ביצים ושתי פרוסות לחם')
+        page.click('#sheetBody .btn:has-text("המשך")'); settle(1000); page.click('#sheetBody .btn:has-text("אישור")'); settle(1000)
         meals = ev("FoodKit.mealsOf(S.food,todayKey())")
         check('a meal typed in words is in the diary', len(meals) == 1 and len(meals[0]['it']) == 2, meals)
         page.screenshot(path=os.path.join(OUT, 'live-1-food.png'))

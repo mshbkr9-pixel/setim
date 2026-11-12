@@ -6,8 +6,10 @@ would see. Needs two local servers, on ports of their own so that they can run b
 Run:  python -X utf8 tests/ui_v13.py [output folder for screenshots]
 Nothing here costs money: the stand-in answers in the shape of the real API, so the real request and checking code runs.
 Exit code 0 only when every check passed. Screenshots are for the eye; the checks read the page itself."""
-import json, os, re, sys
+import base64, json, os, re, sys
 from playwright.sync_api import sync_playwright
+
+PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')      # one pixel: a stand-in for a picture of a plate
 
 APP = 'http://127.0.0.1:8793/index.html'
 PBM = 'http://127.0.0.1:8094'
@@ -64,7 +66,12 @@ def run(pw, scheme):
     page = ctx.new_page()
     page.on('pageerror', lambda e: errors.append('%s pageerror: %s' % (scheme, e)))
     page.on('console', lambda m: errors.append('%s console: %s' % (scheme, m.text)) if (m.type == 'error' and 'vibrate' not in m.text and 'ERR_CONNECTION' not in m.text and '404' not in m.text) else None)
-    shot = lambda name: page.screenshot(path=os.path.join(OUT, '%s-%s.png' % (scheme, name)))
+    def shot(name):
+        page.screenshot(path=os.path.join(OUT, '%s-%s.png' % (scheme, name)))
+        # the checks read text, and text is there even when a sheet is squeezed into a strip: so a sheet that is open in a picture is also measured
+        box = page.evaluate("Sheet.open ? (() => { const r=document.querySelector('#sheet').getBoundingClientRect(); return {h:Math.round(r.height),top:Math.round(r.top),vh:innerHeight}; })() : null")
+        if box:
+            check('%s: the sheet in the picture "%s" is laid out, not squeezed' % (scheme, name), box['h'] >= 180 and box['top'] >= 0, box)
     ev = page.evaluate
     settle = lambda ms=450: page.wait_for_timeout(ms)
     def goto(h):
@@ -114,7 +121,7 @@ def run(pw, scheme):
     check(tag + 'the sentence becomes five foods with amounts, estimates marked', n == 5 and 'ביצה' in t and 'שמן זית' in t and 'הערכה' in t and 'סך הכול' in t, t[:300])
     shot('5-meal-confirm'); contrast('meal confirm', '#sheetBody')
     page.fill('#sheetBody .frow >> nth=2 >> input', '200'); settle(200)
-    page.click('#sheetBody .btn:has-text("רישום")'); settle(900)
+    page.click('#sheetBody .btn:has-text("אישור")'); settle(900)
     st = ev("({tot:FoodKit.totalsOf(S.food,todayKey()),meals:FoodKit.mealsOf(S.food,todayKey()),toast:document.querySelector('#toastTx').textContent,rows:document.querySelectorAll('#view .meal').length})")
     cot = [x for x in st['meals'][0]['it'] if x['n'].startswith('קוטג')][0]
     check(tag + 'the meal is in the diary, with the corrected amount', len(st['meals']) == 1 and len(st['meals'][0]['it']) == 5 and cot['g'] == 200 and 'est' not in cot and 600 < st['tot']['k'] < 800 and 'נרשם' in st['toast'] and st['rows'] == 1, st)
@@ -236,8 +243,27 @@ def run(pw, scheme):
     t = sheet(); check(tag + 'an unknown meal offers the coach', 'המאמן יפענח' in t, t[:300]); shot('18-meal-unknown'); contrast('meal sheet, unknown', '#sheetBody')
     page.click('#sheetBody .btn:has-text("המאמן יפענח")'); settle(2200); t = sheet()
     check(tag + 'the coach reads it and the same confirmation list comes back, marked as an estimate', 'לרשום את הארוחה?' in t and 'המבורגר' in t and 'הערכה' in t, t[:300]); shot('19-meal-ai')
-    page.click('#sheetBody .btn:has-text("רישום")'); settle(900)
+    page.click('#sheetBody .btn:has-text("אישור")'); settle(900)
     check(tag + 'and it is logged', ev("FoodKit.mealsOf(S.food,todayKey()).some(m=>m.it.some(x=>x.n.includes('המבורגר')))"))
+
+    # ---- a picture of the plate from the meal sheet, with a few words, and the calories corrected before it is logged ----
+    goto('#food'); page.click('#dock .btn'); settle(700)
+    page.set_input_files('#sheetBody input[type=file]', {'name': 'plate.png', 'mimeType': 'image/png', 'buffer': PNG}); settle(1000)
+    st = ev("""(() => { const f=document.querySelector('#sheetBody input[type=file]'), go=[...document.querySelectorAll('#sheetBody .btn')].find(b=>b.textContent.includes('המשך'));
+        return {pic:!!document.querySelector('#sheetBody .fpic img'),off:go.disabled,ph:document.querySelector('#sheetBody textarea').placeholder,accept:f.accept,cap:f.hasAttribute('capture'),way:[...document.querySelectorAll('#sheetBody .fway')].map(e=>e.textContent)}; })()""")
+    check(tag + 'a picture waits in the meal sheet, from the camera or from the phone, and words can be added to it', st['pic'] and not st['off'] and 'חצי מנה' in st['ph'] and st['accept'] == 'image/*' and not st['cap'] and st['way'][0] == 'תמונה', st)
+    shot('22-meal-photo'); contrast('meal sheet with a picture', '#sheetBody')
+    page.fill('#sheetBody textarea', 'אכלתי רק חצי מהמנה'); page.click('#sheetBody .btn:has-text("המשך")'); settle(2600)
+    t = sheet(); c = calls()['calls'][-1]
+    st = ev("({img:!!document.querySelector('#sheetBody .fsaw img'),rows:[...document.querySelectorAll('#sheetBody .frow .x')].map(e=>parseInt(e.textContent.replace(/,/g,''))),total:+document.querySelector('#sheetBody .ftot input').value})")
+    check(tag + 'the picture and the words go to the coach together, and it says what it sees and how many calories', c['img'] and 'חצי מהמנה' in c['text'] and 'בתמונה נראים' in t and st['img'] and len(st['rows']) == 2 and st['total'] > 100 and abs(sum(st['rows']) - st['total']) <= 2 and 'הערכה' in t and 'אפשר לתקן' in t, [c, st, t[:200]])
+    shot('23-meal-photo-confirm'); contrast('meal confirm after a picture', '#sheetBody')
+    k0 = ev("FoodKit.totalsOf(S.food,todayKey()).k")
+    page.fill('#sheetBody .ftot input', '600'); settle(300)
+    st = ev("({rows:[...document.querySelectorAll('#sheetBody .frow .x')].map(e=>parseInt(e.textContent.replace(/,/g,''))),est:document.querySelectorAll('#sheetBody .frow .est').length,total:+document.querySelector('#sheetBody .ftot input').value})")
+    page.click('#sheetBody .btn:has-text("אישור")'); settle(900)
+    st2 = ev("({k:FoodKit.totalsOf(S.food,todayKey()).k,toast:document.querySelector('#toastTx').textContent,open:Sheet.open})")
+    check(tag + 'the calories are typed over, the foods follow, and the confirmed meal is in the diary', abs(sum(st['rows']) - 600) <= 2 and st['est'] == 0 and st['total'] == 600 and abs(st2['k'] - k0 - 600) <= 2 and 'נרשם: 600' in st2['toast'] and not st2['open'], [st, st2, k0])
 
     # ---- memory, settings, progress, backup ----
     goto('#memory'); t = view(); check(tag + 'what the coach remembers can be seen and removed', 'חציל' in t and ev("document.querySelectorAll('#view .memrow').length") >= 1, t[:200]); contrast('memory')

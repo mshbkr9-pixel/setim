@@ -162,18 +162,24 @@ function mealView(d,m){
 function mealSheet(d,slot){
   d=d||todayKey(); const o={date:d,slot:slot||(d===todayKey()?'':'l')};
   const ta=h('textarea',{rows:'2',placeholder:'למשל: 2 ביצים, 2 פרוסות לחם וקוטג׳',maxlength:'400','aria-label':'מה אכלת'});
-  const btn=h('button',{class:'btn',type:'button',disabled:true},'המשך'), note=h('div',{});
-  const run=()=>{ const t=ta.value.trim(); if(!t) return; const R=FoodKit.parse(t,{hour:new Date().getHours()});
+  const btn=h('button',{class:'btn',type:'button',disabled:true},'המשך'), note=h('div',{}), prev=h('div',{}); let pic='';
+  /* a photo of the plate waits in the sheet, so that a few words can go with it: what it is, how much of it was eaten */
+  const setPic=url=>{ pic=url||''; prev.replaceChildren(); note.replaceChildren();
+    if(pic) prev.append(h('div',{class:'fpic'},h('img',{src:pic,alt:'התמונה שנבחרה'}),h('div',{class:'grow'},h('div',{class:'b'},'התמונה תישלח למאמן'),h('div',{class:'small muted',style:'line-height:1.45'},'אפשר להוסיף כמה מילים למעלה: מה זה, וכמה אכלת מזה.')),h('button',{class:'rm',type:'button','aria-label':'הסרת התמונה',html:I('x'),onclick:()=>setPic('')})));
+    ta.placeholder=pic?'למשל: חצי מנה, בלי הרוטב':'למשל: 2 ביצים, 2 פרוסות לחם וקוטג׳'; btn.disabled=!(ta.value.trim()||pic); };
+  const run=()=>{ const t=ta.value.trim(); if(pic){ const url=pic; Sheet.close(); setTimeout(()=>askMeal(t,url,o),320); return; }
+    if(!t) return; const R=FoodKit.parse(t,{hour:new Date().getHours()});
     if(R.items.length&&R.conf>=1){ Sheet.close(); setTimeout(()=>mealConfirm(R.items,{...o,slot:R.slot||o.slot,date:R.back?addDays(todayKey(),-1):d,src:'t'}),320); return; }
     note.replaceChildren(h('div',{class:'banner',style:'margin:10px 0 0'},ic('info'),h('span',{},R.items.length?`הבנתי: ${R.items.map(x=>x.name).join(', ')}. לא הכרתי: ${R.rest.join(' ')}.`:'את זה לא הצלחתי לפרק לבד.')),
       h('div',{class:'row',style:'gap:8px;margin-top:10px'},R.items.length?h('button',{class:'btn sm sec2',type:'button',style:'flex:1',onclick:()=>{ Sheet.close(); setTimeout(()=>mealConfirm(R.items,{...o,slot:R.slot||o.slot,src:'t'}),320); }},'רישום מה שהבנתי'):null,h('button',{class:'btn sm',type:'button',style:'flex:1',onclick:()=>{ Sheet.close(); setTimeout(()=>askMeal(t,'',o),320); }},'המאמן יפענח'))); };
-  ta.addEventListener('input',()=>{ btn.disabled=!ta.value.trim(); }); btn.addEventListener('click',run);
+  ta.addEventListener('input',()=>{ btn.disabled=!(ta.value.trim()||pic); }); btn.addEventListener('click',run);
   ta.addEventListener('keydown',ev=>{ if(ev.key==='Enter'&&!ev.shiftKey){ ev.preventDefault(); run(); } });
-  const mic=micBtn(ta,()=>run()); if(mic) mic.className='btn sm sec2';
-  const cam=h('input',{type:'file',accept:'image/*',capture:'environment',class:'hide'}); cam.addEventListener('change',async()=>{ const f=cam.files[0]; if(!f) return; const url=await fileToDataUrl(f,1024,0.8); Sheet.close(); setTimeout(()=>askMeal('',url,o),320); });
+  const mic=micBtn(ta,()=>{ if(!pic) run(); }); if(mic) mic.className='btn sm sec2';
+  /* no "capture": the phone then offers both the camera and the pictures already on it */
+  const cam=h('input',{type:'file',accept:'image/*',class:'hide'}); cam.addEventListener('change',async()=>{ const f=cam.files[0]; if(!f) return; try{ const url=await fileToDataUrl(f,1024,0.8); setPic(url); }catch(e){ toast('לא הצלחתי לפתוח את התמונה'); } cam.value=''; });
   const way=(icn,t,fn)=>h('button',{class:'fway pressable',type:'button',onclick:fn},ic(icn),h('span',{},t));
-  const body=h('div',{class:'fin'},h('h2',{},'מה אכלת?'),h('div',{class:'fld'},ta),h('div',{class:'row',style:'gap:8px'},mic?h('div',{style:'flex:none'},mic):null,btn),note,
-    h('div',{class:'fways'},way('camera','צילום',()=>cam.click()),way('barcode','ברקוד',()=>{ Sheet.close(); setTimeout(()=>barcodeSheet(o),320); }),way('search','חיפוש',()=>{ Sheet.close(); setTimeout(()=>foodFind(o),320); })),cam);
+  const body=h('div',{class:'mealin'},h('h2',{},'מה אכלת?'),h('div',{class:'fld'},ta),prev,h('div',{class:'row',style:'gap:8px;margin-top:10px'},mic?h('div',{style:'flex:none'},mic):null,btn),note,
+    h('div',{class:'fways'},way('camera','תמונה',()=>cam.click()),way('barcode','ברקוד',()=>{ Sheet.close(); setTimeout(()=>barcodeSheet(o),320); }),way('search','חיפוש',()=>{ Sheet.close(); setTimeout(()=>foodFind(o),320); })),cam);
   const rec=FoodKit.recent(S.food,8);
   if(rec.length){ const chips=h('div',{class:'gchips'}); rec.forEach(x=>chips.append(h('button',{class:'gchip',type:'button',onclick:()=>{ logMeal([{name:x.n,k:x.k,g:x.g,e:x.e,est:x.est,q:x.q,u:x.u}],o); Sheet.close(); toast(`נרשם: ${x.n}, ${kc(x.e[0])} קק״ל`); haptic(10); }},x.n)));
     body.append(h('div',{class:'small b muted',style:'margin:14px 2px 8px'},'מהפעמים האחרונות'),chips); }
@@ -182,19 +188,25 @@ function mealSheet(d,slot){
 /* the list before it goes into the diary: every amount can be corrected, and an estimate says that it is one */
 function mealConfirm(items,o){
   o=o||{}; let slot=o.slot||slotNow(); const its=items.map(x=>({...x,per:x.g?x.e.map(v=>v/x.g*100):[0,0,0,0]}));
-  const body=h('div',{}), rows=h('div',{}), tl=h('div',{class:'ftot'}), go2=h('button',{class:'btn',type:'button'},'רישום');
+  const body=h('div',{}), rows=h('div',{}), go2=h('button',{class:'btn',type:'button'},'אישור');
+  /* the total can be typed over: the foods are scaled to it, each in its own proportion */
+  const tin=h('input',{type:'number',inputmode:'numeric',min:'0',step:'10','aria-label':'סך הקלוריות. אפשר לתקן'}), tp=h('b',{}), tl=h('div',{class:'ftot'},h('span',{},'סך הכול'),h('div',{class:'tk'},tin,tp));
+  tin.addEventListener('input',()=>{ const want=Math.max(0,pnum(tin.value)), cur=FoodKit.sum(its.map(x=>x.e)).k; if(!(want>0)||!(cur>0)) return; const f=want/cur;
+    its.forEach(x=>{ x.e=x.e.map(v=>v*f); x.per=x.per.map(v=>v*f); x.est=false; }); paint(); });
   const paint=()=>{ rows.replaceChildren(); its.forEach((x,i)=>{
       const inp=h('input',{type:'number',inputmode:'decimal',min:'0',step:'1',value:String(Math.round(x.g)),'aria-label':`כמות בגרמים: ${x.name}`}), sub=h('div',{class:'x'});
       const calc=()=>{ sub.textContent=`${kc(x.e[0])} קק״ל · ${g1(x.e[1])} ג׳ חלבון`; };
       inp.addEventListener('input',()=>{ const g=Math.max(0,pnum(inp.value)); x.g=g; x.e=[x.per[0]*g/100,x.per[1]*g/100,x.per[2]*g/100,x.per[3]*g/100]; x.q=null; x.est=false; calc(); total(); });
       calc(); rows.append(h('div',{class:'frow'},h('div',{class:'grow'},h('div',{class:'n'},x.name,x.est?estBadge():null),sub),inp,h('span',{class:'u'},'ג׳'),h('button',{class:'rm',type:'button','aria-label':`הסרת ${x.name}`,html:I('x'),onclick:()=>{ its.splice(i,1); paint(); }}))); });
     total(); go2.disabled=!its.length; };
-  const total=()=>{ const t=FoodKit.sum(its.map(x=>x.e)); tl.replaceChildren(h('span',{},'סך הכול'),`${kc(t.k)} קק״ל · ${g1(t.p)} ג׳ חלבון`); };
+  const total=()=>{ const t=FoodKit.sum(its.map(x=>x.e)); if(document.activeElement!==tin) tin.value=String(Math.round(t.k)); tp.textContent=`קק״ל · ${g1(t.p)} ג׳ חלבון`; };
   const seg=h('div',{class:'seg',style:'margin:4px 0 6px'},...['b','l','d','s'].map(sl=>h('button',{class:slot===sl?'on':'',type:'button',onclick:ev=>{ slot=sl; [...seg.children].forEach(c=>c.classList.remove('on')); ev.currentTarget.classList.add('on'); }},FoodKit.SLOT_HE[sl].replace('ארוחת ',''))));
   go2.addEventListener('click',()=>{ if(!its.length) return; const m=logMeal(its,{...o,slot}); const t=FoodKit.sum(its.map(x=>x.e)); Sheet.close(); haptic(15); toast(`נרשם: ${kc(t.k)} קק״ל, ${g1(t.p)} ג׳ חלבון`); if(o.onDone) o.onDone(m); });
   paint();
-  body.append(h('h2',{},'לרשום את הארוחה?')); if(o.note) body.append(h('p',{class:'small muted',style:'margin:0 0 8px;line-height:1.5'},o.note));
-  body.append(seg,rows,tl,go2,h('button',{class:'lnkline center',type:'button',onclick:()=>{ Sheet.close(); setTimeout(()=>foodFind({...o,slot,more:its}),320); }},ic('plus'),h('span',{},'עוד מאכל')));
+  body.append(h('h2',{},'לרשום את הארוחה?'));
+  /* what the coach saw or understood, in its own words, next to the picture it looked at */
+  if(o.note||o.img) body.append(h('div',{class:'fsaw'},o.img?h('img',{src:o.img,alt:'התמונה שנשלחה'}):null,o.note?h('p',{},o.note):null));
+  body.append(seg,rows,tl,h('div',{class:'small muted',style:'margin:0 0 10px;line-height:1.45'},'אפשר לתקן את הקלוריות כאן, או את הגרמים בכל שורה.'),go2,h('button',{class:'lnkline center',type:'button',onclick:()=>{ Sheet.close(); setTimeout(()=>foodFind({...o,slot,more:its}),320); }},ic('plus'),h('span',{},'עוד מאכל')));
   Sheet.show(body,()=>render());
 }
 /* what the vocabulary cannot read (a restaurant dish, a photo of a plate) goes to the coach, and comes back as the same list */
@@ -205,7 +217,7 @@ async function askMeal(text,img,o){
   const act=R.ok?(R.acts||[]).find(a=>a.t==='meal'):null;
   Sheet.close();
   if(!act){ setTimeout(()=>Sheet.show(h('div',{},h('h2',{},'לא יצא רישום'),h('p',{style:'margin:0 0 14px;line-height:1.6'},R.say||'לא הצלחתי לפענח את הארוחה.'),R.why==='auth'?h('button',{class:'btn',type:'button',onclick:()=>{ Sheet.close(); setTimeout(()=>authSheet('login'),320); }},'כניסה או הרשמה'):h('button',{class:'btn',type:'button',onclick:()=>{ Sheet.close(); setTimeout(()=>foodFind(o),320); }},'חיפוש במאגר')),()=>render()),340); return; }
-  setTimeout(()=>mealConfirm(actItems(act.items),{...o,slot:act.slot||o.slot,date:act.date||o.date,src:img?'p':'ai',note:R.say}),340);
+  setTimeout(()=>mealConfirm(actItems(act.items),{...o,slot:act.slot||o.slot,date:act.date||o.date,src:img?'p':'ai',note:R.say,img:img||''}),340);
 }
 /* items as a model names them -> items of the diary. A name the vocabulary knows gets the table's numbers for the stated weight */
 function actItems(list){

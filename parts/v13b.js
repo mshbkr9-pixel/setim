@@ -149,7 +149,8 @@ function askBar(o){
   ta.addEventListener('input',()=>{ grow(); if(o.keep) CO.draft=ta.value; });      // the page may repaint while someone types: the words are kept
   ta.addEventListener('keydown',ev=>{ if(ev.key==='Enter'&&!ev.shiftKey){ ev.preventDefault(); fire(); } }); send.addEventListener('click',fire);
   const mic=micBtn(ta,()=>fire()), bar=h('div',{class:'askbar'});
-  if(o.photo){ const cam=h('input',{type:'file',accept:'image/*',capture:'environment',class:'hide'}); cam.addEventListener('change',async()=>{ const f=cam.files[0]; if(!f) return; const url=await fileToDataUrl(f,1024,0.8); cam.value=''; o.onSend(ta.value.trim(),url); ta.value=''; grow(); }); bar.append(h('button',{type:'button','aria-label':'צילום של הצלחת',html:I('camera'),onclick:()=>cam.click()}),cam); }
+  /* no "capture": the phone then offers both the camera and the pictures already on it. What is typed in the box goes with the picture. */
+  if(o.photo){ const cam=h('input',{type:'file',accept:'image/*',class:'hide'}); cam.addEventListener('change',async()=>{ const f=cam.files[0]; if(!f) return; let url=''; try{ url=await fileToDataUrl(f,1024,0.8); }catch(e){ toast('לא הצלחתי לפתוח את התמונה'); } cam.value=''; if(!url) return; o.onSend(ta.value.trim(),url); ta.value=''; grow(); }); bar.append(h('button',{type:'button','aria-label':'תמונה של הצלחת',html:I('camera'),onclick:()=>cam.click()}),cam); }
   bar.append(ta); if(mic) bar.append(mic); bar.append(send); requestAnimationFrame(grow);
   return bar;
 }
