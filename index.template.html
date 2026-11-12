@@ -1048,7 +1048,7 @@ function render(){
   FRESH=key!==lastRouteKey; lastRouteKey=key;
   const pages={home,library,group:groupPage,ex:exPage,gym,machine:machinePage,plans,guides,read:readPage,profile,calories,progress,install,journal,more,settings,workout,myex,day:dayPage,dayex:dayExPage,...PAGES};
   const fn=pages[route.page]||home; const keep=sc.scrollTop;
-  Dock.main=null;
+  Dock.main=null; Dock.fab=null;
   $('#app').classList.toggle('focus',route.page==='workout'&&!!woActive());
   const node=fn();
   v.className=FRESH?'':'noanim'; v.replaceChildren(node);
@@ -1084,6 +1084,7 @@ function home(){
   wrap.append(strip);
   swipeNav(wrap,dir=>{ let k=homeDay+dir; if(k>6){ k=0; homeWeek++; } else if(k<0){ k=6; homeWeek--; } homeDay=k; editMode=false; render(); });
   if(!isToday){ homeOther(wrap,selDate,sel,cur,byDate[selDate]||[]); return wrap; }
+  if(!editMode) Dock.fab=voiceFab();      // the mic: one tap, say the set, and it is in the journal
   const gc=goalCard(), rc=gc?null:recapCard(), nd=(gc||rc)?null:installNudge(); [gc,rc,nd].forEach(c=>{ if(c) wrap.append(c); });      // one card at a time: the goal, then the recap, then the install hint
   const d=wkDay(sel); const ids=todayList(); const strk=weekStreak();
   const streakEl=strk.n>=2?h('div',{class:'streak'},ic('flame'),h('span',{},`${hcount(strk.n,'שבוע','שבועות')} ברצף`)):null;
@@ -1668,6 +1669,7 @@ function settings(){
     toggleRow('המסך נשאר דלוק באימון',p.wake!=='off',v=>{ set('wake',v?null:'off'); if(!v) Wake.off(); else if(woActive()) Wake.on(); }),
     toggleRow('מעבר אוטומטי לתרגיל הבא',p.autoNext!=='off',v=>set('autoNext',v?null:'off'),'בסוף המנוחה שאחרי הסט האחרון'),
     toggleRow('לוח מספרים של סטים',!!p.pad,v=>set('pad',v?1:null),'במקום מקלדת הטלפון')));
+  wrap.append(...voiceSettings({seg,fld,set,row}));
   wrap.append(h('div',{class:'sec'},h('h2',{},'מראה')));
   const sw=h('div',{class:'swatches'}); [['','#FF6B4A','#FFB347','גחלת'],['ocean','#4D8DFF','#6FD3FF','ים'],['mint','#2FD08A','#B6F36A','מנטה'],['grape','#A07BFF','#FF8FD0','ענבים']].forEach(([k,a,b,l])=>sw.append(h('button',{class:'swatch'+((p.accent||'')===k?' on':''),type:'button','aria-label':'צבע '+l,'aria-pressed':(p.accent||'')===k?'true':'false',style:`background:linear-gradient(135deg,${a},${b})`,onclick:()=>set('accent',k||null)},(p.accent||'')===k?ic('check'):null)));
   wrap.append(h('div',{class:'card'},
@@ -1992,9 +1994,9 @@ const NAVS=[location.hash||'#home']; const SCROLLS={}; let NAV_REPL=false, VT_AC
 const PAGES={};
 const TABOF={ex:'home',workout:'home',library:'more',group:'more',machine:'more',gym:'more',guides:'more',read:'more',calories:'more',progress:'journal',install:'more',plans:'more',profile:'more',myex:'more',settings:'more',day:'journal',dayex:'journal'};
 
-/* ---------- dock: one place above the tab bar for the rest timer or a page's main action ---------- */
-const Dock={main:null,
-  paint(){ const hst=$('#dock'); if(!hst) return; const kids=[]; if((Rest.end||Rest.done)&&Rest.el) kids.push(Rest.el); else if(this.main) kids.push(this.main); hst.replaceChildren(...kids); $('#scroll').classList.toggle('docked',kids.length>0); },
+/* ---------- dock: one place above the tab bar for the rest timer or a page's main action, and the mic on Today above them ---------- */
+const Dock={main:null,fab:null,
+  paint(){ const hst=$('#dock'); if(!hst) return; const kids=[]; if(this.fab) kids.push(this.fab); if((Rest.end||Rest.done)&&Rest.el) kids.push(Rest.el); else if(this.main) kids.push(this.main); hst.replaceChildren(...kids); $('#scroll').classList.toggle('docked',kids.length>0); },
   set(node){ this.main=node||null; this.paint(); }
 };
 

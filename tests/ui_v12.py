@@ -34,7 +34,7 @@ SEED = r"""() => {
 }"""
 
 # text against its real background, the way the eye meets it: every text node, backgrounds composited up the ancestors
-CONTRAST = r"""() => {
+CONTRAST = r"""(sel) => {
   const parse=c=>{ const m=/rgba?\(([^)]+)\)/.exec(c); if(!m) return null; const p=m[1].split(/[,\/ ]+/).filter(Boolean).map(parseFloat); return {r:p[0],g:p[1],b:p[2],a:p.length>3?p[3]:1}; };
   const cv=document.createElement('canvas'); cv.width=cv.height=1; const cx=cv.getContext('2d',{willReadFrequently:true});
   const solid=c=>{ cx.clearRect(0,0,1,1); cx.fillStyle='#000'; cx.fillStyle=c; cx.fillRect(0,0,1,1); const d=cx.getImageData(0,0,1,1).data; return {r:d[0],g:d[1],b:d[2],a:d[3]/255}; };
@@ -44,7 +44,7 @@ CONTRAST = r"""() => {
   const bgOf=el=>{ const chain=[]; for(let e=el;e;e=e.parentElement){ const cs=getComputedStyle(e); if(cs.backgroundImage&&cs.backgroundImage!=='none'){ const m=cs.backgroundImage.match(/rgba?\([^)]+\)|color-mix\([^)]*\)\)?|#[0-9a-f]{3,8}/gi); if(m){ let acc=null; m.slice(0,2).forEach(x=>{ const c=solid(x); acc=acc?{r:(acc.r+c.r)/2,g:(acc.g+c.g)/2,b:(acc.b+c.b)/2,a:(acc.a+c.a)/2}:c; }); if(acc) chain.push(acc); } }
       const c=solid(cs.backgroundColor); if(c.a>0) chain.push(c); if(c.a===1) break; }
     let out={r:255,g:255,b:255,a:1}; for(let i=chain.length-1;i>=0;i--) out=over(chain[i],out); return out; };
-  const bad=[]; const root=document.querySelector('#view'); const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT); let n;
+  const bad=[]; const root=document.querySelector(sel||'#view'); const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT); let n;
   while((n=w.nextNode())){ const t=n.nodeValue.trim(); if(!t) continue; const el=n.parentElement; const cs=getComputedStyle(el); if(cs.visibility==='hidden'||cs.display==='none'||+cs.opacity===0) continue; const r=el.getBoundingClientRect(); if(!r.width||!r.height) continue;
     if(el.closest('button:disabled')) continue;
     const fg0=solid(cs.color); const bg=bgOf(el); const fg=over(fg0,bg); const size=parseFloat(cs.fontSize), bold=+cs.fontWeight>=700; const need=(size>=24||(bold&&size>=18.66))?3:4.5; const k=ratio(fg,bg);
@@ -57,6 +57,17 @@ def run(pw, scheme):
     ctx = b.new_context(viewport={'width': 375, 'height': 812}, device_scale_factor=2, locale='he-IL', color_scheme=scheme,
                         user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1')
     ctx.add_init_script("try{ localStorage.setItem('gt:theme','%s'); localStorage.setItem('gt:onboarded','1'); }catch(e){}" % scheme)
+    # a stand-in for the browser's speech recognizer: each start() hears the next sentence pushed into window.__sr.said
+    # (null = silence, '!deny' = the person refused the microphone)
+    ctx.add_init_script(r"""(() => { window.__sr={said:[],started:0};
+      class FakeSR{ start(){ window.__sr.started++; const t=window.__sr.said.length?window.__sr.said.shift():null, me=this;
+          setTimeout(()=>{ if(t==='!deny') me.onerror&&me.onerror({error:'not-allowed'}); else if(t==null) me.onerror&&me.onerror({error:'no-speech'}); else me.onresult&&me.onresult({results:[[{transcript:t}]]});
+            setTimeout(()=>{ me.onend&&me.onend(); },40); },150); }
+        stop(){} abort(){ const me=this; setTimeout(()=>{ me.onend&&me.onend(); },10); } }
+      window.SpeechRecognition=FakeSR; window.webkitSpeechRecognition=FakeSR;
+      // what the browser says about the microphone, set by the test (headless Chromium would always answer "denied")
+      window.__perm='prompt'; const realQ=navigator.permissions.query.bind(navigator.permissions);
+      navigator.permissions.query=d=>(d&&d.name==='microphone')?Promise.resolve({get state(){ return window.__perm; },onchange:null}):realQ(d); })()""")
     ctx.grant_permissions(['clipboard-read', 'clipboard-write'], origin='http://127.0.0.1:8791')
     ctx.route('https://www.icloud.com/**', lambda r: r.fulfill(status=200, content_type='text/html', body='<title>shortcut</title>the add-shortcut screen would be here'))
     page = ctx.new_page()
@@ -67,8 +78,8 @@ def run(pw, scheme):
     settle = lambda ms=450: page.wait_for_timeout(ms)
     def goto(h):
         ev("h => { location.hash = h; }", h); settle()
-    def contrast(name):
-        bad = ev(CONTRAST)
+    def contrast(name, sel=None):
+        bad = ev(CONTRAST, sel) if sel else ev(CONTRAST)
         check('%s: text contrast on %s' % (scheme, name), not bad, bad)
 
     page.goto(APP); page.wait_for_function("typeof S !== 'undefined' && S.ex && S.ex.length > 700")
@@ -196,6 +207,86 @@ def run(pw, scheme):
         ev("(() => { localStorage.setItem('gtv:key','stm_'+'x'.repeat(40)); VO.test=null; render(); })()"); page.wait_for_function("VO.test && !VO.testing", timeout=8000); settle(200)
         card = ev("[...document.querySelectorAll('.vcard')].find(c=>c.innerText.includes('Siri')).innerText"); check(tag + 'a code that was replaced elsewhere is noticed', 'כבר לא בתוקף' in card, card)
         ev("k => { localStorage.setItem('gtv:key',k); VO.test=null; render(); }", key); mock('')
+
+    # ---- the mic on Today: one tap and the app listens; what it understood waits for "אישור", or is logged at once ----
+    todays = lambda ex: ev("id => { const s=((S.logs[id]||{}).sessions||[]).find(x=>x.d===todayKey()); return s?s.sets.filter(x=>x.t).length:0; }", ex)
+    quiet = lambda: ev("document.querySelectorAll('#toastTx').forEach(e=>e.classList.remove('on'))")
+    hear = lambda t: ev("t => window.__sr.said.push(t)", t)
+    done_text = lambda: ev("(document.querySelector('.vq-done p')||{innerText:''}).innerText")
+    ev("(() => { localStorage.removeItem('gtv:asks'); localStorage.removeItem('gtv:tipoff'); homeDay=null; homeWeek=0; editMode=false; })()")
+    goto('#home'); quiet()
+    fab = ev("(() => { const b=document.querySelector('#dock .vfab'), t=document.querySelector('#tabbar'); if(!b) return null; const r=b.getBoundingClientRect(); return {x:r.x,w:r.width,bottom:r.bottom,tab:t.getBoundingClientRect().top,label:b.getAttribute('aria-label')}; })()")
+    check(tag + 'Today shows the mic, above the tab bar at the end side', bool(fab) and fab['label'] == 'רישום בקול' and fab['x'] < 40 and fab['bottom'] <= fab['tab'] and fab['w'] >= 56, fab)
+    shot('20-home-mic'); contrast('Today with the mic')
+    n0 = todays('bench-press'); hear("בנץ' 8 חזרות 62.5 קילו")
+    page.click('#dock .vfab'); settle(60)
+    st = ev("({q:VO.q,h2:(document.querySelector('#sheetBody h2')||{}).textContent,started:window.__sr.started})")
+    check(tag + 'one tap opens the sheet already listening', st['q'] == 'listen' and st['h2'] == 'מקשיב' and st['started'] >= 1, st)
+    settle(700)
+    st = ev("({q:VO.q,h2:(document.querySelector('#sheetBody h2')||{}).textContent,card:(document.querySelector('.vq-card')||{innerText:''}).innerText,text:(document.querySelector('#vqtext')||{}).value,ok:!(document.querySelector('.vq-btns .btn')||{}).disabled})")
+    check(tag + 'what was heard waits for "אישור", and nothing is logged yet', st['q'] == 'edit' and st['h2'] == 'לרשום את זה?' and 'לחיצת חזה במוט' in st['card'] and '62.5' in st['card'] and ('סט %d' % (n0 + 1)) in st['card'] and st['text'] == "בנץ' 8 חזרות 62.5 קילו" and st['ok'] and todays('bench-press') == n0, (st, n0))
+    shot('21-voice-confirm'); contrast('the confirm sheet', '#sheetBody')
+    page.click('#sheetBody .vq-btns .btn:has-text("אישור")'); settle(300)
+    st = ev("({q:VO.q})"); say = done_text()
+    check(tag + '"אישור" logs the set and answers', st['q'] == 'done' and say.startswith('נרשם: לחיצת חזה במוט, סט %d, 8 חזרות, 62.5 קילו' % (n0 + 1)) and todays('bench-press') == n0 + 1, (st, say))
+    shot('22-voice-done'); contrast('the sheet after logging', '#sheetBody')
+    settle(2100); check(tag + 'the sheet then closes by itself', not ev("Sheet.open") and ev("VO.q") == '', ev("({open:Sheet.open,q:VO.q})"))
+
+    d0 = todays('deadlift'); quiet(); hear('דדליפט 5 חזרות 100 קילו'); page.click('#dock .vfab'); settle(800)
+    page.fill('#vqtext', 'דדליפט 5 חזרות 105 קילו'); settle(400)
+    st = ev("({card:(document.querySelector('.vq-card')||{innerText:''}).innerText,ex:VoiceLog.handle(VO.qt,voiceEnv()).item.ex})")
+    check(tag + 'fixing the words changes what will be logged', '105' in st['card'] and st['ex'] == 'deadlift', st)
+    page.click('#sheetBody .vq-btns .btn:has-text("אישור")'); settle(300)
+    st = ev("({q:VO.q,last:((S.logs.deadlift||{sessions:[]}).sessions.find(x=>x.d===todayKey())||{sets:[]}).sets.slice(-1)[0]})")
+    check(tag + 'the fixed set is the one logged', st['q'] == 'done' and st['last'] and st['last']['w'] == 105 and st['last']['r'] == 5 and todays('deadlift') == d0 + 1, st)
+    ev("Sheet.close()"); settle(600)
+
+    quiet(); hear('בלה בלה'); page.click('#dock .vfab'); settle(800)
+    st = ev("({q:VO.q,err:(document.querySelector('.vq-err')||{innerText:''}).innerText,dis:(document.querySelector('.vq-btns .btn')||{}).disabled,again:!!document.querySelector('.vq-btns .btn.sec2'),tip:(document.querySelector('.vq-tip')||{innerText:''}).innerText})")
+    check(tag + 'words it cannot use: it says why, "אישור" waits, "שוב" is there', st['q'] == 'edit' and 'לא זיהיתי' in st['err'] and st['dis'] and st['again'], st)
+    check(tag + 'after the browser asked twice, the sheet offers to approve once', 'הדפדפן שואל כל פעם' in st['tip'], st['tip'])
+    shot('23-voice-no'); contrast('the sheet that did not understand', '#sheetBody')
+    page.click('.vq-tip button.grow'); settle(1100)
+    hs = ev("document.querySelector('#sheetBody').innerText")
+    check(tag + 'iPhone in Safari: the way to "Allow" in the site settings', 'הגדרות אתר' in hs and 'Website Settings' in hs and 'אפשר' in hs, hs[:300])
+    shot('24-mic-help'); contrast('the microphone help', '#sheetBody'); ev("Sheet.close()"); settle(600)
+
+    quiet(); hear(None); page.click('#dock .vfab'); settle(800)
+    bn = ev("(document.querySelector('#sheetBody .banner')||{innerText:''}).innerText"); check(tag + 'silence is explained', 'לא שמעתי' in bn, bn)
+    hear('!deny'); page.click('#sheetBody .vq-btns .btn.sec2'); settle(800)
+    bn = ev("(document.querySelector('#sheetBody .banner')||{innerText:''}).innerText"); check(tag + 'a refused microphone is explained, with how to allow it', 'אין גישה למיקרופון' in bn and 'איך מאשרים' in bn, bn)
+    page.click('.vq-tip .iconbtn'); settle(150)
+    check(tag + 'the hint can be put away for good', not ev("!!document.querySelector('.vq-tip')") and ev("localStorage.getItem('gtv:tipoff')") == '1')
+    ev("Sheet.close()"); settle(600)
+    hs = ev("(() => { Object.defineProperty(navigator,'standalone',{value:true,configurable:true}); micHelp(); const t=document.querySelector('#sheetBody').innerText; delete navigator.standalone; return t; })()")
+    check(tag + 'iPhone Home Screen app: it says the limit is Apple\'s, and what still works', 'מגבלה של Apple' in hs and 'Siri' in hs and 'המיקרופון של המקלדת' in hs, hs[:300])
+    settle(700); shot('25-mic-help-app'); contrast('the Home Screen help', '#sheetBody'); ev("Sheet.close()"); settle(600)
+
+    goto('#settings')
+    sv = ev("(() => { const s=[...document.querySelectorAll('.sec h2')].find(x=>x.textContent==='רישום בקול'); if(!s) return null; const card=s.parentElement.nextElementSibling, list=card.nextElementSibling; s.scrollIntoView({block:'start'}); return {segs:[...card.querySelectorAll('.seg button')].map(b=>b.textContent+(b.classList.contains('on')?'*':'')),row:list.innerText}; })()")
+    check(tag + 'Settings: confirm first or log at once, the language, the microphone', bool(sv) and sv['segs'] == ['לאשר קודם*', 'לרשום מיד', 'עברית*', 'English'] and 'המיקרופון' in sv['row'] and 'הדפדפן שואל כל פעם' in sv['row'], sv)
+    settle(200); shot('26-settings-voice'); contrast('settings')
+    page.click('.seg button:has-text("לרשום מיד")'); settle(250)
+    check(tag + '"log at once" is kept in the profile and explained', ev("S.profile.vauto") == 1 and 'בלי לחיצה' in ev("document.querySelector('#view').innerText"))
+
+    goto('#home'); quiet(); p0 = todays('pull-up'); hear('מתח 7'); page.click('#dock .vfab'); settle(800)
+    st = ev("({q:VO.q,btns:!!document.querySelector('.vq-btns')})"); say = done_text()
+    check(tag + 'with "log at once" the set is in the journal with no tap', st['q'] == 'done' and say.startswith('נרשם: פול-אפ, סט %d, 7 חזרות' % (p0 + 1)) and not st['btns'] and todays('pull-up') == p0 + 1, (st, say))
+    page.click('#sheetBody button:has-text("ביטול הרישום")'); settle(300)
+    check(tag + 'and "ביטול הרישום" takes it back', todays('pull-up') == p0 and 'בוטל' in done_text(), done_text())
+    settle(1600); check(tag + 'the sheet then closes', not ev("Sheet.open"))
+    ev("setProf('vauto',null)")
+
+    goto('#voice'); quiet(); hear('מה עשיתי היום'); page.click('.vbox .vmic'); settle(800)
+    st = ev("({q:VO.q})"); say = done_text()
+    check(tag + 'the mic on the voice page opens the same sheet', st['q'] == 'done' and say.startswith('היום נרשמו') and 'לחיצת חזה במוט' in say, (st, say))
+    ev("Sheet.close()"); settle(600)
+    ev("(() => { window.__perm='denied'; localStorage.removeItem('gtv:tipoff'); })()"); ev("micCheck()"); settle(200)
+    st = ev("({mic:VO.mic,line:micLine(),due:micTipDue()})")
+    check(tag + 'a blocked microphone: no "asks every time" hint, the line says blocked', st['mic'] == 'denied' and st['line'].startswith('חסום') and not st['due'], st)
+    ev("window.__perm='granted'"); ev("micCheck()"); settle(200)
+    st = ev("({mic:VO.mic,asks:micAsks(),line:micLine(),due:micTipDue()})")
+    check(tag + 'once the browser keeps the permission, the app stops counting and says so', st['mic'] == 'granted' and st['asks'] == 0 and st['line'].startswith('מאושר') and not st['due'], st)
 
     # ---- profile and backup ----
     goto('#profile'); pt = ev("document.querySelector('#view').innerText"); check(tag + 'the profile links to the goal and calls the old select a focus', 'לרדת ל-76 ק״ג' in pt and 'דגש באימונים' in pt, pt[-300:])

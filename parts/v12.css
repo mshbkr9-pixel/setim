@@ -126,6 +126,34 @@
 .vkey{display:flex;align-items:center;gap:4px;margin-top:8px;background:var(--card2);border-radius:var(--r-m);padding:4px;padding-inline-start:12px}
 .vkey code{flex:1;min-width:0;direction:ltr;text-align:left;font:600 13px ui-monospace,Menlo,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vkey button{flex:none;font-size:var(--fs-2);font-weight:800;color:var(--accent-t);padding:8px 10px;min-height:40px}
+/* the mic on Today: in the dock, at the end side, so the rest timer pushes it up instead of covering it */
+.vfab{align-self:flex-end;width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(140deg,var(--accent2),var(--accent));color:var(--accent-ink);box-shadow:0 12px 30px rgba(0,0,0,.38)}
+.vfab svg.i{width:28px;height:28px;stroke-width:2.3}
+/* the sheet that listens, shows what it understood, and logs */
+.vq-top{display:flex;flex-direction:column;align-items:center;gap:12px;margin:8px 0 6px;text-align:center}
+.vq-live{font-size:var(--fs-5);font-weight:800;line-height:1.35;min-height:2.7em;text-wrap:balance}
+.vq-card{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r-l);background:var(--card2);margin:12px 0 14px}
+.vq-card .th{width:58px;height:58px;border-radius:var(--r-m);background:var(--card3);flex:none;overflow:hidden;display:grid;place-items:center;color:var(--ink3)}
+.vq-card .th img{width:100%;height:100%;object-fit:cover}
+.vq-card .t{font-weight:800;font-size:var(--fs-3);line-height:1.3}
+.vq-card .n{font-weight:900;font-size:var(--fs-5);line-height:1.25;margin-top:2px;letter-spacing:-.01em}
+.vq-card .s{font-size:var(--fs-2);color:var(--ink2);font-weight:700;margin-top:2px}
+.vq-err{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--r-m);background:var(--card2);margin:12px 0 14px;font-weight:700;line-height:1.45}
+.vq-err svg.i{flex:none;margin-top:2px;color:var(--warn-t)}
+.vq-btns{display:flex;gap:8px}
+.vq-btns .btn:first-child{flex:1}
+.vq-done{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;margin:14px 0 6px}
+.vq-done .ok{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--good);color:#06240F}
+.vq-done .ok.no{background:var(--card3);color:var(--ink)}
+.vq-done .ok svg.i{width:32px;height:32px;stroke-width:3}
+.vq-done p{margin:0;font-size:var(--fs-4);font-weight:700;line-height:1.5;text-wrap:pretty}
+.vq-tip{display:flex;align-items:center;gap:8px;margin-top:16px;padding:6px 6px 6px 0;padding-inline-start:12px;border-radius:var(--r-m);background:var(--accent-soft);color:var(--accent-t)}
+.vq-tip>svg.i{flex:none}
+.vq-tip .iconbtn{background:transparent;color:inherit}
+.vq-tip>button.grow{text-align:start;font-size:var(--fs-2);font-weight:800;line-height:1.4;color:inherit;padding:6px 0;min-height:40px}
+.vopt{padding:12px 2px;border-top:1px solid var(--line)}
+.vopt .st{font-weight:800;font-size:var(--fs-3);line-height:1.35}
+.vopt .sd{font-size:var(--fs-2);color:var(--ink2);line-height:1.5;margin-top:2px}
 .siri-add{margin-top:14px}
 .siri-add svg.i{stroke-width:2.6}
 .ltr{direction:ltr;unicode-bidi:isolate}

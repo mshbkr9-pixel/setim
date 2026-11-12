@@ -304,7 +304,8 @@ function goalCard(){
 function goalWeekSheet(g,wk){ Sheet.show(h('div',{},h('div',{class:'small b muted'},g.title),h('h2',{},wk.title),...wk.lines.map(l=>h('p',{style:'margin:0 0 8px;line-height:1.6'},l)),h('p',{class:'b',style:'margin:4px 0 14px'},wk.close),h('button',{class:'btn',type:'button',onclick:()=>{ Sheet.close(); setTimeout(()=>go('#goals'),320); }},'למטרה ולשלבים')),()=>render()); }
 
 /* ---------- voice: one sentence in, one set in the journal, one sentence back ---------- */
-const VO={rec:null,say:'',ok:null,heard:'',last:null,snap:[],ping:null,pulled:0,auto:false,busy:false,ix:null,ixN:0,shortcut:'',test:null,testing:false,autoKey:false};
+const VO={rec:null,say:'',ok:null,heard:'',last:null,snap:[],ping:null,pulled:0,auto:false,busy:false,ix:null,ixN:0,shortcut:'',test:null,testing:false,autoKey:false,
+  q:'',qt:'',qR:null,qMsg:'',qBox:null,qClose:null,mic:'',micWatch:false};      // q: the sheet from the mic on Today ('' closed, listen, edit, done); mic: what the browser says about the microphone
 function voiceEnv(){
   const tk=todayKey(), all=allEx(); if(!VO.ix||VO.ixN!==all.length){ VO.ix=VoiceLog.buildIndex(all); VO.ixN=all.length; }
   const stars={}, pop={}; (S.deck.stars||[]).forEach(id=>{ stars[id]=1; }); POPULAR.forEach(id=>{ pop[id]=1; });
@@ -336,14 +337,131 @@ function voiceSay(text,opts){
 }
 function voiceSpeak(t,lang){ try{ if(!('speechSynthesis' in window)||!t) return; const u=new SpeechSynthesisUtterance(t); u.lang=lang==='en'?'en-US':'he-IL'; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
 function voiceCanListen(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); }
-function voiceListen(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){ toast('הדפדפן הזה לא תומך בזיהוי דיבור. אפשר להקליד.'); return; }
-  if(VO.rec){ try{ VO.rec.stop(); }catch(e){} return; }
-  const rec=new SR(); rec.lang=S.profile.vlang==='en'?'en-US':'he-IL'; rec.interimResults=true; rec.maxAlternatives=1; rec.continuous=false; let heard='';
-  rec.onresult=ev=>{ let t=''; for(let i=0;i<ev.results.length;i++) t+=ev.results[i][0].transcript; heard=t; VO.heard=t; const el=$('#vheard'); if(el) el.textContent=t||'מקשיב…'; };
-  rec.onerror=ev=>{ if(ev.error==='not-allowed'||ev.error==='service-not-allowed') toast('צריך לאשר לאפליקציה גישה למיקרופון'); else if(ev.error!=='no-speech'&&ev.error!=='aborted') toast('הזיהוי לא הצליח. אפשר להקליד.'); };
-  rec.onend=()=>{ VO.rec=null; if(heard.trim()) voiceSay(heard.trim(),{speak:true}); if(route.page==='voice') render(); };
-  try{ rec.start(); VO.rec=rec; VO.say=''; VO.heard=''; if(route.page==='voice') render(); }catch(e){ VO.rec=null; toast('המיקרופון לא נפתח'); }
+/* one listening at a time. onEnd(text, error) gets what was heard when the recognizer stops */
+function voiceListen(onEnd){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return false;
+  if(VO.rec){ try{ VO.rec.stop(); }catch(e){} return true; }
+  try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){}      // the last answer must not be heard as the next sentence
+  micNote();
+  const rec=new SR(); rec.lang=S.profile.vlang==='en'?'en-US':'he-IL'; rec.interimResults=true; rec.maxAlternatives=1; rec.continuous=false; let heard='', err='';
+  rec.onresult=ev=>{ let t=''; for(let i=0;i<ev.results.length;i++) t+=ev.results[i][0].transcript; heard=t; VO.heard=t; const el=$('#vheard'); if(el) el.textContent=t||'מקשיב. אפשר לדבר'; };
+  rec.onerror=ev=>{ err=ev.error||'error'; };
+  rec.onend=()=>{ if(VO.rec===rec) VO.rec=null; micCheck(); onEnd(heard.trim(),err); };
+  try{ rec.start(); VO.rec=rec; VO.heard=''; return true; }catch(e){ VO.rec=null; return false; }
+}
+
+/* ---------- the mic on Today: one tap and the app listens; what it understood waits for "אישור", or is logged at once (a setting) ---------- */
+function voiceAuto(){ return !!S.profile.vauto; }
+function voiceFab(){ return h('button',{class:'vfab pressable',type:'button','aria-label':'רישום בקול',html:I('mic'),onclick:voiceQuick}); }
+function voiceQuick(){
+  if(VO.rec){ const r=VO.rec; VO.rec=null; try{ r.abort(); }catch(e){} }
+  clearTimeout(VO.qClose); VO.qt=''; VO.qR=null; VO.qMsg=''; VO.heard='';
+  VO.q=voiceCanListen()?'listen':'edit'; if(VO.q==='edit') VO.qMsg='nosr';
+  VO.qBox=h('div',{class:'vq',onpointerdown:()=>clearTimeout(VO.qClose)});      // a touch on the sheet keeps it open
+  voicePaint();
+  Sheet.show(VO.qBox,()=>{ if(VO.rec){ const r=VO.rec; VO.rec=null; try{ r.abort(); }catch(e){} } clearTimeout(VO.qClose); VO.q=''; VO.qBox=null; });
+  if(VO.q==='listen'&&!voiceListen(voiceHeard)){ VO.q='edit'; VO.qMsg='fail'; voicePaint(); }      // started inside the tap: Safari listens only then
+  if(VO.q==='edit'){ const i=$('#vqtext'); if(i){ try{ i.focus({preventScroll:true}); }catch(e){ i.focus(); } } }
+}
+function voiceHeard(t,err){
+  if(!VO.qBox) return;      // the sheet was closed while listening
+  if(!t){ VO.q='edit'; VO.qMsg=(err==='not-allowed'||err==='service-not-allowed')?'mic':(err&&err!=='no-speech'&&err!=='aborted'?'fail':'empty'); voicePaint(); return; }
+  const R=VoiceLog.handle(t,voiceEnv()); VO.qt=t; VO.qMsg='';
+  if(R.cmd||(R.ok&&voiceAuto())){ voiceDo(t,true); return; }
+  VO.q='edit'; VO.qR=R; voicePaint();
+  if(!R.ok&&voiceAuto()) voiceSpeak(R.say,R.lang);      // with "log at once" nobody may be looking: say what went wrong
+}
+function voiceDo(t,speak){
+  const R=voiceSay(t,{speak}); VO.qt=t; VO.qR=R; VO.q='done'; voicePaint(); render();
+  if(R.ok&&!R.cmd){ clearTimeout(VO.qClose); VO.qClose=setTimeout(()=>{ if(VO.q==='done'&&VO.qBox&&Sheet.open) Sheet.close(); },voiceAuto()?2800:1800); }
+  return R;
+}
+function voicePreview(R){
+  const e=R.ok&&getEx(R.item.ex); if(!e) return h('div',{class:'vq-err'},ic('info'),h('span',{},R.say));
+  const what=setStr(R.item.sets.map(s=>({...s,t:true})),e), no=isCardio(e)||R.count>1?'':`סט ${R.setNo}`;
+  return h('div',{class:'vq-card'},h('div',{class:'th'},thumb(e,{still:true})),h('div',{class:'grow'},h('div',{class:'t'},e.he),h('div',{class:'n'},what),h('div',{class:'s'},[no,'היום'].filter(Boolean).join(' · '))));
+}
+function voicePaint(){
+  const box=VO.qBox; if(!box) return; let kids;
+  if(VO.q==='listen') kids=[h('h2',{},'מקשיב'),
+    h('div',{class:'vq-top'},h('button',{class:'vmic on pressable',type:'button','aria-label':'סיום ההקלטה',html:I('mic'),onclick:()=>{ if(VO.rec){ try{ VO.rec.stop(); }catch(e){} } }}),
+      h('div',{class:'vq-live',id:'vheard','aria-live':'polite'},VO.heard||'מקשיב. אפשר לדבר'),h('div',{class:'small muted'},'למשל: בנץ׳, 10 חזרות, 60 קילו')),
+    micTip()];
+  else if(VO.q==='done'){ const R=VO.qR||{}, icn=R.cmd==='undo'?'undo':(R.ok?'check':'info');
+    kids=[h('div',{class:'vq-done','aria-live':'polite'},h('div',{class:'ok'+(R.ok?'':' no')},ic(icn)),h('p',{},R.say||''))];
+    if(R.ok&&!R.cmd&&VO.snap.length) kids.push(h('button',{class:'lnkline center',type:'button',onclick:()=>{ clearTimeout(VO.qClose); if(!voiceUndo()) return; VO.qR={ok:true,cmd:'undo',say:'בוטל. הרישום נמחק.'}; voicePaint(); render(); VO.qClose=setTimeout(()=>{ if(VO.qBox&&Sheet.open) Sheet.close(); },1300); }},ic('undo'),h('span',{},'ביטול הרישום'))); }
+  else kids=voiceEditView();
+  box.replaceChildren(...kids.filter(Boolean));
+}
+/* what was heard, as words that can still be fixed, and what it will log */
+function voiceEditView(){
+  const inp=h('input',{type:'text',id:'vqtext',value:VO.qt||'',placeholder:'בנץ׳, 10 חזרות, 60 קילו',autocomplete:'off',enterkeyhint:'done','aria-label':'מה לרשום'});
+  const prev=h('div',{class:'vq-prev','aria-live':'polite'}), okb=h('button',{class:'btn',type:'button'},ic('check'),h('span',{},'אישור'));
+  let R=null, tm=null;
+  const upd=()=>{ const t=inp.value.trim(); VO.qt=t; R=t?VoiceLog.handle(t,voiceEnv()):null;
+    prev.replaceChildren(!t?h('p',{class:'small muted',style:'margin:10px 2px 14px;line-height:1.5'},'כותבים תרגיל, חזרות ומשקל.'):R.cmd?h('p',{class:'small muted',style:'margin:10px 2px 14px'},'״'+t+'״'):voicePreview(R));
+    okb.disabled=!(R&&(R.ok||R.cmd)); };
+  inp.addEventListener('input',()=>{ clearTimeout(tm); tm=setTimeout(upd,200); });
+  inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); okb.click(); } });
+  okb.addEventListener('click',()=>{ clearTimeout(tm); upd(); if(!okb.disabled) voiceDo(VO.qt,!!VO.heard); });      // spoken back only when it came by voice
+  upd();
+  const MSG={mic:'אין גישה למיקרופון.',fail:'הזיהוי לא הצליח. אפשר לנסות שוב, או לכתוב.',empty:'לא שמעתי כלום. נוגעים ב״שוב״ ומדברים, או כותבים.',nosr:'הדפדפן הזה לא מזהה דיבור. כותבים כאן, או מקליטים עם המיקרופון של המקלדת.'};
+  const msg=MSG[VO.qMsg]?h('div',{class:'banner'+(VO.qMsg==='nosr'?' blue':''),style:'margin:0 0 12px'},ic('info'),h('span',{class:'grow'},MSG[VO.qMsg],VO.qMsg==='mic'?h('button',{class:'b',type:'button',style:'color:inherit;text-decoration:underline;margin-inline-start:6px',onclick:()=>{ Sheet.close(); setTimeout(micHelp,320); }},'איך מאשרים'):null)):null;
+  const again=voiceCanListen()?h('button',{class:'btn sec2',type:'button',style:'width:auto;padding-inline:18px',onclick:()=>{ VO.q='listen'; VO.heard=''; VO.qMsg=''; voicePaint(); if(!voiceListen(voiceHeard)){ VO.q='edit'; VO.qMsg='fail'; voicePaint(); } }},ic('mic'),h('span',{},'שוב')):null;
+  return [h('h2',{},R&&R.ok?'לרשום את זה?':'מה לרשום?'),msg,h('div',{class:'fld',style:'margin:0'},inp),prev,h('div',{class:'vq-btns'},okb,again),micTip()];
+}
+
+/* ---------- the microphone permission belongs to the browser: the app cannot stop it asking, but it can notice a repeat and say how ---------- */
+function devKind(){ const ua=navigator.userAgent||'', ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const app=navigator.standalone===true||(!!window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  return ios?(app?'ios-app':'ios'):(/Android/i.test(ua)?'android':'desktop'); }
+function micAsks(){ try{ return +localStorage.getItem('gtv:asks')||0; }catch(e){ return 0; } }
+function micNote(){ if(VO.mic==='denied'||(VO.mic==='granted'&&devKind()!=='ios-app')) return; try{ localStorage.setItem('gtv:asks',String(micAsks()+1)); }catch(e){} }      // the browser is about to ask (or may); a blocked one does not ask
+async function micCheck(){
+  try{ if(!navigator.permissions||!navigator.permissions.query) return; const s=await navigator.permissions.query({name:'microphone'});
+    const take=()=>{ VO.mic=s.state; if(s.state==='granted'&&devKind()!=='ios-app'){ try{ localStorage.removeItem('gtv:asks'); }catch(e){} } };      // a Home Screen app on iPhone forgets it at the next launch
+    take(); if(!VO.micWatch){ VO.micWatch=true; s.onchange=()=>{ take(); if(route.page==='settings') render(); }; } }catch(e){}      // Firefox does not know the name
+}
+function micTipDue(){ if(micAsks()<2||VO.mic==='denied'||(VO.mic==='granted'&&devKind()!=='ios-app')) return false; try{ return !localStorage.getItem('gtv:tipoff'); }catch(e){ return false; } }
+function micTip(){
+  if(!micTipDue()) return null;
+  return h('div',{class:'vq-tip'},ic('info'),h('button',{class:'grow',type:'button',onclick:()=>{ Sheet.close(); setTimeout(micHelp,320); }},devKind()==='ios-app'?'האייפון שואל כל פעם על המיקרופון? למה, ומה עושים':'הדפדפן שואל כל פעם על המיקרופון? כך מאשרים פעם אחת'),
+    h('button',{class:'iconbtn sm',type:'button','aria-label':'לא להציג שוב',html:I('x'),onclick:ev=>{ try{ localStorage.setItem('gtv:tipoff','1'); }catch(e){} ev.currentTarget.parentElement.remove(); }}));
+}
+function micLine(){ const k=devKind(), st=VO.mic;
+  if(st==='denied') return 'חסום. איך פותחים';
+  if(k==='ios-app') return 'האייפון שואל בכל פתיחה. מה עושים';
+  if(st==='granted') return 'מאושר, הדפדפן לא ישאל שוב';
+  return micAsks()?'הדפדפן שואל כל פעם. איך מאשרים':'איך מאשרים פעם אחת'; }
+function micHelp(){
+  micCheck(); const k=devKind(), st=VO.mic, body=h('div',{});
+  const p=t=>h('p',{class:'small muted',style:'margin:0 0 4px;line-height:1.6'},t);
+  const steps=(...a)=>h('ol',{class:'vsteps'},...a.map(([t,d])=>h('li',{},h('div',{class:'grow'},h('div',{class:'st'},t),d?h('div',{class:'sd'},d):null))));
+  if(k==='ios-app'){
+    body.append(h('h2',{},'למה האייפון שואל שוב'),p('כשסטים פתוחה מהסמל במסך הבית, האייפון מבקש אישור למיקרופון מחדש בכל פתיחה של האפליקציה, ואין הגדרה שמאשרת רק את סטים. זו מגבלה של Apple, וסטים לא יכולה לעקוף אותה.'),
+      h('div',{class:'small b muted',style:'margin:14px 2px 2px'},'מה כן אפשר'),
+      ...[['Siri, בלי שום אישור','אומרים ״היי סירי, סטים״ ועונים במשפט אחד. מחברים את Siri בדף ״רישום בקול״.'],['המיקרופון של המקלדת','בחלון ההקלטה נוגעים בשורת הכתיבה, ואז במיקרופון שבמקלדת. הוא לא מבקש אישור.'],['דרך Safari','ב-Safari האישור נשמר: פותחים שם את getonekeyai.com ומאשרים פעם אחת בהגדרות האתר.']].map(([t,d])=>h('div',{class:'vopt'},h('div',{class:'st'},t),h('div',{class:'sd'},d))),
+      h('button',{class:'btn sec2',type:'button',style:'margin-top:14px',onclick:()=>{ Sheet.close(); setTimeout(()=>go('#voice'),320); }},'לחיבור Siri'));
+  } else if(st==='granted') body.append(h('h2',{},'המיקרופון מאושר'),p('הדפדפן זוכר את האישור לסטים, ולא אמור לשאול שוב.'));
+  else {
+    body.append(h('h2',{},st==='denied'?'הגישה למיקרופון חסומה':'שהדפדפן יפסיק לשאול'));
+    if(k==='ios') body.append(p(st==='denied'?'פותחים אותה פעם אחת בהגדרות האתר ב-Safari:':'Safari שואל שוב כשהאתר מוגדר ״שאל״. משנים פעם אחת ל״אפשר״, והוא לא ישאל יותר על סטים:'),
+      steps(['בשורת הכתובת של Safari נוגעים בכפתור התפריט של הדף','הכפתור שבקצה שורת הכתובת, ליד הכתובת עצמה.'],['״הגדרות אתר״ (Website Settings)'],['״מיקרופון״ (Microphone), ובוחרים ״אפשר״ (Allow)']));
+    else if(k==='android') body.append(p(st==='denied'?'פותחים אותה פעם אחת בהגדרות האתר בכרום:':'כרום שואל שוב כשבחרו ״רק הפעם״. כך מאשרים לתמיד:'),
+      steps(['בשורת הכתובת של כרום נוגעים בסמל שליד הכתובת'],['״הרשאות״ (Permissions), ואז ״מיקרופון״ (Microphone)'],['בוחרים לאשר (Allow)','ובפעם הבאה שכרום שואל, בוחרים באפשרות לכל הביקורים, לא ״רק הפעם״.']));
+    else body.append(p('בדפדפן במחשב:'),steps(['נוגעים בסמל שליד הכתובת'],['״מיקרופון״ (Microphone), ובוחרים לאשר (Allow)']));
+  }
+  body.append(h('button',{class:'btn',type:'button',style:'margin-top:16px',onclick:()=>Sheet.close()},'הבנתי'));
+  Sheet.show(body);
+}
+/* the part of Settings that belongs to voice: confirm first or log at once, the language spoken, and the microphone */
+function voiceSettings(k){
+  micCheck(); const p=S.profile;
+  return [h('div',{class:'sec'},h('h2',{},'רישום בקול')),
+    h('div',{class:'card'},k.fld('אחרי ההקלטה',k.seg([['','לאשר קודם'],['1','לרשום מיד']],p.vauto?'1':'',v=>k.set('vauto',v?1:null))),
+      h('p',{class:'small muted',style:'margin:-2px 0 12px;line-height:1.5'},p.vauto?'הסט נרשם בלי לחיצה, והתשובה נשמעת בקול. טעות מבטלים ב״ביטול הרישום״, או אומרים ״בטל״.':'האפליקציה מראה מה הבינה, והסט נרשם אחרי ״אישור״.'),
+      k.fld('שפת הדיבור',k.seg([['','עברית'],['en','English']],p.vlang||'',v=>k.set('vlang',v||null)))),
+    h('div',{class:'list morelist'},k.row('mic','המיקרופון',micLine(),micHelp))];
 }
 /* what the phone assistant sent while the app was closed: taken into the journal once, on this or on any other device */
 function voiceIntake(){
@@ -461,10 +579,9 @@ function voicePage(){
   const inp=h('input',{type:'text',id:'vtext',placeholder:'בנץ׳, 10 חזרות, 60 קילו',autocomplete:'off',enterkeyhint:'send','aria-label':'מה לרשום'});
   const send=()=>{ const t=inp.value.trim(); if(!t) return; voiceSay(t); render(); };
   inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); send(); } });
-  const mic=voiceCanListen()?h('button',{class:'vmic pressable'+(VO.rec?' on':''),type:'button','aria-label':VO.rec?'עצירת ההאזנה':'דיבור','aria-pressed':VO.rec?'true':'false',html:I('mic'),onclick:voiceListen}):null;
-  const box=h('div',{class:'vbox'},mic?h('div',{class:'vtop'},mic,h('div',{class:'small b muted'},VO.rec?'מקשיב. אפשר לדבר':'נוגעים ומדברים')):null,h('div',{class:'vrow'},h('div',{class:'fld grow',style:'margin:0'},inp),h('button',{class:'btn sm',type:'button',onclick:send},'רשום')));
-  if(VO.rec) box.append(h('div',{class:'vheard',id:'vheard','aria-live':'polite'},VO.heard||'מקשיב…'));
-  else if(VO.say){ box.append(h('div',{class:'vres '+(VO.ok?'ok':'no'),'aria-live':'polite'},VO.heard?h('div',{class:'q'},'״'+VO.heard+'״'):null,h('div',{class:'a'},ic(VO.ok?'check':'info'),h('span',{},VO.say))));
+  const mic=voiceCanListen()?h('button',{class:'vmic pressable',type:'button','aria-label':'הקלטה',html:I('mic'),onclick:voiceQuick}):null;      // the same sheet as the mic on Today
+  const box=h('div',{class:'vbox'},mic?h('div',{class:'vtop'},mic,h('div',{class:'small b muted'},'נוגעים ומדברים')):null,h('div',{class:'vrow'},h('div',{class:'fld grow',style:'margin:0'},inp),h('button',{class:'btn sm',type:'button',onclick:send},'רשום')));
+  if(VO.say){ box.append(h('div',{class:'vres '+(VO.ok?'ok':'no'),'aria-live':'polite'},VO.heard?h('div',{class:'q'},'״'+VO.heard+'״'):null,h('div',{class:'a'},ic(VO.ok?'check':'info'),h('span',{},VO.say))));
     if(VO.ok&&VO.snap.length) box.append(h('button',{class:'lnkline',type:'button',onclick:()=>{ if(voiceUndo()){ VO.say='בוטל. הרישום האחרון נמחק.'; VO.heard=''; } render(); }},ic('undo'),h('span',{},'ביטול הרישום הזה'))); }
   wrap.append(box);
   const chips=h('div',{class:'gchips'}); ['סקוואט, 8 חזרות, 60 קילו','עוד סט','מתח 8','ריצה 30 דקות 5 קילומטר','בטל'].forEach(t=>chips.append(h('button',{class:'gchip',type:'button',onclick:()=>{ inp.value=t; inp.focus(); }},t)));
@@ -472,10 +589,11 @@ function voicePage(){
   wrap.append(h('div',{class:'sec'},h('h2',{},'מהטלפון, בלי לפתוח את האפליקציה'))); voicePhone(wrap);
   const last=(S.vdone.last||[]).filter(x=>getEx(x.ex)).slice(0,8);
   if(last.length){ wrap.append(h('div',{class:'sec'},h('h2',{},'נרשמו בקול'))); const l=h('div',{class:'list'}); last.forEach(x=>{ const e=getEx(x.ex); l.append(exItem(e,{sub:`${setStr((x.sets||[]).map(s=>({...s,t:true})),e)} · ${x.d===todayKey()?'היום':fmtDate(x.d)}${x.src==='siri'?' · Siri':''}`,onclick:()=>go('#dayex-'+x.d+'-'+x.ex)})); }); wrap.append(l); }
-  if(route.param==='go'&&!VO.auto&&voiceCanListen()){ VO.auto=true; setTimeout(voiceListen,450); }
+  if(route.param==='go'&&!VO.auto&&voiceCanListen()){ VO.auto=true; setTimeout(voiceQuick,450); }
   return wrap;
 }
 function voiceHubBox(){ return h('button',{class:'hubbox wide pressable',type:'button',style:'--c:var(--g-back)',onclick:()=>go('#voice')},h('div',{class:'ic'},ic('mic')),h('div',{class:'grow'},h('div',{class:'t'},'רישום בקול'),h('div',{class:'s'},'אומרים משפט אחד, והסט נרשם')),h('span',{class:'chev',html:I('chev')})); }
 
 PAGES.goals=goalsPage; PAGES.goal=goalPage; PAGES.goalnew=goalNewPage; PAGES.voice=voicePage;
+micCheck();
 Object.assign(TABOF,{goals:'more',goal:'more',goalnew:'more',voice:'more'});
