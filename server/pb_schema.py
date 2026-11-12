@@ -12,6 +12,9 @@ Schema:
   voice_keys  (base)            — one row per personal voice code: user -> users, hash = sha256 of the code.
                                   The code itself is never stored here. A signed-in user creates, lists and deletes
                                   their own rows; nobody edits one. The hook /api/setim/voice looks a code up by its hash.
+  coach_usage (base)            — one row per (user, day): how many coach answers of each kind the person got that day,
+                                  the tokens and the cost in millionths of a dollar. A signed-in user may read their own
+                                  rows; only the hook /api/setim/coach writes them.
 """
 import json, sys, urllib.request, urllib.error
 
@@ -56,7 +59,20 @@ voice_keys = {
     'indexes': ['CREATE UNIQUE INDEX idx_voice_keys_hash ON voice_keys (hash)', 'CREATE INDEX idx_voice_keys_user ON voice_keys (user)'],
     'listRule': OWN, 'viewRule': OWN, 'createRule': OWN, 'updateRule': None, 'deleteRule': OWN,
 }
-for coll in (docs, voice_keys):
+NUM = lambda name: {'name': name, 'type': 'number', 'min': 0}
+coach_usage = {
+    'name': 'coach_usage', 'type': 'base',
+    'fields': [
+        USER,
+        {'name': 'day', 'type': 'text', 'required': True, 'min': 10, 'max': 10, 'pattern': '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'},
+        NUM('cheap'), NUM('smart'), NUM('deep'), NUM('img'), NUM('tin'), NUM('tout'), NUM('cost'),
+        {'name': 'updated', 'type': 'autodate', 'onCreate': True, 'onUpdate': True},
+    ],
+    'indexes': ['CREATE UNIQUE INDEX idx_coach_usage_user_day ON coach_usage (user, day)', 'CREATE INDEX idx_coach_usage_day ON coach_usage (day)'],
+    # a person may see their own rows; only the coach hook writes them, so nobody can reset their own count
+    'listRule': OWN, 'viewRule': OWN, 'createRule': None, 'updateRule': None, 'deleteRule': None,
+}
+for coll in (docs, voice_keys, coach_usage):
     name = coll['name']
     if ONLY is not None and name not in ONLY:
         continue

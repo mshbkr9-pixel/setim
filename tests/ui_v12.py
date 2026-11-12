@@ -4,11 +4,14 @@ would see. Needs the two local servers:
     python -m http.server 8791 --bind 127.0.0.1        (the app; the "setim-statue" preview does this)
     node server/mock_pb.js                             (accounts and the voice address, in memory)
 Run:  python -X utf8 tests/ui_v12.py [output folder for screenshots]
+Other addresses, for a run beside another session's servers:  SETIM_APP=http://127.0.0.1:8793/index.html  SETIM_PB=http://127.0.0.1:8094
 Exit code 0 only when every check passed. Screenshots are for the eye; the checks read the page itself."""
 import json, os, sys
 from playwright.sync_api import sync_playwright
 
-APP = 'http://127.0.0.1:8791/index.html'
+APP = os.environ.get('SETIM_APP') or 'http://127.0.0.1:8791/index.html'
+PBM = os.environ.get('SETIM_PB') or 'http://127.0.0.1:8090'
+ORIGIN = APP.split('/index.html')[0]
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out')
 os.makedirs(OUT, exist_ok=True)
 if hasattr(sys.stdout, 'reconfigure'):
@@ -56,7 +59,7 @@ def run(pw, scheme):
     b = pw.chromium.launch()
     ctx = b.new_context(viewport={'width': 375, 'height': 812}, device_scale_factor=2, locale='he-IL', color_scheme=scheme,
                         user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1')
-    ctx.add_init_script("try{ localStorage.setItem('gt:theme','%s'); localStorage.setItem('gt:onboarded','1'); }catch(e){}" % scheme)
+    ctx.add_init_script("try{ localStorage.setItem('gt:theme','%s'); localStorage.setItem('gt:onboarded','1'); localStorage.setItem('gtdev:pb','%s'); }catch(e){}" % (scheme, PBM))
     # a stand-in for the browser's speech recognizer: each start() hears the next sentence pushed into window.__sr.said
     # (null = silence, '!deny' = the person refused the microphone)
     ctx.add_init_script(r"""(() => { window.__sr={said:[],started:0};
@@ -68,7 +71,7 @@ def run(pw, scheme):
       // what the browser says about the microphone, set by the test (headless Chromium would always answer "denied")
       window.__perm='prompt'; const realQ=navigator.permissions.query.bind(navigator.permissions);
       navigator.permissions.query=d=>(d&&d.name==='microphone')?Promise.resolve({get state(){ return window.__perm; },onchange:null}):realQ(d); })()""")
-    ctx.grant_permissions(['clipboard-read', 'clipboard-write'], origin='http://127.0.0.1:8791')
+    ctx.grant_permissions(['clipboard-read', 'clipboard-write'], origin=ORIGIN)
     ctx.route('https://www.icloud.com/**', lambda r: r.fulfill(status=200, content_type='text/html', body='<title>shortcut</title>the add-shortcut screen would be here'))
     page = ctx.new_page()
     page.on('pageerror', lambda e: errors.append('%s pageerror: %s' % (scheme, e)))
@@ -86,10 +89,12 @@ def run(pw, scheme):
     today = ev(SEED); settle()
     tag = scheme + ': '
 
-    # ---- the hub ----
-    goto('#more'); boxes = ev("[...document.querySelectorAll('.hubbox .t')].map(e=>e.textContent)")
-    check(tag + 'hub has the goal box first and the voice box last', boxes[0] == 'מטרות והישגים' and boxes[-1] == 'רישום בקול' and len(boxes) == 8, boxes)
+    # ---- the doors: the goal box opens the coach's, the voice box closes the training one ----
+    goto('#coach'); boxes = ev("[...document.querySelectorAll('.hubbox .t')].map(e=>e.textContent)")
+    check(tag + 'the coach door has the goal box first', boxes[0] == 'מטרות והישגים' and 'הגדרות' in boxes, boxes)
     shot('1-hub'); contrast('hub')
+    goto('#home'); boxes = ev("[...document.querySelectorAll('.hubbox .t')].map(e=>e.textContent)")
+    check(tag + 'the training door ends with the voice box', boxes[-1] == 'רישום בקול ו-Siri' and 'הישגים' in boxes, boxes)
 
     # ---- an empty goals page, then the three steps ----
     goto('#goals'); check(tag + 'goals page invites to choose a goal', 'מה המטרה שלך?' in ev("document.querySelector('#view').innerText")); shot('2-goals-empty'); contrast('goals, empty')
@@ -146,7 +151,7 @@ def run(pw, scheme):
 
     # ---- medals ----
     goto('#ach'); n = ev("document.querySelectorAll('.ach').length"); got = ev("Object.keys(S.prefs.ach)")
-    check(tag + 'twenty medals, the goal ones earned', n == 20 and 'gs' in got and 'gst' in got, (n, got)); shot('13-ach')
+    check(tag + 'twenty-seven medals (seven of them for nutrition), the goal ones earned', n == 27 and 'gs' in got and 'gst' in got, (n, got)); shot('13-ach')
 
     # ---- voice, inside the app ----
     goto('#voice'); shot('14-voice'); contrast('voice page')
@@ -163,7 +168,7 @@ def run(pw, scheme):
 
     # ---- the phone assistant, through the local stand-in server ----
     LINK = 'https://www.icloud.com/shortcuts/0123456789abcdef0123456789abcdef'
-    mock = lambda link: page.request.post('http://127.0.0.1:8090/__test/shortcut', data=json.dumps({'link': link}), headers={'Content-Type': 'application/json'})
+    mock = lambda link: page.request.post(PBM + '/__test/shortcut', data=json.dumps({'link': link}), headers={'Content-Type': 'application/json'})
     mock('')
     ok = ev("""async () => { try{ const mail='ui'+Date.now().toString(36)+'@example.test', pw=Array.from(crypto.getRandomValues(new Uint8Array(9))).map(x=>x.toString(36)).join('');
         await PB.signup(mail,pw,'ui'); S.storageMode='pb'; await syncFromCloud(); return !!PB.user; }catch(e){ return String(e&&e.message); } }""")
@@ -182,7 +187,7 @@ def run(pw, scheme):
         hs = ev("document.querySelector('#sheetBody').innerText"); check(tag + 'the by-hand instructions: five actions, the address, the fields', ev("document.querySelectorAll('#sheetBody .vsteps > li').length") == 5 and '/api/setim/voice' in hs and 'key' in hs and 'say' in hs, hs[:200])
         shot('17-shortcut-help'); ev("Sheet.close()"); settle(700)
 
-        post = lambda text: page.request.post('http://127.0.0.1:8090/api/setim/voice', data=json.dumps({'key': key, 'text': text}), headers={'Content-Type': 'application/json'}).json()
+        post = lambda text: page.request.post(PBM + '/api/setim/voice', data=json.dumps({'key': key, 'text': text}), headers={'Content-Type': 'application/json'}).json()
         r1 = post('סקוואט 8 חזרות 77.5 קילו'); r2 = post('עוד סט'); r3 = post('deadlift 5 reps 100 kilos')
         check(tag + 'the assistant gets spoken answers', r1['ok'] and 'שיא חדש' in r1['say'] and 'סט 2' in r2['say'] and r3['say'].startswith('Logged'), (r1, r2, r3))
         check(tag + 'the journal waits until the app looks', ev("S.logs.squat.sessions.slice(-1)[0].d") != today)

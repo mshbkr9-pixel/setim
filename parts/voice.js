@@ -543,6 +543,7 @@ var VoiceLog=(function(){
     return {ok:true,say:R.say,item:{id:item.id,ex:item.ex,d:item.d,sets:item.sets,setNo:R.setNo}};
   }
   return {norm:norm,parse:parse,match:match,buildIndex:buildIndex,applyItem:applyItem,handle:handle,judge:judge,compose:compose,resolve:resolve,serve:serve,israelDate:israelDate,
-    pending:pending,withPending:withPending,todayLine:todayLine,isCardio:isCardio,isTimed:isTimed,isBw:isBw,spokenName:spokenName,text:T,clone:clone,ALIAS:ALIAS};
+    pending:pending,withPending:withPending,todayLine:todayLine,isCardio:isCardio,isTimed:isTimed,isBw:isBw,spokenName:spokenName,text:T,clone:clone,ALIAS:ALIAS,
+    words:function(text){ return numbers(lex(text)); }};      // the sentence as words and numbers ("שתיים וחצי" is one number); the food side reads sentences with it too
 })();
 if(typeof module!=='undefined'&&module.exports) module.exports=VoiceLog;

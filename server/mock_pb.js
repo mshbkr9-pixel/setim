@@ -1,5 +1,9 @@
 /* Local stand-in for the PocketBase endpoints the app uses, for testing on this computer only. Everything is kept in memory.
    Run:  node server/mock_pb.js      (listens on 127.0.0.1:8090, where the app looks when it is opened from localhost)
+         node server/mock_pb.js 8094 (another port, for a run beside another session's; the app is pointed at it with the
+                                      localStorage key gtdev:pb)
+   It also has the coach side: /api/setim/coach runs the real server/pb_hooks/setim_coach_lib.js, and the Claude API is played by
+   fakeClaude() below, so nothing here costs money. POST /__test/coach sets how the stand-in behaves; GET shows what it was sent.
    Unlike mock_pb.py it also has the voice side: the voice_keys collection, and /api/setim/voice, which calls the real
    server/pb_hooks/setim_voice_lib.js with a small imitation of the PocketBase objects it uses. So the same glue and the same
    understanding (voice.js) run here and on the server; only PocketBase itself is imitated. */
@@ -10,13 +14,55 @@ const path = require('path');
 
 const HOOKS = path.join(__dirname, 'pb_hooks');
 const lib = require(path.join(HOOKS, 'setim_voice_lib.js'));
-const PORT = +(process.env.PORT || 8090);
+const coachLib = require(path.join(HOOKS, 'setim_coach_lib.js'));
+const PORT = +(process.env.PORT || process.argv[2] || 8090);      // node server/mock_pb.js 8094 runs a second one beside another session's
 
 const USERS = {};   // email -> {id,email,name,password}
 const TOKENS = {};  // token -> user id
 const DOCS = {};    // id -> {id,user,key,data}
 const VKEYS = {};   // id -> {id,user,hash,label}
+const USAGE = {};   // id -> {id,user,day,cheap,smart,deep,img,tin,tout,cost}
 let TEST_LINK = '';   // set through POST /__test/shortcut, only in this stand-in
+const COACH = { mode: '', calls: [], cfg: null };   // set through POST /__test/coach: how the stand-in model behaves, and the knobs for a test
+
+/* ---- a stand-in for the Claude API. It answers in the shape of POST /v1/messages, so the real request-building and
+        answer-checking code runs against it, and no test ever costs money. With SETIM_LIVE=1 and ANTHROPIC_API_KEY set in the
+        environment the same door sends the request to the real API instead (curl, the key passed on stdin, never in the
+        command line): that is for a short try-out the owner has agreed to, since every such call is paid for. ---- */
+function fakeClaude(body) {
+  const last = body.messages[body.messages.length - 1];
+  const blocks = Array.isArray(last.content) ? last.content : [{ type: 'text', text: String(last.content) }];
+  const hasImg = blocks.some(b => b.type === 'image');
+  const text = (blocks.filter(b => b.type === 'text').pop() || {}).text || '';
+  const sys = (body.system && body.system[0] && body.system[0].text) || '';
+  const ids = slot => sys.split('\n').map(l => l.split(' | ')).filter(p => p.length >= 7 && p[2].split(',').includes(slot)).map(p => p[0]);
+  COACH.calls.push({ model: body.model, effort: body.output_config && body.output_config.effort, max_tokens: body.max_tokens, fallbacks: body.fallbacks || '', format: !!(body.output_config && body.output_config.format), cached: !!(body.system && body.system[0] && body.system[0].cache_control), img: hasImg, text, messages: body.messages.length });
+  if (COACH.mode === 'busy') return { statusCode: 529, json: { type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } } };
+  if (COACH.mode === 'schema400' && body.output_config && body.output_config.format) return { statusCode: 400, json: { type: 'error', error: { type: 'invalid_request_error', message: 'output_config.format.schema: unsupported' } } };
+  const usage = { input_tokens: Math.round(JSON.stringify(body.messages).length / 3), cache_read_input_tokens: Math.round(sys.length / 3), output_tokens: 180 };
+  if (COACH.mode === 'refuse') return { statusCode: 200, json: { id: 'msg_x', type: 'message', role: 'assistant', model: body.model, content: [], stop_reason: 'refusal', stop_details: { type: 'refusal', category: null }, usage } };
+  let out;
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  if (hasImg) out = { say: 'בתמונה נראים אורז וחזה עוף. הכנתי לרישום, הכמויות הן הערכה.', acts: [{ t: 'meal', slot: 'l', date: '', title: '', items: [{ name: 'אורז', grams: 180, kcal: 234, p: 4.9, c: 50, f: 0.5, est: true }, { name: 'חזה עוף', grams: 150, kcal: 264, p: 49.5, c: 0, f: 5.7, est: true }] }] };
+  else if (/המבורגר/.test(text)) out = { say: 'הכנתי לרישום: המבורגר בלחמנייה וצ׳יפס. הכמויות הן הערכה.', acts: [{ t: 'meal', slot: 'l', date: '', title: 'המבורגר וצ׳יפס', items: [{ name: 'המבורגר בלחמנייה', grams: 220, kcal: 560, p: 30, c: 40, f: 30, est: true }, { name: 'צ׳יפס', grams: 120, kcal: 370, p: 4, c: 45, f: 19, est: true }] }] };
+  else if (/תפריט/.test(text)) out = { say: 'הכנתי תפריט למחר לפי היעדים שלך.', acts: [{ t: 'plan', days: [{ date: tomorrow, meals: ['b', 'l', 'd'].map(s => ({ slot: s, recipe: ids(s)[0] || '', servings: 1, title: ids(s)[0] ? '' : 'ארוחה', kcal: 500, p: 35 })) }] }] };
+  else if (/תזכור עליי/.test(text)) out = { say: 'רשמתי לעצמי.', acts: [{ t: 'remember', text: 'מעדיף אימונים בבוקר' }] };
+  else out = { say: 'תשובת בדיקה מ-' + body.model + ': ' + text.slice(0, 60), acts: [] };
+  return { statusCode: 200, json: { id: 'msg_x', type: 'message', role: 'assistant', model: body.model, content: [{ type: 'thinking', thinking: '', signature: 'x' }, { type: 'text', text: JSON.stringify(out) }], stop_reason: 'end_turn', usage } };
+}
+function liveClaude(opts) {
+  const { spawnSync } = require('child_process');
+  const cfg = ['url = "' + opts.url + '"', 'request = "POST"', 'silent', 'max-time = ' + (opts.timeout || 150)].concat(Object.keys(opts.headers).map(h => 'header = "' + h + ': ' + String(opts.headers[h]).replace(/"/g, '') + '"')).concat(['data-binary = "@' + path.join(require('os').tmpdir(), 'setim-coach-body.json').replace(/\\/g, '/') + '"', 'write-out = "\\n%{http_code}"']).join('\n');
+  fs.writeFileSync(path.join(require('os').tmpdir(), 'setim-coach-body.json'), opts.body);
+  const r = spawnSync('curl', ['-K', '-'], { input: cfg, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
+  try { fs.unlinkSync(path.join(require('os').tmpdir(), 'setim-coach-body.json')); } catch (e) { }
+  const out = String(r.stdout || ''), cut = out.lastIndexOf('\n'), status = +out.slice(cut + 1) || 0;
+  let json = null; try { json = JSON.parse(out.slice(0, cut)); } catch (e) { json = null; }
+  if (json && json.usage) console.log('LIVE call: ' + json.model + ' in ' + json.usage.input_tokens + ' cache-read ' + (json.usage.cache_read_input_tokens || 0) + ' out ' + json.usage.output_tokens + ' stop ' + json.stop_reason);
+  COACH.calls.push({ live: true, status, model: json && json.model, stop: json && json.stop_reason, usage: json && json.usage });
+  return { statusCode: status, json };
+}
+const LIVE = process.env.SETIM_LIVE === '1' && !!process.env.ANTHROPIC_API_KEY;
 const uid = () => crypto.randomBytes(8).toString('hex');
 const pub = u => ({ id: u.id, email: u.email, name: u.name });
 
@@ -27,16 +73,25 @@ class Rec {
   getString(f) { const v = this.o[f]; return v == null ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)); }
   set(f, v) { this.o[f] = f === 'data' ? JSON.parse(JSON.stringify(v)) : v; }
 }
+const storeOf = coll => coll === 'voice_keys' ? VKEYS : (coll === 'coach_usage' ? USAGE : DOCS);
 const G = {
   hooks: HOOKS, Record: Rec,
   text: b => Buffer.from(b).toString('utf8'),
-  os: { readFile: p => (TEST_LINK && /siri\.json$/.test(p)) ? Buffer.from(JSON.stringify({ shortcut: TEST_LINK })) : fs.readFileSync(p) },
+  os: {
+    readFile: p => (TEST_LINK && /siri\.json$/.test(p)) ? Buffer.from(JSON.stringify({ shortcut: TEST_LINK })) : ((COACH.cfg && /coach\.json$/.test(p)) ? Buffer.from(JSON.stringify(COACH.cfg)) : fs.readFileSync(p)),
+    getenv: n => n === 'ANTHROPIC_API_KEY' ? (LIVE ? process.env.ANTHROPIC_API_KEY : (COACH.mode === 'nokey' ? '' : 'stand-in-key')) : (process.env[n] || '')
+  },
+  http: { send: opts => LIVE ? liveClaude(opts) : fakeClaude(JSON.parse(opts.body)) },
+  sleep: () => { },
   security: { sha256: s => crypto.createHash('sha256').update(s).digest('hex') },
   app: {
-    findFirstRecordByData(coll, field, value) { const hit = Object.values(coll === 'voice_keys' ? VKEYS : DOCS).find(o => o[field] === value); if (!hit) throw new Error('sql: no rows in result set'); return new Rec(coll, hit); },
-    findRecordsByFilter(coll, filter, sort, limit, offset, params) { return Object.values(DOCS).filter(d => d.user === params.u && (d.key.startsWith('log-') || ['vinbox', 'vdone', 'deck', 'week', 'days'].includes(d.key))).map(d => new Rec('docs', d)); },
+    findFirstRecordByData(coll, field, value) { const hit = Object.values(storeOf(coll)).find(o => o[field] === value); if (!hit) throw new Error('sql: no rows in result set'); return new Rec(coll, hit); },
+    findRecordsByFilter(coll, filter, sort, limit, offset, params) {
+      if (coll === 'coach_usage') return Object.values(USAGE).filter(r => r.day === params.d).map(r => new Rec('coach_usage', r));
+      return Object.values(DOCS).filter(d => d.user === params.u && (d.key.startsWith('log-') || ['vinbox', 'vdone', 'deck', 'week', 'days'].includes(d.key))).map(d => new Rec('docs', d));
+    },
     findCollectionByNameOrId(name) { return { name }; },
-    save(rec) { if (!rec.o.id) rec.o.id = uid(); (rec.coll === 'voice_keys' ? VKEYS : DOCS)[rec.o.id] = rec.o; }
+    save(rec) { if (!rec.o.id) rec.o.id = uid(); storeOf(rec.coll)[rec.o.id] = rec.o; }
   }
 };
 
@@ -64,6 +119,12 @@ http.createServer((req, res) => {
         const e = { requestInfo: () => ({ body: b }), request: { header: { get: n => req.headers[String(n).toLowerCase()] || '' } }, json: (code, body) => send(res, code, body) };
         return lib.post(e, G);
       }
+      if (p === '/__test/coach' && req.method === 'POST') { COACH.mode = String(b.mode || ''); if ('cfg' in b) COACH.cfg = b.cfg || null; if (b.reset) { COACH.calls.length = 0; Object.keys(USAGE).forEach(k => delete USAGE[k]); } return send(res, 200, { mode: COACH.mode }); }
+      if (p === '/__test/coach' && req.method === 'GET') return send(res, 200, { mode: COACH.mode, live: LIVE, calls: COACH.calls, usage: Object.values(USAGE) });
+      if (p === '/api/setim/coach') {
+        const e = { auth: me ? { id: me } : null, requestInfo: () => ({ body: b }), json: (code, body) => send(res, code, body) };
+        return req.method === 'GET' ? coachLib.info(e, G) : coachLib.post(e, G);
+      }
 
       if (p === '/api/collections/users/records' && req.method === 'POST') {
         const email = String(b.email || '').toLowerCase();
@@ -84,11 +145,15 @@ http.createServer((req, res) => {
 
       if (p.startsWith('/api/collections/users/records/') && req.method === 'DELETE') {          // rule: a person can delete only their own account; their rows go with it
         const id = p.split('/').pop(); if (!me || me !== id) return send(res, 404, { message: "The requested resource wasn't found." });
-        for (const store of [DOCS, VKEYS]) Object.keys(store).forEach(k => { if (store[k].user === id) delete store[k]; });
+        for (const store of [DOCS, VKEYS, USAGE]) Object.keys(store).forEach(k => { if (store[k].user === id) delete store[k]; });
         Object.keys(USERS).forEach(k => { if (USERS[k].id === id) delete USERS[k]; }); Object.keys(TOKENS).forEach(k => { if (TOKENS[k] === id) delete TOKENS[k]; });
         return send(res, 204);
       }
 
+      if (p.startsWith('/api/collections/coach_usage/records')) {          // rule: a person may read their own rows; only the hook writes them
+        if (p === '/api/collections/coach_usage/records' && req.method === 'GET') return send(res, 200, list(Object.values(USAGE).filter(d => d.user === me)));
+        return send(res, req.method === 'GET' ? 404 : 403, { message: 'Only superusers can perform this action.' });
+      }
       for (const [name, store] of [['docs', DOCS], ['voice_keys', VKEYS]]) {
         const base = '/api/collections/' + name + '/records';
         if (p === base && req.method === 'GET') {

@@ -1,0 +1,8 @@
+{
+  "on": true,
+  "models": { "cheap": "claude-haiku-5-5", "smart": "claude-opus-5-5" },
+  "effort": { "cheap": "low", "smart": "low", "deep": "medium" },
+  "score": { "smart": 35, "deep": 70 },
+  "perUser": { "cheap": 60, "smart": 15, "deep": 5, "img": 8 },
+  "dailyUsd": 3
+}

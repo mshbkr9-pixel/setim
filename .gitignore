@@ -4,3 +4,5 @@ __pycache__/
 .claude/
 video/out/
 tests/out/
+data-src/moh/
+tests/out*/
