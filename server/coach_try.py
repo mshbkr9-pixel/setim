@@ -32,10 +32,11 @@ class FakeClaude(BaseHTTPRequestHandler):
         last = body['messages'][-1]['content']
         text = [b for b in last if b.get('type') == 'text'][-1]['text'] if isinstance(last, list) else str(last)
         out = {'say': 'תשובת ניסיון', 'acts': [{'t': 'remember', 'text': 'בדיקה'}] if 'תזכור' in text else []}
-        # one question is made to cost about ten dollars, more than any daily budget the owner may set, so that the budget can be seen closing the door
+        # one question is made to cost about ten dollars, more than any daily budget the owner may set, so that the budget can be seen closing the door;
+        # another about 45 cents, most of the half dollar a person gets in the part about the coach being open to everyone
         msg = {'id': 'msg_try', 'type': 'message', 'role': 'assistant', 'model': body.get('model'), 'stop_reason': 'end_turn',
                'content': [{'type': 'thinking', 'thinking': '', 'signature': 'x'}, {'type': 'text', 'text': json.dumps(out, ensure_ascii=False)}],
-               'usage': {'input_tokens': 100000000 if 'יקרה מאוד' in text else 1500, 'cache_read_input_tokens': 2000, 'output_tokens': 200}}
+               'usage': {'input_tokens': 100000000 if 'יקרה מאוד' in text else (4500000 if 'יקרה קצת' in text else 1500), 'cache_read_input_tokens': 2000, 'output_tokens': 200}}
         raw = json.dumps(msg, ensure_ascii=False).encode('utf-8')
         self.send_response(200); self.send_header('Content-Type', 'application/json'); self.send_header('Content-Length', str(len(raw))); self.end_headers(); self.wfile.write(raw)
 
@@ -83,7 +84,7 @@ def finish():
     sys.exit(1 if fails else 0)
 
 st, r = call('GET', '/api/health'); check('server is up', st == 200, (st, r))
-st, r = call('GET', '/api/setim/coach'); check('coach hook answers, and says it is switched on', st == 200 and r.get('ok') is True and r.get('on') is True and r.get('access') is False and r.get('left') is None, (st, r))
+st, r = call('GET', '/api/setim/coach'); check('coach hook answers, and says it is switched on, and for invited people only', st == 200 and r.get('ok') is True and r.get('on') is True and r.get('open') is False and r.get('access') is False and r.get('left') is None and r.get('usd') is None, (st, r))
 st, r = call('POST', '/api/setim/coach', {'text': 'שלום'}); check('nobody is answered without signing in', st == 200 and r.get('ok') is False and r.get('why') == 'auth' and not seen, (st, r))
 
 if '--spent' in sys.argv[3:]:
@@ -132,6 +133,9 @@ f = urllib.parse.quote('user="%s"' % S['id'])
 st, r = call('GET', '/api/collections/coach_usage/records?perPage=5&filter=' + f, token=S['tok'])
 row = (r.get('items') or [{}])[0]
 check('the usage row: three small answers, one large, one photo, tokens and a cost', st == 200 and len(r.get('items') or []) == 1 and row.get('cheap') == 3 and row.get('smart') == 1 and row.get('img') == 1 and row.get('tin') == 4 * 3500 and row.get('tout') == 800 and row.get('cost', 0) > 0, (st, r))
+# three answers of the small model (1500 tokens in, 2000 read from the cache, 200 out: 270 millionths of a dollar each) and one of the large (10,400)
+check('the cost on the row is what the answers cost: nothing is left of what was put aside for them', row.get('cost') == 3 * 270 + 10400, row.get('cost'))
+r = info(S); check('an invited person sees dollars of their own, and what they used of them', (r.get('usd') or {}).get('cap') == 2 and (r.get('usd') or {}).get('per') == 'all' and (r.get('usd') or {}).get('used') == 0.0112 and (r.get('usd') or {}).get('out') is False and info(O).get('usd') is None, r)
 r = info(S); check('the app can ask how many answers are left', r.get('left') == {'cheap': 0, 'smart': 0, 'deep': 1, 'img': 0, 'total': 16} and r.get('limit') == 20, r)
 st2, r2 = call('PATCH', '/api/collections/coach_usage/records/' + str(row.get('id')), {'cheap': 0}, S['tok'])
 st3, r3 = call('POST', '/api/collections/coach_usage/records', {'user': S['id'], 'day': '2026-01-01', 'cheap': 0}, S['tok'])
@@ -154,6 +158,29 @@ r = admin(O, {'do': 'limits', 'total': 20, 'dailyUsd': 3}); check('and raises it
 r = admin(O, {'do': 'revoke', 'user': H['id']}); n = len(seen)
 check('someone the owner removes gets no more answers, and the old link does not let them back in', len(r.get('people') or []) == 2 and ask(H, {'text': 'ועוד אחת'}).get('why') == 'invite' and join(H, inv2.get('code', '')).get('why') == 'used' and len(seen) == n, r)
 check('the owner cannot be removed', len(admin(O, {'do': 'revoke', 'user': O['id']}).get('people') or []) == 2 and info(O).get('owner') is True)
+
+# ---------------- open to everyone, each person within dollars of their own ----------------
+N = person('new'); n = len(seen)
+check('before the coach is opened, a new account is refused like any other that was not invited', N['ok'] and ask(N, {'text': 'שאלה'}).get('why') == 'invite' and len(seen) == n)
+check('the gate takes only what makes sense, and only from the owner', admin(O, {'do': 'gate', 'open': True, 'userUsd': 0.1}).get('why') == 'bad' and admin(O, {'do': 'gate', 'open': 'yes', 'userUsd': 2}).get('why') == 'bad' and admin(N, {'do': 'gate', 'open': True, 'userUsd': 2}).get('why') == 'owner' and info(N).get('access') is False)
+r = admin(O, {'do': 'gate', 'open': True, 'userUsd': 0.5}); r2 = info(N)
+check('the owner opens the coach to everyone, with half a dollar for each person', r.get('ok') is True and r.get('open') is True and r.get('userUsd') == 0.5 and r.get('total') == 20 and r.get('dailyUsd') == 3
+      and r2.get('open') is True and r2.get('access') is True and r2.get('owner') is False and r2.get('usd') == {'cap': 0.5, 'used': 0, 'per': 'all', 'out': False} and (r2.get('left') or {}).get('total') == 20, (r, r2))
+check('someone who is not signed in is told that it is open, and still not answered', call('GET', '/api/setim/coach')[1].get('open') is True and call('POST', '/api/setim/coach', {'text': 'שלום'})[1].get('why') == 'auth')
+a1 = ask(N, {'text': 'שאלה יקרה קצת'}); u1 = (info(N).get('usd') or {})
+check('a person who was never invited is answered, and the cost goes onto their own count', a1.get('ok') is True and a1.get('tier') == 'cheap' and len(seen) == n + 1 and 0.44 < u1.get('used', 0) < 0.46 and u1.get('out') is False, (a1, u1))
+a2 = ask(N, {'text': 'תבנה לי תפריט לשבוע בתקציב של 350 שקל'})
+check('with too little left for the large model, the answer steps down to the small one', a2.get('ok') is True and a2.get('tier') == 'cheap' and a2.get('wanted') == 'smart' and seen[-1]['body']['model'] == 'claude-haiku-5-5', a2)
+a3 = ask(N, {'text': 'ועוד שאלה יקרה קצת'}); n = len(seen); a4 = ask(N, {'text': 'ועוד אחת'}); r = info(N)
+check('past their own dollars the person is told so, and nothing more is sent', a3.get('ok') is True and a4.get('ok') is False and a4.get('why') == 'spent' and 'המכסה שלך' in (a4.get('say') or '') and len(seen) == n
+      and (r.get('usd') or {}).get('out') is True and (r.get('usd') or {}).get('used') == 0.5 and r.get('left') == {'cheap': 0, 'smart': 0, 'deep': 0, 'img': 0, 'total': 0}, (a3, a4, r))
+st_ = admin(O, {'do': 'state'}); new = [p for p in st_.get('people') or [] if p.get('id') == N['id']]
+check('the owner sees that person on the list of who asked today, marked as not invited', len(new) == 1 and new[0].get('invited') is False and new[0].get('today') == 3 and all(p.get('invited') is True for p in st_.get('people') if p.get('id') in (S['id'], O['id'])), st_)
+n = len(seen); r = ask(H, {'text': 'ואני?'})
+check("each person's dollars are their own: someone else is still answered", r.get('ok') is True and len(seen) == n + 1, r)
+r = admin(O, {'do': 'gate', 'open': False, 'userUsd': 0.5}); n = len(seen)
+check('the owner closes it again, and those who were not invited are refused', r.get('open') is False and ask(H, {'text': 'ועכשיו?'}).get('why') == 'invite' and info(N).get('access') is False and info(S).get('access') is True and len(seen) == n, r)
+check('the new user deletes itself', leave(N))
 
 # ---------------- the daily budget for everyone (the last thing: after it nobody is answered until tomorrow) ----------------
 n = len(seen); r = ask(O, {'text': 'שאלה יקרה מאוד'}); r2 = ask(S, {'text': 'ועוד שאלה'}); r3 = info(S)

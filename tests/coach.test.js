@@ -244,6 +244,101 @@ test('server: a call that never reached an answer gives its place in the count b
   const S2 = server({ answer: () => ({ statusCode: 529, json: {} }) }); S2.ask({ text: '', img: 'data:image/jpeg;base64,AAAA' }); const r2 = Object.values(S2.USAGE)[0]; assert.deepStrictEqual([r2.smart, r2.img], [0, 0]);
 });
 
+/* ---------- open to everyone, each person within dollars of their own ---------- */
+/* the most an answer of a kind can cost, the way the hook counts it (holdOf in setim_coach_lib.js) */
+const HOLD = (t, cfg = CK.config({})) => CK.cost({ tin: cfg.maxSnap + cfg.maxText + cfg.maxHist * 1500 + 20000, tcw: 0, tcr: 0, tout: cfg.maxTokens[t] }, t === 'cheap' ? cfg.models.cheap : cfg.models.smart, cfg.prices);
+const DAY = new Date().toISOString().slice(0, 10), dayBack = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10), CAP = 2e6;
+const PLAN = 'תבנה לי תפריט לשבוע בתקציב של 350 שקל', DEEP = 'יש לי עוף, אורז, ביצים וירקות בבית. תבנה לי ארוחות לשלושת הימים הקרובים לפי התפריט שלי, ותמצא לי איפה לקנות את מה שחסר הכי בזול.';
+/* the rows of money put aside for answers on their way (holdsOf in setim_coach_lib.js): one per person, under a day that never comes */
+const held = S1 => Object.values(S1.USAGE).filter(r => r.day === '9999-12-31');
+/* what a person already cost, on an earlier day unless said otherwise (millionths of a dollar) */
+const seed = (S1, user, cost, day = dayBack(1)) => S1.app.save(new S1.Rec('coach_usage', { user, day, cheap: 1, smart: 0, deep: 0, img: 0, tin: 0, tout: 0, cost }));
+test('server: with the coach open, anyone with an account is answered; closed, only invited people', () => {
+  const S1 = server({ access: { o1: 'owner' }, cfg: { open: true } });
+  assert.strictEqual(S1.ask({ text: 'מה כדאי לי לאכול אחרי האימון?' }, 'stranger').ok, true); assert.strictEqual(S1.sent.length, 1);
+  const I = S1.info('stranger'); assert.deepStrictEqual([I.on, I.open, I.access, I.owner, I.left.total], [true, true, true, false, 19]);
+  assert.deepStrictEqual([I.usd.cap, I.usd.per, I.usd.out], [2, 'all', false]); assert.ok(I.usd.used > 0 && I.usd.used < 0.01, 'what the answer cost is on the person\'s count');
+  const N = S1.info(null); assert.deepStrictEqual([N.open, N.access, N.left, N.usd], [true, false, null, null], 'someone who is not signed in learns that the coach is open, and nothing more');
+  assert.strictEqual(S1.ask({ text: 'שלום' }, null).why, 'auth', 'open means: to everyone with an account');
+  assert.strictEqual(S1.info('o1').usd, null, 'the owner has no ceiling of their own');
+  const st = S1.admin({ do: 'state' }, 'o1'); assert.deepStrictEqual([st.open, st.userUsd, st.userPer], [true, 2, 'all']);
+  assert.deepStrictEqual(st.people.map(p => [p.id, p.invited, p.today]).sort(), [['o1', true, 0], ['stranger', false, 1]], 'the owner sees who asked today, invited or not');
+  const closed = server({ access: {} }), C = closed.info('stranger'); assert.deepStrictEqual([C.open, C.access, C.usd], [false, false, null]); assert.strictEqual(closed.ask({ text: 'שאלה' }, 'stranger').why, 'invite');
+});
+test('server: each person has dollars of their own; past them the hook says so and sends nothing', () => {
+  const S1 = server({ access: { o1: 'owner' }, cfg: { open: true } });
+  seed(S1, 'p1', CAP - HOLD('cheap') + 1);      // one millionth of a dollar short of room for the smallest answer
+  const R = S1.ask({ text: 'שאלה קצרה' }, 'p1'); assert.strictEqual(R.why, 'spent'); assert.ok(/המכסה שלך/.test(R.say) && !/מחר|החודש/.test(R.say)); assert.strictEqual(R.left.total, 0); assert.strictEqual(S1.sent.length, 0);
+  const I = S1.info('p1'); assert.deepStrictEqual([I.access, I.usd.out, I.left.total, I.usd.cap], [true, true, 0, 2]); assert.ok(I.usd.used <= 2);
+  seed(S1, 'p2', CAP - HOLD('cheap')); assert.strictEqual(S1.ask({ text: 'שאלה קצרה' }, 'p2').ok, true, 'exactly enough room for the smallest answer is enough');
+  assert.strictEqual(S1.ask({ text: 'שאלה קצרה' }, 'p3').ok, true, 'the ceiling is each person\'s own');
+  seed(S1, 'o1', 50e6); assert.strictEqual(S1.ask({ text: 'שאלה קצרה' }, 'o1').ok, true, 'the owner is not held to it');
+  const S2 = server(); seed(S2, 'u1', CAP); assert.strictEqual(S2.ask({ text: 'שאלה קצרה' }).why, 'spent', 'an invited person is held to it too');
+  const S3 = server({ cfg: { userUsd: 0 } }); seed(S3, 'u1', 50e6); assert.strictEqual(S3.ask({ text: 'שאלה קצרה' }).ok, true, '0 in coach.json: no ceiling of their own'); assert.strictEqual(S3.info('u1').usd, null);
+  assert.strictEqual(server({ cfg: { open: true, userUsd: 0.5 } }).info('x').usd.cap, 0.5); assert.strictEqual(server({ cfg: { userUsd: 'lots' } }).info('u1').usd.cap, 2, 'nonsense in the file leaves the default');
+});
+test('server: when the dollars left cover only a smaller answer, the answer steps down instead of being refused', () => {
+  const S1 = server({ cfg: { open: true } });
+  assert.strictEqual(tierOf(PLAN), 'smart'); assert.strictEqual(tierOf(DEEP), 'deep'); assert.ok(HOLD('cheap') < HOLD('smart') && HOLD('smart') < HOLD('deep') && HOLD('deep') < CAP);
+  seed(S1, 'a', CAP - HOLD('smart')); const A = S1.ask({ text: PLAN }, 'a'); assert.deepStrictEqual([A.ok, A.tier], [true, 'smart'], 'room for the large model: it answers');
+  seed(S1, 'b', CAP - HOLD('smart') + 1); const B = S1.ask({ text: PLAN }, 'b'); assert.deepStrictEqual([B.ok, B.tier, B.wanted], [true, 'cheap', 'smart']); assert.strictEqual(S1.sent[1].body.model, 'claude-haiku-5-5');
+  seed(S1, 'c', CAP - HOLD('deep') + 1); const C = S1.ask({ text: DEEP }, 'c'); assert.deepStrictEqual([C.ok, C.tier, C.wanted], [true, 'smart', 'deep']);
+  seed(S1, 'd', CAP - HOLD('deep')); assert.strictEqual(S1.ask({ text: DEEP }, 'd').tier, 'deep');
+});
+test('server: the most an answer can cost is put aside before the model is called, so requests side by side cannot pass the ceiling together', () => {
+  let S1 = null, during = null, second = null;
+  const mine = () => Object.values(S1.USAGE).find(r => r.user === 'a' && r.day === DAY);
+  S1 = server({ cfg: { open: true }, answer: i => { if (i === 1) { during = [held(S1).find(r => r.user === 'a').cost, mine().cost]; second = S1.ask({ text: PLAN }, 'a'); }      // a second request arrives while the first is still with the model
+    return { statusCode: 200, json: { model: 'm', content: [{ type: 'text', text: '{"say":"שלום","acts":[]}' }], stop_reason: 'end_turn', usage: { input_tokens: 1000, output_tokens: 100 } } }; } });
+  seed(S1, 'a', CAP - HOLD('smart') - HOLD('cheap') + 1);      // room for one large answer, and after it not even for a small one
+  const first = S1.ask({ text: PLAN }, 'a');
+  assert.deepStrictEqual(during, [HOLD('smart'), undefined], 'while the model works, the most the answer can cost is put aside, apart from what was really spent');
+  assert.strictEqual(second.why, 'busy', 'the request that arrived meanwhile finds no room, and is told to try again: nothing is used up yet'); assert.strictEqual(S1.sent.length, 1);
+  assert.deepStrictEqual([first.ok, first.tier], [true, 'smart']);
+  assert.strictEqual(mine().cost, CK.cost({ tin: 1000, tcw: 0, tcr: 0, tout: 100 }, 'claude-opus-5-5'), 'afterwards the row carries what the answer really cost');
+  assert.strictEqual(held(S1).length, 0, 'and nothing is left put aside');
+  assert.strictEqual(S1.ask({ text: 'שאלה קצרה' }, 'a').ok, true, 'so the room is back');
+  const S2 = server({ cfg: { open: true }, answer: () => 'throw' }); assert.strictEqual(S2.ask({ text: 'שאלה' }, 'a').why, 'net');
+  assert.deepStrictEqual([Object.values(S2.USAGE).length, Object.values(S2.USAGE)[0].cost || 0, held(S2).length, S2.info('a').usd.used], [1, 0, 0, 0], 'a call that never reached an answer gives the hold back');
+  const S3 = server({ cfg: { dailyUsd: 0.4 } }); let third = null;
+  S3.ask({ text: PLAN }, 'u1'); assert.strictEqual(S3.ask({ text: 'שאלה' }, 'u2').ok, true, 'a finished answer leaves only its real cost on the day\'s total');
+  const S4 = server({ cfg: { dailyUsd: 0.4 }, answer: i => { if (i === 1) third = S4.ask({ text: 'שאלה' }, 'u2'); return { statusCode: 200, json: { model: 'm', content: [{ type: 'text', text: '{"say":"שלום","acts":[]}' }], stop_reason: 'end_turn', usage: { input_tokens: 1000, output_tokens: 100 } } }; } });
+  S4.ask({ text: PLAN }, 'u1'); assert.strictEqual(third.why, 'busy', 'what everyone put aside counts toward the day\'s budget while it is out, and the one who meets it is told to try again, not that the day is over'); assert.strictEqual(S4.sent.length, 1);
+  assert.strictEqual(S4.ask({ text: 'שאלה' }, 'u2').ok, true, 'a moment later there is room');
+});
+test('server: money put aside for an answer that never came back heals by itself', () => {
+  const S1 = server({ cfg: { open: true } }), now = Math.floor(Date.now() / 1000);
+  S1.app.save(new S1.Rec('coach_usage', { user: 'a', day: '9999-12-31', cost: CAP, tin: now - 60 }));        // a minute old: an answer may still be on its way
+  S1.app.save(new S1.Rec('coach_usage', { user: 'b', day: '9999-12-31', cost: CAP, tin: now - 3600 }));      // an hour old: the server stopped in the middle
+  S1.app.save(new S1.Rec('coach_usage', { user: '', day: '9999-12-31', cost: 50e6, tin: now - 3600 }));      // the same, and its person deleted the account since
+  assert.strictEqual(S1.ask({ text: 'שאלה' }, 'a').why, 'busy', 'a fresh hold still counts'); assert.strictEqual(S1.info('a').usd.out, false, 'and the person is not told the allowance is used up');
+  assert.strictEqual(S1.ask({ text: 'שאלה' }, 'b').ok, true, 'an old one counts for nothing');
+  assert.deepStrictEqual(held(S1).map(r => r.user), ['a'], 'and the old rows were cleared away by the request that passed');
+  assert.strictEqual(S1.ask({ text: 'שאלה' }, 'c').ok, true, 'nor does it fill the day\'s budget for everyone');
+});
+test('server: the dollars are counted over everything the person asked, or over the month, or over the day', () => {
+  const first = DAY.slice(0, 8) + '01', before = new Date(Date.parse(first + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
+  const all = server({ cfg: { open: true } }); seed(all, 'a', 3e6, before); assert.strictEqual(all.ask({ text: 'שאלה' }, 'a').why, 'spent', 'by default a month ago still counts');
+  const mo = server({ cfg: { open: true, userPer: 'month', dailyUsd: 20 } }); seed(mo, 'a', 3e6, before); seed(mo, 'b', 3e6, first);
+  assert.strictEqual(mo.ask({ text: 'שאלה' }, 'a').ok, true, 'last month does not count'); const M = mo.ask({ text: 'שאלה' }, 'b'); assert.strictEqual(M.why, 'spent'); assert.ok(/בתחילת החודש/.test(M.say)); assert.strictEqual(mo.info('b').usd.per, 'month');
+  const dy = server({ cfg: { open: true, userPer: 'day', dailyUsd: 20 } }); seed(dy, 'a', 3e6, dayBack(1)); seed(dy, 'b', 3e6, DAY);
+  assert.strictEqual(dy.ask({ text: 'שאלה' }, 'a').ok, true, 'yesterday does not count'); const D = dy.ask({ text: 'שאלה' }, 'b'); assert.strictEqual(D.why, 'spent'); assert.ok(/מחר/.test(D.say));
+  assert.strictEqual(server({ cfg: { open: true, userPer: 'weekly' } }).info('x').usd.per, 'all', 'an unknown period means everything');
+});
+test('server: the owner opens the coach to everyone and sets the dollars for each person, within bounds', () => {
+  const S1 = server({ access: { o1: 'owner' } });
+  assert.strictEqual(S1.ask({ text: 'שאלה' }, 'x').why, 'invite');
+  assert.strictEqual(S1.admin({ do: 'gate', open: true, userUsd: 0.1 }, 'o1').why, 'bad'); assert.strictEqual(S1.admin({ do: 'gate', open: true, userUsd: 500 }, 'o1').why, 'bad');
+  assert.strictEqual(S1.admin({ do: 'gate', open: 'yes', userUsd: 2 }, 'o1').why, 'bad'); assert.strictEqual(S1.admin({ do: 'gate', open: true, userUsd: 2 }, 'x').why, 'owner');
+  assert.strictEqual(S1.info('x').access, false, 'a refused change changes nothing');
+  const st = S1.admin({ do: 'gate', open: true, userUsd: 5 }, 'o1'); assert.deepStrictEqual([st.ok, st.open, st.userUsd, st.total, st.dailyUsd], [true, true, 5, 20, 3]);
+  assert.strictEqual(S1.ask({ text: 'שאלה' }, 'x').ok, true); assert.deepStrictEqual([S1.info('x').open, S1.info('x').usd.cap], [true, 5]);
+  assert.strictEqual(S1.admin({ do: 'limits', total: 7, dailyUsd: 2 }, 'o1').userUsd, 5, 'the daily limits and the gate are kept apart'); assert.deepStrictEqual([S1.info('x').limit, S1.info('x').open], [7, true]);
+  const st2 = S1.admin({ do: 'gate', open: false, userUsd: 5 }, 'o1'); assert.strictEqual(st2.open, false); assert.strictEqual(S1.ask({ text: 'שאלה' }, 'x').why, 'invite', 'and closes it again');
+  const S2 = server({ access: { o1: 'owner' }, cfg: { open: true, userUsd: 9 } }); assert.strictEqual(S2.info('x').usd.cap, 9);
+  S2.admin({ do: 'gate', open: false, userUsd: 1 }, 'o1'); assert.deepStrictEqual([S2.info('x').open, S2.info('x').access], [false, false], 'what the owner set from the app wins over the file');
+});
+
 /* ---------- v14: the body's numbers and an injury, with no model ---------- */
 const BodyKit = require('../parts/body.js');
 /* the hook the app hands in (sigRead in parts/v14.js): what parts/voice.js understood of the sentence, with the words to say back */

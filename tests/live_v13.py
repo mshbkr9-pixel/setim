@@ -2,13 +2,15 @@
 """The built app against the real server, the way a person with two phones would meet it: a target and a meal on the first
 phone, signing up, the same data on the second phone, and one question to the coach that needs the model.
 
-Every run creates a throwaway account on the live server, which the test deletes at the end (its documents go with it). The
-coach answers invited people only, so without more the test stops after seeing that the new account is refused, and costs
-nothing. With the admin's email and password in the environment (EM and PW) it lets the account in and asks one real question:
+Every run creates a throwaway account on the live server, which the test deletes at the end (its documents go with it).
+Without more it costs nothing. Where the coach answers invited people only, it stops after seeing that the new account is
+refused. Where the coach is open to everyone, it stops after seeing that the new account has the coach, within dollars of its
+own, and asks nothing. It goes on to one real question in one of two ways: where the coach is for invited people, with the
+admin's email and password in the environment (EM and PW), which let the account in; where it is open to everyone, with PAY=1.
 THAT COSTS MONEY (about a tenth of a cent, the small model), and the usage row stays, owned by nobody. Run it only when the
-owner has agreed.
+owner has agreed. (tests/live_look.py is the look at the published app that makes no account at all.)
 
-    [EM=... PW=...] python -X utf8 tests/live_v13.py [APP] [PB] [output folder]
+    [EM=... PW=... | PAY=1] python -X utf8 tests/live_v13.py [APP] [PB] [output folder]
     APP  where the app is served from. Default http://127.0.0.1:8793/index.html (the "v13-app" preview). After a deploy,
          https://getonekeyai.com/ checks the published app itself.
     PB   the server. Default https://getonekeyai.com. It matters only when the app runs from localhost (the app then takes
@@ -148,28 +150,41 @@ with sync_playwright() as pw:
         check('the nutrition day shows the target and the meal', 'היעד להיום' in t and ev("document.querySelectorAll('#view .meal').length") == 1, t[:200])
         page.screenshot(path=os.path.join(OUT, 'live-2-second-phone.png'))
 
-        # ---------------- the coach: a new account was not invited ----------------
+        # ---------------- the coach and a new account: refused where it is for invited people, let in where it is open to everyone ----------------
         tok2, uid2 = ev("PB.token"), ev("PB.user.id")
         st, r = api('GET', '/api/setim/coach', token=tok2)
-        check('the server says the coach is on, and that this new account was not invited', r.get('on') is True and r.get('access') is False and r.get('left') is None, r)
-        goto('#chat')
-        m = say(page, QUESTION)
-        st, r = api('GET', '/api/collections/coach_usage/records?perPage=5&filter=' + urllib.parse.quote('user="%s"' % uid2), token=tok2)
-        check('someone who was not invited is told so in the chat, and nothing is spent', m.get('why') == 'invite' and 'למוזמנים' in (m.get('t') or '') and st == 200 and not r.get('items'), [m, st, r])
-        page.screenshot(path=os.path.join(OUT, 'live-3-not-invited.png'))
+        is_open = r.get('open') is True
+        if is_open:
+            usd = r.get('usd') or {}
+            check('the coach is open to everyone: this new account has it, within dollars of its own', r.get('on') is True and r.get('access') is True and r.get('owner') is False
+                  and (r.get('left') or {}).get('total', 0) > 0 and usd.get('cap', 0) > 0 and usd.get('used') == 0 and usd.get('out') is False, r)
+            ev("(async () => { CO.info = null; CO.infoAt = 0; await coachInfo(true); })()"); settle(600)
+            goto('#coach'); settle(600); t = ev("document.querySelector('#view').innerText")
+            check('the coach door has no word about invitations', 'למוזמנים' not in t, t[-300:])
+            st, r = api('GET', '/api/collections/coach_usage/records?perPage=5&filter=' + urllib.parse.quote('user="%s"' % uid2), token=tok2)
+            check('and looking costs nothing', st == 200 and not r.get('items'), [st, r])
+            page.screenshot(path=os.path.join(OUT, 'live-3-open.png'))
+        else:
+            check('the server says the coach is on, and that this new account was not invited', r.get('on') is True and r.get('access') is False and r.get('left') is None, r)
+            goto('#chat')
+            m = say(page, QUESTION)
+            st, r = api('GET', '/api/collections/coach_usage/records?perPage=5&filter=' + urllib.parse.quote('user="%s"' % uid2), token=tok2)
+            check('someone who was not invited is told so in the chat, and nothing is spent', m.get('why') == 'invite' and 'למוזמנים' in (m.get('t') or '') and st == 200 and not r.get('items'), [m, st, r])
+            page.screenshot(path=os.path.join(OUT, 'live-3-not-invited.png'))
         st, r = api('POST', '/api/setim/coach/join', {'code': 'x' * 24}, tok2)
         check('a made-up invitation code opens nothing', r.get('ok') is False and r.get('why') == 'code', r)
         st, r = api('POST', '/api/setim/coach/admin', {'do': 'state'}, tok2)
         check("the owner's corner is closed to this account", r.get('ok') is False and r.get('why') == 'owner', r)
 
-        # ---------------- with the admin's password in the environment: let the account in, and ask one real question ----------------
-        if not (os.environ.get('EM') and os.environ.get('PW')):
-            print('      (no admin password in the environment: the real question was not asked, and nothing was spent)')
+        # ---------------- one real question: with the admin's password the account is let in; where the coach is open, PAY=1 is enough ----------------
+        if not ((is_open and os.environ.get('PAY') == '1') or (not is_open and os.environ.get('EM') and os.environ.get('PW'))):
+            print('      (%s: the real question was not asked, and nothing was spent)' % ('no PAY=1 in the environment' if is_open else 'no admin password in the environment'))
             ctx.close()
             raise SystemExit
-        st, a = api('POST', '/api/collections/_superusers/auth-with-password', {'identity': os.environ['EM'], 'password': os.environ['PW']})
-        st, r = api('POST', '/api/collections/coach_access/records', {'user': uid2, 'role': 'guest', 'by': ''}, a.get('token', ''))
-        check('the admin lets the throwaway account in', st == 200, (st, r))
+        if not is_open:
+            st, a = api('POST', '/api/collections/_superusers/auth-with-password', {'identity': os.environ['EM'], 'password': os.environ['PW']})
+            st, r = api('POST', '/api/collections/coach_access/records', {'user': uid2, 'role': 'guest', 'by': ''}, a.get('token', ''))
+            check('the admin lets the throwaway account in', st == 200, (st, r))
         ev("(async () => { CO.info = null; CO.infoAt = 0; await coachInfo(true); })()"); settle(600)
         st, r = api('GET', '/api/setim/coach', token=tok2)
         left0 = (r.get('left') or {}).get('total')

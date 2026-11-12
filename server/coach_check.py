@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 """A look at the coach hook as it is installed, through the same doors the app uses.
 
-Without more it costs nothing: it signs up a throwaway user, sees that someone who was not invited is refused and that nothing
-was spent, and the user deletes itself.
+Without more it costs nothing: it signs up a throwaway user and looks at what the server tells it. Where the coach answers
+invited people only, it sees that someone who was not invited is refused and that nothing was spent. Where the coach is open
+to everyone, it sees that the new account has the coach, within dollars of its own, and asks nothing. Then the user deletes
+itself.
 
-With the admin's email and password in the environment (EM and PW) it goes on: the admin lets the throwaway user in, and the
-user asks one real question, to see the whole road working: the hook, the Claude API, the answer and the bookkeeping. THAT
-COSTS MONEY (about a tenth of a cent: one short question, answered by the small model), so run it that way only when the owner
-has agreed: after an install, after changing the key, a model or the hook. The usage row stays, owned by nobody, so the day's
-total keeps what was spent.
+It goes on to one real question, to see the whole road working (the hook, the Claude API, the answer and the bookkeeping), in
+one of two ways. Where the coach is for invited people: with the admin's email and password in the environment (EM and PW), the
+admin lets the throwaway user in. Where the coach is open to everyone: with PAY=1 in the environment. THAT COSTS MONEY (about a
+tenth of a cent: one short question, answered by the small model), so run it that way only when the owner has agreed: after an
+install, after changing the key, a model or the hook. The usage row stays, owned by nobody, so the day's total keeps what was
+spent.
 
-Usage:  [EM=... PW=...] python -I -X utf8 coach_check.py <PB_URL>          e.g.  python -I -X utf8 coach_check.py https://getonekeyai.com
+Usage:  [EM=... PW=... | PAY=1] python -I -X utf8 coach_check.py <PB_URL>          e.g.  python -I -X utf8 coach_check.py https://getonekeyai.com
 Exit code 0 only when every step passed.
 """
 import json, os, re, secrets, sys, time, urllib.error, urllib.parse, urllib.request
@@ -59,23 +62,34 @@ tok, uid = r.get('token', ''), (r.get('record') or {}).get('id', '')
 mine = '/api/collections/coach_usage/records?perPage=5&filter=' + urllib.parse.quote('user="%s"' % uid)
 
 try:
-    # ---------------- someone who was not invited ----------------
+    # ---------------- a new account: refused where the coach is for invited people, let in where it is open to everyone ----------------
     st, r = call('GET', '/api/setim/coach', token=tok)
-    check('a new account was not invited, and the server says so', r.get('on') is True and r.get('access') is False and r.get('owner') is False and r.get('left') is None, r)
-    st, r = call('POST', '/api/setim/coach', {'text': 'מה כדאי לי לאכול אחרי האימון?'}, tok)
-    st2, r2 = call('GET', mine, token=tok)
-    check('its question is refused, and nothing is spent', r.get('ok') is False and r.get('why') == 'invite' and st2 == 200 and not r2.get('items'), (r, st2, r2))
+    is_open = r.get('open') is True
+    if is_open:
+        usd = r.get('usd') or {}
+        check('the coach is open to everyone: a new account has it, within dollars of its own', r.get('on') is True and r.get('access') is True and r.get('owner') is False
+              and (r.get('left') or {}).get('total', 0) > 0 and usd.get('cap', 0) > 0 and usd.get('used') == 0 and usd.get('out') is False, r)
+        if usd.get('cap'):
+            print('      each person: %s USD (counted over: %s) · answers a day: %s' % (usd.get('cap'), usd.get('per'), r.get('limit')))
+        st2, r2 = call('GET', mine, token=tok)
+        check('and looking costs nothing', st2 == 200 and not r2.get('items'), (st2, r2))
+    else:
+        check('a new account was not invited, and the server says so', r.get('on') is True and r.get('access') is False and r.get('owner') is False and r.get('left') is None, r)
+        st, r = call('POST', '/api/setim/coach', {'text': 'מה כדאי לי לאכול אחרי האימון?'}, tok)
+        st2, r2 = call('GET', mine, token=tok)
+        check('its question is refused, and nothing is spent', r.get('ok') is False and r.get('why') == 'invite' and st2 == 200 and not r2.get('items'), (r, st2, r2))
     st, r = call('POST', '/api/setim/coach/join', {'code': 'x' * 24}, tok); check('a made-up invitation code opens nothing', r.get('why') == 'code', r)
     st, r = call('POST', '/api/setim/coach/admin', {'do': 'state'}, tok); check("the owner's corner is closed to it", r.get('why') == 'owner', r)
     codes = [call('GET', '/api/collections/%s/records' % c, token=tok)[0] for c in ('coach_access', 'coach_invites', 'coach_config')]
     st5, r5 = call('POST', '/api/collections/coach_access/records', {'user': uid, 'role': 'owner'}, tok)
     check('it cannot read the lists of who is invited, or write itself in', all(c >= 400 for c in codes) and st5 >= 400, (codes, st5))
 
-    # ---------------- let in by the admin: one real question ----------------
-    if os.environ.get('EM') and os.environ.get('PW'):
-        st, a = call('POST', '/api/collections/_superusers/auth-with-password', {'identity': os.environ['EM'], 'password': os.environ['PW']})
-        st, r = call('POST', '/api/collections/coach_access/records', {'user': uid, 'role': 'guest', 'by': ''}, a.get('token', ''))
-        check('the admin lets the throwaway user in', st == 200, (st, r))
+    # ---------------- one real question: let in by the admin, or, where the coach is open, simply asked ----------------
+    if (is_open and os.environ.get('PAY') == '1') or (not is_open and os.environ.get('EM') and os.environ.get('PW')):
+        if not is_open:
+            st, a = call('POST', '/api/collections/_superusers/auth-with-password', {'identity': os.environ['EM'], 'password': os.environ['PW']})
+            st, r = call('POST', '/api/collections/coach_access/records', {'user': uid, 'role': 'guest', 'by': ''}, a.get('token', ''))
+            check('the admin lets the throwaway user in', st == 200, (st, r))
         st, r = call('GET', '/api/setim/coach', token=tok)
         left0 = r.get('left') or {}
         check('now it is told how many answers are left today', r.get('access') is True and left0.get('total', 0) > 0 and r.get('limit', 0) > 0, r)
@@ -102,11 +116,13 @@ try:
             print('      tokens in %d, out %d, cost %.4f USD' % (row['tin'], row['tout'], row['cost'] / 1e6))
         st, r = call('GET', '/api/setim/coach', token=tok)
         check('the count of answers left went down by one', (r.get('left') or {}).get('total') == left0.get('total', 0) - 1, r)
+        if r.get('usd'):
+            check("and the cost is on the person's own count, with nothing left of what was put aside", 0 < r['usd'].get('used', 0) < 0.01 and abs(r['usd']['used'] - row.get('cost', 0) / 1e6) < 0.0001, (r.get('usd'), row.get('cost')))
         st2, _ = call('PATCH', '/api/collections/coach_usage/records/' + str(row.get('id')), {'cheap': 0}, tok)
         st3, _ = call('DELETE', '/api/collections/coach_usage/records/' + str(row.get('id')), None, tok)
         check('the person cannot reset or delete the usage row', st2 >= 400 and st3 >= 400, (st2, st3))
     else:
-        print('      (no admin password in the environment: the real question was not asked, and nothing was spent)')
+        print('      (%s: the real question was not asked, and nothing was spent)' % ('no PAY=1 in the environment' if is_open else 'no admin password in the environment'))
 finally:
     st, r = call('DELETE', '/api/collections/users/records/' + uid, None, tok)
     check('the throwaway user deletes itself', st in (200, 204), (st, r))

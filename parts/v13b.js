@@ -56,6 +56,7 @@ async function coachCall(text,img,o){
     if(r.status===404) return {ok:false,why:'off',say:'המאמן המלא עוד לא הופעל בשרת. מה שאפשר לענות בלי מודל ממשיך לעבוד.'};
     if(!j||typeof j.ok!=='boolean') return {ok:false,why:'net',say:'לא הצלחתי להגיע למאמן. מנסים שוב בעוד רגע.'};
     if(j.left) CO.left=j.left;
+    if(j.why==='spent'&&CO.info&&CO.info.usd) CO.info.usd.out=true;      // the person's own allowance ran out: the settings say so at once, without waiting for the next look at the server
     return j;
   }catch(e){ return {ok:false,why:'net',say:'לא הצלחתי להגיע למאמן. מנסים שוב בעוד רגע.'}; }
 }
@@ -68,7 +69,11 @@ async function coachInfo(force){
   CO.infoBusy=false; return CO.info;
 }
 
-/* ---------- an invitation: the full coach answers only people the owner sent a link to ---------- */
+/* The person's own allowance, as the server tells it: {cap, used, per, out}, in dollars. People see it as a share, not as money. */
+function coachUsedPct(u){ return u&&u.cap>0?Math.min(100,Math.max(0,Math.round(100*u.used/u.cap))):0; }
+function coachSpentHe(u){ return 'המכסה שלך נוצלה'+(u.per==='month'?' עד תחילת החודש':(u.per==='day'?' להיום':'')); }
+
+/* ---------- an invitation: unless the owner opened the coach to everyone, it answers only people the owner sent a link to ---------- */
 /* The link is https://…/#join-<code>. The code waits on the device until there is an account to give it to, and is sent once. */
 function joinCode(){ try{ return localStorage.getItem('gt:join')||''; }catch(e){ return ''; } }
 function joinKeep(c){ try{ if(c) localStorage.setItem('gt:join',c); else localStorage.removeItem('gt:join'); }catch(e){} }
@@ -225,13 +230,13 @@ function coachHome(){
     hubBox('apple','יעדי התזונה',T.ok&&nutGoal()?`${kc(T.kcal)} קק״ל ביום`:'מטרה, העדפות, אלרגיות','#nut','legs','low'),
     hubBox('sparkle','מה המאמן זוכר',nm?plural(nm,'דבר אחד','דברים'):'העדפות ודברים שסיפרת','#memory','arms','low'),
     hubBox('gear','הגדרות',S.prefs.seen.backup?`גיבוי אחרון ${fmtDate(S.prefs.seen.backup)}`:'צליל, מראה, גיבוי','#settings','full','low'),
-    STANDALONE&&PB.user&&CO.info&&CO.info.owner?hubBox('send','הזמנות ומגבלות',`${CO.info.limit} הודעות ביום לכל אחד`,'#crew','chest','low'):null));
+    STANDALONE&&PB.user&&CO.info&&CO.info.owner?hubBox('send','הזמנות ומגבלות',`${CO.info.open?'פתוח לכולם · ':''}${CO.info.limit} הודעות ביום לכל אחד`,'#crew','chest','low'):null));
   wrap.append(h('div',{class:'credit'},'המאמן אינו רופא ואינו דיאטן. במצב רפואי פונים לאיש מקצוע.'));
   return wrap;
 }
 
-/* ========================= the owner's corner: who is invited, and how much each may ask ========================= */
-const CREW={st:null,busy:false,err:'',t:0};
+/* ========================= the owner's corner: who may ask (everyone, or invited people), and how much each may ask ========================= */
+const CREW={st:null,busy:false,err:'',t:0,tg:0};
 async function crewDo(body){
   if(!PB.user) return null; CREW.busy=true;
   try{
@@ -251,31 +256,41 @@ async function crewInvite(){
   crewLink(url);      // no share sheet here, or it was closed: the link is shown, so that it is not lost
 }
 function crewPage(){
-  header('הזמנות ומגבלות',{back:'#coach'}); const wrap=h('div');
-  wrap.append(h('div',{class:'display'},'הזמנות ומגבלות'),h('p',{class:'lead'},'המאמן המלא עונה רק למי ששלחת לו קישור הזמנה. כל קישור נפתח פעם אחת, לאדם אחד, ותקף לשבוע.'));
+  header('הזמנות ומגבלות',{back:'#coach'}); const wrap=h('div'), st=CREW.st, open=!!(st&&st.open);
+  wrap.append(h('div',{class:'display'},'הזמנות ומגבלות'),h('p',{class:'lead'},open?'המאמן המלא פתוח לכל מי שיש לו חשבון. לכל אדם יש תקרה משלו, ולכולם יחד יש תקציב יומי.':'המאמן המלא עונה רק למי ששלחת לו קישור הזמנה. כל קישור נפתח פעם אחת, לאדם אחד, ותקף לשבוע.'));
   if(!STANDALONE||!PB.user){ wrap.append(h('div',{class:'empty'},ic('user'),h('div',{},'צריך חיבור לחשבון.'))); return wrap; }
-  if(!CREW.st){
+  if(!st){
     if(!CREW.busy&&!CREW.err) crewDo({do:'state'}).then(()=>{ if(route.page==='crew') render(); });
     wrap.append(CREW.err?h('div',{class:'banner'},CREW.err):h('div',{class:'empty'},h('div',{},'רגע…'))); return wrap;
   }
-  const st=CREW.st, usd=v=>'$'+(Math.round(v/1e4)/100).toFixed(2);
-  const setLim=(total,dailyUsd)=>{ st.total=total; st.dailyUsd=dailyUsd; render(); clearTimeout(CREW.t);
-    CREW.t=setTimeout(()=>crewDo({do:'limits',total,dailyUsd}).then(j=>{ if(!j) toast(CREW.err); CO.info=null; CO.infoAt=0; coachInfo(true); if(route.page==='crew') render(); }),700); };
+  const usd=v=>'$'+(Math.round(v/1e4)/100).toFixed(2);
+  const after=j=>{ if(!j) toast(CREW.err); CO.info=null; CO.infoAt=0; coachInfo(true); if(route.page==='crew') render(); };
+  const setLim=(total,dailyUsd)=>{ st.total=total; st.dailyUsd=dailyUsd; render(); clearTimeout(CREW.t); CREW.t=setTimeout(()=>crewDo({do:'limits',total,dailyUsd}).then(after),700); };
+  /* who may ask, and the dollars each person gets: one request for the two, a moment after the last tap */
+  const setGate=(o,u)=>{ st.open=o; st.userUsd=u; render(); clearTimeout(CREW.tg); CREW.tg=setTimeout(()=>crewDo({do:'gate',open:o,userUsd:u}).then(after),700); };
   const stepper=(txt,label,dn,up)=>h('div',{class:'stepper'},h('button',{type:'button','aria-label':label+': פחות',onclick:dn},'−'),h('b',{},txt),h('button',{type:'button','aria-label':label+': יותר',onclick:up},'+'));
-  const T=st.total, U=st.dailyUsd;
-  wrap.append(h('div',{class:'card'},
-    h('div',{class:'row'},h('div',{class:'grow'},h('div',{class:'k'},'הודעות ביום לאדם'),h('div',{class:'small muted',style:'line-height:1.45'},'נספרות רק תשובות ממודל. מה שנענה במכשיר לא נספר.')),
+  const T=st.total, U=st.dailyUsd, P=st.userUsd, gate=st.open!=null&&P>0, per=({month:'בחודש',day:'ביום'})[st.userPer]||'בסך הכול';      // gate: the server knows about opening the coach to everyone (an older one sends neither field)
+  const card=h('div',{class:'card'});
+  if(gate) card.append(
+    h('div',{class:'sfld',style:'margin:0'},h('div',{class:'sl'},'מי יכול לשאול את המאמן המלא'),h('div',{class:'seg',role:'group','aria-label':'מי יכול לשאול'},
+      h('button',{class:open?'on':'',type:'button','aria-pressed':open?'true':'false',onclick:()=>{ if(!open) setGate(true,P); }},'כל מי שיש לו חשבון'),
+      h('button',{class:open?'':'on',type:'button','aria-pressed':open?'false':'true',onclick:()=>{ if(open) setGate(false,P); }},'רק מוזמנים'))),
+    h('div',{class:'row',style:'margin-top:16px'},h('div',{class:'grow'},h('div',{class:'k'},'תקרה לאדם'),h('div',{class:'small muted',style:'line-height:1.45'},`בדולרים, ${per}. מעבר לה המאמן המלא נסגר לאותו אדם. לך אין תקרה.`)),
+      stepper('$'+P,'תקרה לאדם',()=>setGate(open,P<=1?0.5:Math.round(P)-1),()=>setGate(open,P<1?1:Math.min(50,Math.round(P)+1)))));
+  card.append(
+    h('div',{class:'row',style:gate?'margin-top:16px':''},h('div',{class:'grow'},h('div',{class:'k'},'הודעות ביום לאדם'),h('div',{class:'small muted',style:'line-height:1.45'},'נספרות רק תשובות ממודל. מה שנענה במכשיר לא נספר.')),
       stepper(String(T),'הודעות ביום',()=>setLim(T<=5?Math.max(1,T-1):T-5,U),()=>setLim(T<5?T+1:Math.min(200,T+5),U))),
     h('div',{class:'row',style:'margin-top:16px'},h('div',{class:'grow'},h('div',{class:'k'},'תקציב יומי לכולם'),h('div',{class:'small muted',style:'line-height:1.45'},`היום: ${plural(st.today.n,'הודעה אחת','הודעות')} · ${usd(st.today.cost)}`)),
-      stepper('$'+U,'תקציב יומי',()=>setLim(T,Math.max(1,Math.round(U)-1)),()=>setLim(T,Math.min(20,Math.round(U)+1))))));
-  wrap.append(h('div',{class:'sec'},h('h2',{},'מי מוזמן')));
+      stepper('$'+U,'תקציב יומי',()=>setLim(T,Math.max(1,Math.round(U)-1)),()=>setLim(T,Math.min(20,Math.round(U)+1)))));
+  wrap.append(card);
+  wrap.append(h('div',{class:'sec'},h('h2',{},open?'מי משתמש במאמן':'מי מוזמן')));
   const l=h('div',{class:'list'});
   st.people.slice().sort((a,b)=>(b.owner-a.owner)||String(a.name||a.email).localeCompare(String(b.name||b.email))).forEach(p=>{ const who=p.name||p.email||'בלי שם';
-    l.append(h('div',{class:'memrow'},h('div',{class:'grow',style:'min-width:0'},h('div',{class:'b ell'},who+(p.owner?' · בעלים':'')),h('div',{class:'small muted ell',dir:'ltr',style:'text-align:right'},p.email||''),h('div',{class:'small muted'},`היום: ${plural(p.today,'הודעה אחת','הודעות')}`)),
-      p.owner?null:h('button',{class:'iconbtn sm',type:'button','aria-label':'להסיר את '+who,html:I('trash'),style:'color:var(--bad);background:none',onclick:()=>confirmSheet('להסיר מהמאמן?',`${who} לא יקבל תשובות מהמאמן המלא עד שתשלח קישור חדש. הנתונים שלו לא נמחקים.`,()=>crewDo({do:'revoke',user:p.id}).then(()=>render()),'כן, להסיר')}))); });
+    l.append(h('div',{class:'memrow'},h('div',{class:'grow',style:'min-width:0'},h('div',{class:'b ell'},who+(p.owner?' · בעלים':'')),h('div',{class:'small muted ell',dir:'ltr',style:'text-align:right'},p.email||''),h('div',{class:'small muted'},`היום: ${plural(p.today,'הודעה אחת','הודעות')}`+(p.cost>0?` · ${usd(p.cost)}`:''))),
+      p.owner||p.invited===false?null:h('button',{class:'iconbtn sm',type:'button','aria-label':'להסיר את '+who,html:I('trash'),style:'color:var(--bad);background:none',onclick:()=>confirmSheet('להסיר מהמאמן?',open?`${who} יישאר עם המאמן המלא כמו כל אחד, כל עוד הוא פתוח לכולם. הנתונים שלו לא נמחקים.`:`${who} לא יקבל תשובות מהמאמן המלא עד שתשלח קישור חדש. הנתונים שלו לא נמחקים.`,()=>crewDo({do:'revoke',user:p.id}).then(()=>render()),'כן, להסיר')}))); });
   wrap.append(l);
   if(st.pending) wrap.append(h('p',{class:'small muted',style:'margin:10px 4px 0'},st.pending===1?'קישור אחד שנוצר עוד לא נפתח.':`${st.pending} קישורים שנוצרו עוד לא נפתחו.`));
-  Dock.set(h('button',{class:'btn sgo',type:'button',onclick:crewInvite},ic('send'),h('span',{},'להזמין מישהו')));
+  if(!open) Dock.set(h('button',{class:'btn sgo',type:'button',onclick:crewInvite},ic('send'),h('span',{},'להזמין מישהו')));      // open to everyone: an invitation would add nothing
   return wrap;
 }
 
@@ -355,7 +370,7 @@ const settingsBase=settings;
 PAGES.settings=function(){
   const wrap=settingsBase(), d=wrap.querySelector('.display'); coachInfo();
   const row=(icn,t,sub,onclick)=>h('button',{class:'item pressable',type:'button',onclick},h('div',{class:'th',style:'width:40px;height:40px;border-radius:var(--r-s);color:var(--accent-t);background:var(--accent-soft)'},ic(icn)),h('div',{class:'grow'},h('div',{class:'t ell'},t),sub?h('div',{class:'s ell'},sub):null),h('span',{class:'chev',html:I('chev')}));
-  const L=CO.left, inf=CO.info, st=!STANDALONE?'עובד בגרסה שבכתובת getonekeyai.com':(!PB.user?'צריך חיבור לחשבון':(!inf?'בודק…':(!inf.on?'עוד לא הופעל בשרת':(inf.access===false?'פתוח כרגע למוזמנים בלבד':(L?`נשארו היום ${plural(L.total!=null?L.total:L.cheap,'הודעה אחת','הודעות')}, ומתוכן עד ${plural(L.img,'צילום אחד','צילומים')}`:'פעיל')))));
+  const L=CO.left, inf=CO.info, st=!STANDALONE?'עובד בגרסה שבכתובת getonekeyai.com':(!PB.user?'צריך חיבור לחשבון':(!inf?'בודק…':(!inf.on?'עוד לא הופעל בשרת':(inf.access===false?'פתוח כרגע למוזמנים בלבד':(inf.usd&&inf.usd.out?coachSpentHe(inf.usd):(L?`נשארו היום ${plural(L.total!=null?L.total:L.cheap,'הודעה אחת','הודעות')}`+(inf.usd?` · נוצלו ${coachUsedPct(inf.usd)}% מהמכסה שלך`:`, ומתוכן עד ${plural(L.img,'צילום אחד','צילומים')}`):'פעיל'))))));
   const sec=[h('div',{class:'sec'},h('h2',{},'המאמן')),h('div',{class:'list morelist'},
     row('chat','המאמן המלא',st,()=>PB.user||!STANDALONE?go('#chat'):authSheet('login')),
     row('gear','כמה לחשוב',({eco:'חסכוני',deep:'מעמיק'})[S.nut.pref]||'מאוזן',coachDepthSheet),

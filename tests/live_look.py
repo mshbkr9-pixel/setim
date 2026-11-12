@@ -117,7 +117,7 @@ with sync_playwright() as pw:
     # ---- what is underneath ----
     sw = ev("(async () => { try{ await navigator.serviceWorker.ready; return {keys:await caches.keys()}; }catch(e){ return {err:String(e)}; } })()")
     check('the service worker of this version took over (cache %s)' % CACHE, CACHE in (sw.get('keys') or []), sw)
-    info = ev("(async () => { try{ const a=await fetch('/api/setim/coach').then(r=>r.json()); const v=await fetch('/api/setim/voice').then(r=>r.json()); return {coach_v:a.v,coach_on:a.on,voice_ok:v.ok,siri_link:!!v.shortcut,health_link:!!v.health}; }catch(e){ return {err:String(e)}; } })()")
+    info = ev("(async () => { try{ const a=await fetch('/api/setim/coach').then(r=>r.json()); const v=await fetch('/api/setim/voice').then(r=>r.json()); return {coach_v:a.v,coach_on:a.on,coach_open:a.open===true,voice_ok:v.ok,siri_link:!!v.shortcut,health_link:!!v.health}; }catch(e){ return {err:String(e)}; } })()")
     print('      what the server supports today:', info)
     ctx.close(); b.close()
 

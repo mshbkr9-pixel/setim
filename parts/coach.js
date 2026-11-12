@@ -303,6 +303,7 @@ catalog||'(none)'
     return null;
   }
 
-  return {DEFAULTS:DEFAULTS,config:config,norm:norm,score:score,tier:tier,TIER_HE:TIER_HE,system:system,catalog:catalog,SCHEMA:SCHEMA,request:request,reply:reply,cleanActs:cleanActs,cost:cost,local:local,ACT_GO:ACT_GO,AL_HE:AL_HE};
+  /* V: what this file can do, told to the app by the server (GET /api/setim/coach). 3: the model may propose a "body" action. A server that still runs an older coach.js has no V and says 2. */
+  return {V:3,DEFAULTS:DEFAULTS,config:config,norm:norm,score:score,tier:tier,TIER_HE:TIER_HE,system:system,catalog:catalog,SCHEMA:SCHEMA,request:request,reply:reply,cleanActs:cleanActs,cost:cost,local:local,ACT_GO:ACT_GO,AL_HE:AL_HE};
 })();
 if(typeof module!=='undefined'&&module.exports) module.exports=CoachKit;

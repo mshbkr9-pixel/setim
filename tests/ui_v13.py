@@ -213,9 +213,9 @@ def run(pw, scheme):
     t = view(); check(tag + 'the owner gets a box for invitations and limits', 'הזמנות ומגבלות' in t and '20 הודעות ביום' in t, t[-300:])
     goto('#crew'); settle(1000); t = view()
     check(tag + 'the owner sees the limits and who is in', 'הודעות ביום לאדם' in t and 'תקציב יומי' in t and 'בעלים' in t and 'להזמין מישהו' in ev("document.querySelector('#dock').innerText"), t[:400]); shot('21-crew'); contrast('the owner\'s corner')
-    page.click('#view .stepper >> nth=0 >> button >> nth=0'); settle(1600)
+    page.click('#view .stepper button[aria-label="הודעות ביום: פחות"]'); settle(1600)
     cfgs = calls()['config']; check(tag + 'the number of answers a day is changed from the app', ev("CREW.st.total") == 15 and len(cfgs) == 1 and cfgs[0]['total'] == 15 and ev("CO.info.limit") == 15, cfgs)
-    page.click('#view .stepper >> nth=0 >> button >> nth=1'); settle(1600)
+    page.click('#view .stepper button[aria-label="הודעות ביום: יותר"]'); settle(1600)
     page.click('#dock .btn'); settle(1300); t = sheet(); link = ev("(document.querySelector('#sheetBody input')||{}).value||''")
     check(tag + 'an invitation is a link to this app with a code in it, and one more link is waiting', re.match('^' + re.escape(APP) + r'#join-[A-Za-z0-9]{24}$', link) is not None and 'קישור הזמנה' in t and ev("CREW.st.pending") == 1 and ev("CREW.st.total") == 20, [link, t[:120]])
     contrast('invitation link', '#sheetBody'); close()
@@ -283,6 +283,33 @@ def run(pw, scheme):
     # the number of meals depends on the hour the test runs at (what is logged within 45 minutes into the same slot is one meal), so the foods are counted
     st = ev("({goal:S.nut.goal,kosher:S.nut.kosher,pantry:S.pantry.items.length,meals:FoodKit.mealsOf(S.food,todayKey()).length,foods:FoodKit.mealsOf(S.food,todayKey()).reduce((a,m)=>a+m.it.length,0),plan:Object.keys(S.mplan.days).length,mem:S.coach.mem.length,msgs:S.coach.msgs.length,mine:S.myfood.items.length,user:!!PB.user,tabs:[...document.querySelectorAll('#tabbar .tab')].map(t=>t.textContent)})")
     check(tag + 'after a reload the nutrition data, the menu, the pantry and the conversation are all there', st['goal'] == 'lose' and st['kosher'] is True and st['pantry'] >= 5 and st['meals'] >= 3 and st['foods'] >= 10 and st['plan'] >= 7 and st['mem'] >= 1 and st['msgs'] >= 10 and st['mine'] == 1 and st['user'] and len(st['tabs']) == 3, st)
+    # ---- the coach open to everyone, each person within dollars of their own ----
+    seg = "[...document.querySelectorAll('#view .seg button')].map(b=>b.textContent+(b.classList.contains('on')?'*':''))"
+    goto('#crew'); settle(1300); t = view()
+    st = ev("({seg:%s,steps:[...document.querySelectorAll('#view .stepper b')].map(b=>b.textContent),dock:document.querySelector('#dock').innerText,h2:[...document.querySelectorAll('#view .sec h2')].map(e=>e.textContent)})" % seg)
+    check(tag + 'the owner sees who may ask (invited people, until told otherwise) and the dollars each person gets', st['seg'] == ['כל מי שיש לו חשבון', 'רק מוזמנים*'] and st['steps'] == ['$2', '20', '$3'] and 'תקרה לאדם' in t and 'בסך הכול' in t and 'לך אין תקרה' in t and 'רק למי ששלחת לו קישור' in t and 'להזמין מישהו' in st['dock'] and st['h2'] == ['מי מוזמן'], [st, t[:300]])
+    page.click('#view .seg button:has-text("כל מי שיש לו חשבון")'); settle(1800); t = view()
+    gate = [[c['total'], c['usd']] for c in calls()['config'] if c['key'] == 'gate']
+    st = ev("({open:CREW.st.open,info:CO.info.open,seg:%s,dock:document.querySelector('#dock').innerText,h2:[...document.querySelectorAll('#view .sec h2')].map(e=>e.textContent)})" % seg)
+    check(tag + 'one tap opens the coach to everyone: the server keeps it, the page says so, and the invitation button leaves', gate == [[1, 2]] and st['open'] is True and st['info'] is True and st['seg'] == ['כל מי שיש לו חשבון*', 'רק מוזמנים'] and 'פתוח לכל מי שיש לו חשבון' in t and 'להזמין מישהו' not in st['dock'] and st['h2'] == ['מי משתמש במאמן'], [gate, st, t[:200]])
+    shot('24-crew-open'); contrast('the owner\'s corner, open to everyone')
+    page.click('#view .stepper button[aria-label="תקרה לאדם: יותר"]'); settle(1800)
+    gate = [[c['total'], c['usd']] for c in calls()['config'] if c['key'] == 'gate']
+    check(tag + 'the dollars for each person are changed from the app', gate == [[1, 3]] and ev("CREW.st.userUsd") == 3 and ev("document.querySelector('#view .stepper b').textContent") == '$3', gate)
+    goto('#coach'); settle(500); check(tag + 'the owner\'s box on the door says the coach is open to everyone', 'פתוח לכולם · 20 הודעות ביום' in view(), view()[-300:])
+    # someone who was never invited: the stand-in forgets who is who, and the file says the coach is open
+    coach(cfg={'open': True}, reset=True); ev("(async () => { CO.info=null; CO.infoAt=0; await coachInfo(true); })()"); settle(700)
+    goto('#coach'); settle(500); t = view(); inf = ev("CO.info")
+    check(tag + 'someone who was never invited has the coach, with no word about invitations', inf['open'] and inf['access'] and not inf['owner'] and inf['usd']['cap'] == 2 and inf['usd']['used'] == 0 and 'למוזמנים' not in t and 'הזמנות ומגבלות' not in t, [inf, t[-200:]])
+    goto('#chat'); settle(300); m = say('מה כדאי לי לאכול אחרי האימון?', 1200); c = calls()['calls']
+    check(tag + 'and is answered by the model', m.get('tier') == 'cheap' and len(c) == 1 and c[0]['model'] == 'claude-haiku-5-5', [m, c])
+    ev("(async () => { CO.info=null; CO.infoAt=0; await coachInfo(true); })()"); settle(700); goto('#settings'); settle(700); t = view()
+    check(tag + 'the settings say how many answers are left today and how much of the allowance was used', 'נשארו היום 19 הודעות · נוצלו 0% מהמכסה שלך' in t, t[:300])
+    coach(cfg={'open': True, 'userUsd': 0.000001}); goto('#chat'); settle(300); m = say('ועוד שאלה אחת על תזונה?', 1200)
+    check(tag + 'past their own dollars the person is told so in the chat, and nothing more reaches the model', m.get('why') == 'spent' and 'המכסה שלך במאמן המלא נוצלה' in m['t'] and len(calls()['calls']) == 1, m)
+    shot('25-chat-spent'); contrast('chat, the allowance used up')
+    goto('#settings'); settle(500); t = view(); check(tag + 'and the settings say so at once', 'המכסה שלך נוצלה' in t and 'נשארו היום' not in t, t[:300]); shot('26-settings-spent')
+    coach(cfg=None, reset=True)
     ctx.close(); b.close()
 
 with sync_playwright() as pw:

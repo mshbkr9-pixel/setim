@@ -4,10 +4,16 @@
    load the Anthropic SDK, so the request is built in coach.js (CoachKit.request) and sent with $http.send.
    Answers are always HTTP 200 with {ok, ...}; `why` says what went wrong in one word, and `say` is a sentence for the person.
 
-   Who may spend: only people the owner invited. An invitation is a link that carries a code; it works for one account and for a
-   week, and the server keeps only its SHA-256. The first link, for the owner, is made with coach_owner.py; the owner makes the
-   others from the app. How much: every person has a number of answers a day (perUser.total, which the owner changes from the
-   app), and everyone together has a daily budget in dollars. */
+   Who may spend: people the owner invited, or, when the coach is open ("open"), everyone with an account. An invitation is a
+   link that carries a code; it works for one account and for a week, and the server keeps only its SHA-256. The first link, for
+   the owner, is made with coach_owner.py; the owner makes the others from the app.
+   How much, three ceilings: every person has a number of answers a day (perUser.total), every person but the owner has an amount
+   of dollars of their own ("userUsd", counted over everything they ever asked, or over the month or the day: "userPer"), and
+   everyone together has a daily budget in dollars (dailyUsd). The owner changes them from the app.
+   A ceiling in dollars has to hold before the price of an answer is known, so each request first puts aside the most an answer of
+   its kind can cost (the hold), inside the same transaction that takes its place in the day's count; when the answer is back the
+   hold is taken off and what the answer really cost is written down. Requests sent side by side therefore cannot spend past a
+   ceiling together. The holds are kept apart from the costs (holdsOf below), so a cost is always money that was really spent. */
 var CATALOG = null;
 
 function readJson(G, name) {
@@ -26,14 +32,55 @@ function roleOf(app, userId) {
   try { var rows = app.findRecordsByFilter('coach_access', 'user = {:u}', '', 1, 0, { u: userId }); return rows.length ? (s(rows[0], 'role') === 'owner' ? 'owner' : 'guest') : ''; }
   catch (e) { return null; }
 }
-/* the knobs: the defaults, then coach.json next to this file, then what the owner set from the app (kept in the database) */
+/* the knobs: the defaults, then coach.json next to this file, then what the owner set from the app (kept in the database).
+   The gate is kept here and not in coach.js, so that it does not depend on which coach.js is installed:
+     open     true: everyone with an account may ask. false (the default): invited people only.
+     userUsd  dollars for each person but the owner (default 2). 0 in coach.json: no ceiling of their own.
+     userPer  what the dollars are counted over: 'all' (everything the person ever asked, the default), 'month' or 'day'.
+   The owner's rows in coach_config: "limits" (total = answers a day per person, usd = dollars a day for everyone) and "gate"
+   (total = 1 when open to everyone, usd = dollars for each person). */
 function config(G) {
-  var CK = require(G.hooks + '/coach.js'), cfg = CK.config(readJson(G, 'coach.json'));
+  var CK = require(G.hooks + '/coach.js'), raw = readJson(G, 'coach.json') || {}, cfg = CK.config(raw), d = +raw.userUsd;
+  cfg.open = raw.open === true;
+  cfg.userUsd = (raw.userUsd != null && d >= 0 && d <= 1000) ? d : 2;
+  cfg.userPer = (raw.userPer === 'month' || raw.userPer === 'day') ? raw.userPer : 'all';
   try {
     var rows = G.app.findRecordsByFilter('coach_config', 'key = {:k}', '', 1, 0, { k: 'limits' });
     if (rows.length) { var t = n(rows[0], 'total'), u = n(rows[0], 'usd'); if (t >= 1 && t <= 200) cfg.perUser.total = Math.round(t); if (u >= 0.5 && u <= 20) cfg.dailyUsd = u; }
+    rows = G.app.findRecordsByFilter('coach_config', 'key = {:k}', '', 1, 0, { k: 'gate' });
+    if (rows.length) { var p = n(rows[0], 'usd'); cfg.open = n(rows[0], 'total') >= 1; if (p >= 0.5 && p <= 50) cfg.userUsd = p; }
   } catch (e) { }
   return cfg;
+}
+/* the most one answer of a kind can cost, in millionths of a dollar: everything the request may carry (the summary of the
+   person's data, the message, the history, and room for the instructions and a photo) at one token a character, and the
+   longest answer allowed */
+function holdOf(CK, cfg, tier) {
+  return CK.cost({ tin: cfg.maxSnap + cfg.maxText + cfg.maxHist * 1500 + 20000, tcw: 0, tcr: 0, tout: cfg.maxTokens[tier] }, tier === 'cheap' ? cfg.models.cheap : cfg.models.smart, cfg.prices);
+}
+/* the person's own ceiling in millionths of a dollar; 0 when they have none (the owner, or userUsd 0) */
+function capOf(cfg, role) { return (role !== 'owner' && cfg.userUsd > 0) ? Math.round(cfg.userUsd * 1e6) : 0; }
+/* what the person has really cost so far, in the period their ceiling is counted over */
+function spent(app, userId, per, day) {
+  var from = per === 'day' ? day : (per === 'month' ? day.slice(0, 8) + '01' : ''), sum = 0;
+  var rows = app.findRecordsByFilter('coach_usage', 'user = {:u}', '', 5000, 0, { u: userId });
+  for (var i = 0; i < rows.length; i++) { var d = s(rows[i], 'day'); if (d !== HOLDS && (!from || d >= from)) sum += n(rows[i], 'cost'); }
+  return sum;
+}
+/* Money put aside for answers that are still on their way: one row per person in coach_usage, under a day that never comes.
+   Its cost is the sum of the person's holds, and its tin is when it was last touched (seconds). The row is removed when the
+   last of the person's answers is back. A row nobody touched for a quarter of an hour belongs to a request that never came
+   back (the server stopped in the middle): it counts for nothing, and the next request that passes clears it away.
+   -> {rec, mine, all}: the person's row and amount, and what everyone together has put aside right now */
+var HOLDS = '9999-12-31', STALE = 900;
+function nowSec() { return Math.floor(Date.now() / 1000); }
+function holdsOf(app, userId, clean) {
+  var rows = app.findRecordsByFilter('coach_usage', 'day = {:d}', '', 5000, 0, { d: HOLDS }), now = nowSec(), mine = null, all = 0;
+  for (var i = 0; i < rows.length; i++) {
+    if (now - n(rows[i], 'tin') > STALE) { if (clean) { try { app['delete'](rows[i]); } catch (e) { } } continue; }
+    all += n(rows[i], 'cost'); if (userId && s(rows[i], 'user') === userId) mine = rows[i];
+  }
+  return { rec: mine, mine: mine ? n(mine, 'cost') : 0, all: all };
 }
 
 /* today's bookkeeping: the person's own row, and what everyone together has asked and cost so far */
@@ -64,6 +111,7 @@ var SAY = {
     expired: 'קישור ההזמנה פג. מבקשים קישור חדש ממי ששלח.', many: 'יש כבר הרבה קישורים שעוד לא נוצלו. מחכים שינוצלו או שיפוגו.',
     quota: 'הגענו למכסת התשובות של היום. מחר היא מתחדשת, ומה שאפשר לענות בלי מודל ממשיך לעבוד.', imgquota: 'הגענו למכסת התמונות של היום. אפשר לכתוב מה היה בצלחת.',
     budget: 'המאמן המלא נח עד מחר. מה שאפשר לענות בלי מודל ממשיך לעבוד.', busy: 'המודל עמוס כרגע. מנסים שוב בעוד רגע.', net: 'לא הצלחתי להגיע למודל. מנסים שוב בעוד רגע.',
+    spent: 'המכסה שלך במאמן המלא נוצלה. מה שאפשר לענות בלי מודל ממשיך לעבוד.', spent_month: 'המכסה שלך במאמן המלא נוצלה, והיא מתחדשת בתחילת החודש. מה שאפשר לענות בלי מודל ממשיך לעבוד.', spent_day: 'המכסה שלך במאמן המלא נוצלה להיום. מחר היא מתחדשת, ומה שאפשר לענות בלי מודל ממשיך לעבוד.',
     key: 'יש בעיה בחיבור של השרת למודל. בעל האפליקציה צריך לבדוק את המפתח.', bad: 'משהו השתבש בבקשה למודל. מנסים לנסח אחרת.', refusal: 'בזה אני לא יכול לעזור. אפשר לשאול אותי על אימונים, תזונה, המטבח והקניות.',
     long: 'התשובה יצאה ארוכה מדי. אפשר לבקש אותה בחלקים, למשל תפריט לשלושה ימים.', empty: 'לא קיבלתי תשובה מהמודל. מנסים שוב.', big: 'ההודעה ארוכה מדי.' },
   en: { auth: 'Sign in to talk to the coach.', off: 'The full coach is not switched on yet. What the app can answer by itself still works.', setup: 'The full coach is not set up on the server yet.',
@@ -71,6 +119,7 @@ var SAY = {
     owner: 'Only the owner of the app can do that.', code: 'The invitation link was not recognised. Ask for a new one.', used: 'This invitation link was already used. Each link is good for one person.',
     expired: 'The invitation link has expired. Ask for a new one.', many: 'There are many unused links already. Wait until they are used or expire.',
     quota: 'Today\'s answers are used up. They renew tomorrow.', imgquota: 'Today\'s photos are used up. You can type what was on the plate.', budget: 'The full coach is resting until tomorrow.',
+    spent: 'Your allowance for the full coach is used up. What the app can answer by itself still works.', spent_month: 'Your allowance for the full coach is used up. It renews at the start of the month.', spent_day: 'Your allowance for the full coach is used up for today. It renews tomorrow.',
     busy: 'The model is busy right now. Try again in a moment.', net: 'Could not reach the model. Try again in a moment.', key: 'The server cannot reach the model. The owner should check the key.',
     bad: 'Something went wrong with the request. Try phrasing it differently.', refusal: 'I cannot help with that. Ask me about training, food, the kitchen and shopping.',
     long: 'The answer came out too long. Ask for it in parts, for example a menu for three days.', empty: 'No answer came back. Try again.', big: 'The message is too long.' }
@@ -104,27 +153,39 @@ function callModel(G, cfg, key, rq) {
   return { why: (status === 401 || status === 403) ? 'key' : ((status === 429 || status >= 500) ? 'busy' : 'bad') };
 }
 
-/* what the owner sees: who was invited and what each asked today, the links still open, the limits */
+/* what the owner sees: who was invited and who asked today (with the coach open, anyone may), what each asked today, the links
+   still open, the limits */
 function state(G, extra) {
-  var cfg = config(G), U = usage(G.app, '', today()), byUser = {}, people = [], i;
+  var cfg = config(G), U = usage(G.app, '', today()), byUser = {}, people = [], seen = {}, i;
   for (i = 0; i < U.rows.length; i++) { var owner = s(U.rows[i], 'user'); if (owner) byUser[owner] = U.rows[i]; }
-  var acc = G.app.findRecordsByFilter('coach_access', "id != ''", '', 500, 0, {});
-  for (i = 0; i < acc.length; i++) {
-    var id = s(acc[i], 'user'), name = '', email = '';
+  function add(id, invited, isOwner) {
+    var name = '', email = '';
     try { var u = G.app.findRecordById('users', id); name = s(u, 'name'); email = s(u, 'email'); } catch (err) { }
-    people.push({ id: id, name: name, email: email, owner: s(acc[i], 'role') === 'owner', today: used(byUser[id]), cost: byUser[id] ? n(byUser[id], 'cost') : 0 });
+    seen[id] = 1; people.push({ id: id, name: name, email: email, owner: isOwner, invited: invited, today: used(byUser[id]), cost: byUser[id] ? n(byUser[id], 'cost') : 0 });
   }
-  var out = { ok: true, people: people, pending: pending(G.app).length, total: cfg.perUser.total, dailyUsd: cfg.dailyUsd, today: { n: U.count, cost: U.all } };
+  var acc = G.app.findRecordsByFilter('coach_access', "id != ''", '', 500, 0, {});
+  for (i = 0; i < acc.length; i++) add(s(acc[i], 'user'), true, s(acc[i], 'role') === 'owner');
+  if (cfg.open) for (var id in byUser) if (!seen[id] && people.length < 500) add(id, false, false);      // open to everyone: whoever asked today is on the list too
+  var out = { ok: true, people: people, pending: pending(G.app).length, total: cfg.perUser.total, dailyUsd: cfg.dailyUsd, open: cfg.open, userUsd: cfg.userUsd, userPer: cfg.userPer, today: { n: U.count, cost: U.all } };
   if (extra) for (var k in extra) out[k] = extra[k];
   return out;
 }
 
 module.exports = {
   info: function (e, G) {
-    var cfg = config(G), userId = userOf(e), on = !!(cfg.on && apiKey(G)), left = null, role = '';
-    if (userId) { role = roleOf(G.app, userId); if (role === null) { on = false; role = ''; } }
-    if (on && role) { try { var u = usage(G.app, userId, today()); left = leftOf(cfg, u.rec); if (u.all >= cfg.dailyUsd * 1e6) left = none(); } catch (err) { on = false; } }
-    return e.json(200, { ok: true, v: 3, on: on, access: !!role, owner: role === 'owner', left: left, limit: cfg.perUser.total, score: cfg.score });      // v 3: the model may propose a "body" action (a watch screen read from a picture)
+    var CK = require(G.hooks + '/coach.js'), cfg = config(G), userId = userOf(e), on = !!(cfg.on && apiKey(G)), left = null, role = '', usd = null, known = true;
+    if (userId) { role = roleOf(G.app, userId); if (role === null) { on = false; role = ''; known = false; } }
+    var access = !!role || (!!userId && known && cfg.open);
+    if (on && access) {
+      try {
+        var day = today(), u = usage(G.app, userId, day), cap = capOf(cfg, role);
+        left = leftOf(cfg, u.rec); if (u.all >= cfg.dailyUsd * 1e6) left = none();
+        if (cap) { var sp = spent(G.app, userId, cfg.userPer, day); usd = { cap: cfg.userUsd, used: Math.min(cfg.userUsd, Math.round(sp / 100) / 1e4), per: cfg.userPer, out: cap - sp < holdOf(CK, cfg, 'cheap') }; if (usd.out) left = none(); }      // money really spent: what is put aside for a moment is not told
+      } catch (err) { on = false; }
+    }
+    /* v: what the installed coach.js can do (3: the model may propose a "body" action, a watch screen read from a picture).
+       open: everyone with an account may ask. usd: the person's own ceiling in dollars, what they used of it, and whether it is used up. */
+    return e.json(200, { ok: true, v: CK.V || 2, on: on, open: !!cfg.open, access: access, owner: role === 'owner', left: left, limit: cfg.perUser.total, usd: usd, score: cfg.score });
   },
 
   post: function (e, G) {
@@ -136,7 +197,7 @@ module.exports = {
     if (!cfg.on || !key) return fail(e, lang, 'off');
     var role = roleOf(G.app, userId);
     if (role === null) { console.log('setim coach: no coach_access collection'); return fail(e, lang, 'setup'); }
-    if (!role) return fail(e, lang, 'invite');
+    if (!role && !cfg.open) return fail(e, lang, 'invite');
     if (text.length > cfg.maxText * 2) return fail(e, lang, 'big');
 
     var img = null;
@@ -148,26 +209,37 @@ module.exports = {
 
     var day = today();
     var o = { text: text, hist: hist, snap: snap, img: img, pref: b.pref === 'eco' || b.pref === 'deep' ? b.pref : '', lastTier: String(b.lastTier || ''), catalog: catalog(G) };
-    var rq = CK.request(o, cfg), want = rq.tier, took = null;
+    var rq = CK.request(o, cfg), want = rq.tier, took = null, cap = capOf(cfg, role), held = 0;
     /* The place in today's count is taken before the model is called, inside one transaction, so that requests sent side by
-       side cannot all slip under the limit. Out of the stronger answers for today: step down rather than refuse. */
+       side cannot all slip under the limit. Out of the stronger answers for today: step down rather than refuse.
+       The person's own dollars work the same way. What is left of them has to cover the most this kind of answer can cost;
+       when it covers only a smaller kind the answer steps down, and that amount is put aside (the person's row of holds)
+       until the real cost is known. The holds of everyone count toward the day's budget too, so with many accounts asking at
+       once the budget cannot be passed by more than one answer. A ceiling that is full only because of money put aside is not
+       "used up": a moment later there may be room again, so the answer then is "busy". */
     try {
       G.app.runInTransaction(function (tx) {
-        var U = usage(tx, userId, day), left = leftOf(cfg, U.rec), tier = want;
+        var U = usage(tx, userId, day), H = holdsOf(tx, userId, true), left = leftOf(cfg, U.rec), tier = want;
+        var free = cap ? cap - spent(tx, userId, cfg.userPer, day) : Infinity, room = free - H.mine, least = holdOf(CK, cfg, 'cheap');
+        if (free < least) { took = { why: 'spent', left: none() }; return; }
         if (U.all >= cfg.dailyUsd * 1e6) { took = { why: 'budget', left: none() }; return; }
+        if (room < least || U.all + H.all >= cfg.dailyUsd * 1e6) { took = { why: 'busy', left: left }; return; }
         if (left.total <= 0) { took = { why: 'quota', left: left }; return; }
         if (img && left.img <= 0) { took = { why: 'imgquota', left: left }; return; }
-        if (tier === 'deep' && left.deep <= 0) tier = 'smart';
-        if (tier === 'smart' && left.smart <= 0) tier = 'cheap';
+        if (tier === 'deep' && (left.deep <= 0 || room < holdOf(CK, cfg, 'deep'))) tier = 'smart';
+        if (tier === 'smart' && (left.smart <= 0 || room < holdOf(CK, cfg, 'smart'))) tier = 'cheap';
         if (tier === 'cheap' && left.cheap <= 0) { took = { why: 'quota', left: left }; return; }
         var rec = U.rec;
         if (!rec) { rec = new G.Record(tx.findCollectionByNameOrId('coach_usage')); rec.set('user', userId); rec.set('day', day); }
         rec.set(tier, n(rec, tier) + 1); if (img) rec.set('img', n(rec, 'img') + 1);
         tx.save(rec);
+        var hr = H.rec; if (!hr) { hr = new G.Record(tx.findCollectionByNameOrId('coach_usage')); hr.set('user', userId); hr.set('day', HOLDS); }
+        held = holdOf(CK, cfg, tier); hr.set('cost', H.mine + held); hr.set('tin', nowSec()); tx.save(hr);
         took = { tier: tier, left: leftOf(cfg, rec) };
       });
     } catch (err) { console.log('setim coach: no coach_usage collection: ' + err); return fail(e, lang, 'setup'); }
     if (!took) return fail(e, lang, 'setup');
+    if (took.why === 'spent') return fail(e, lang, 'spent', { left: took.left, say: (SAY[lang] || SAY.he)[cfg.userPer === 'all' ? 'spent' : 'spent_' + cfg.userPer] });
     if (took.why) return fail(e, lang, took.why, { left: took.left });
     if (took.tier !== rq.tier) { o.force = took.tier; rq = CK.request(o, cfg); }
     var left = took.left;
@@ -178,6 +250,8 @@ module.exports = {
        a call that never reached an answer (no connection, a busy model, a bad key) gives its place back. */
     try {
       G.app.runInTransaction(function (tx) {
+        var hr = holdsOf(tx, userId, false).rec;      // the hold comes off, whatever happened to the call
+        if (hr) { var rest = n(hr, 'cost') - held; if (rest > 0) { hr.set('cost', rest); hr.set('tin', nowSec()); tx.save(hr); } else tx['delete'](hr); }
         var rec = usage(tx, userId, day).rec; if (!rec) return;
         if (R.why) { rec.set(rq.tier, Math.max(0, n(rec, rq.tier) - 1)); if (img) rec.set('img', Math.max(0, n(rec, 'img') - 1)); }
         else {
@@ -223,7 +297,7 @@ module.exports = {
     return e.json(200, { ok: true, access: true, owner: !!out.owner });
   },
 
-  /* the owner's corner: {do:'state'} | {do:'invite'} | {do:'revoke', user} | {do:'limits', total, dailyUsd} */
+  /* the owner's corner: {do:'state'} | {do:'invite'} | {do:'revoke', user} | {do:'limits', total, dailyUsd} | {do:'gate', open, userUsd} */
   admin: function (e, G) {
     var b = bodyOf(e), lang = b.lang === 'en' ? 'en' : 'he', userId = userOf(e);
     if (!userId) return fail(e, lang, 'auth');
@@ -245,6 +319,12 @@ module.exports = {
         if (!(t >= 1 && t <= 200) || !(u >= 0.5 && u <= 20)) return fail(e, lang, 'bad');
         var cr = G.app.findRecordsByFilter('coach_config', 'key = {:k}', '', 1, 0, { k: 'limits' }), c = cr.length ? cr[0] : new G.Record(G.app.findCollectionByNameOrId('coach_config'));
         c.set('key', 'limits'); c.set('total', t); c.set('usd', u); G.app.save(c);
+      } else if (act === 'gate') {
+        /* who may ask (everyone with an account, or invited people only) and how many dollars each person gets */
+        var p = +b.userUsd;
+        if (typeof b.open !== 'boolean' || !(p >= 0.5 && p <= 50)) return fail(e, lang, 'bad');
+        var gr = G.app.findRecordsByFilter('coach_config', 'key = {:k}', '', 1, 0, { k: 'gate' }), g = gr.length ? gr[0] : new G.Record(G.app.findCollectionByNameOrId('coach_config'));
+        g.set('key', 'gate'); g.set('total', b.open ? 1 : 0); g.set('usd', p); G.app.save(g);
       } else if (act !== 'state') return fail(e, lang, 'bad');
       return e.json(200, state(G, extra));
     } catch (err) { console.log('setim coach: the owner\'s request failed: ' + err); return fail(e, lang, 'setup'); }

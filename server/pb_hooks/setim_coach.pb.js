@@ -1,11 +1,14 @@
 /// <reference path="../pb_data/types.d.ts" />
 /* The coach of the "setim" app: the one place that holds the Claude API key and talks to the model.
-   GET  /api/setim/coach         -> {ok, on, access, owner, left, limit}   is the coach switched on here, was this person invited,
-                                    and how many answers they have left today
+   GET  /api/setim/coach         -> {ok, v, on, open, access, owner, left, limit, usd}   is the coach switched on here, is it open to
+                                    everyone or was this person invited, how many answers they have left today, and how much of
+                                    their own dollars they used
    POST /api/setim/coach         {text, hist, snap, img?, pref?, lastTier?}   -> {ok, say, acts, tier, model, left}
    POST /api/setim/coach/join    {code}   an invitation link was opened: the signed-in person gets the coach (one link, one account)
-   POST /api/setim/coach/admin   {do: state | invite | revoke | limits}   the owner only: who is in, a new link, the daily limits
-   Only a signed-in person who was invited may ask. The app answers what it can by itself and sends here only what needs a model;
+   POST /api/setim/coach/admin   {do: state | invite | revoke | limits | gate}   the owner only: who is in, a new link, the daily
+                                    limits, and whether the coach is open to everyone and how many dollars each person gets
+   Only a signed-in person may ask: someone who was invited, or, when the owner opened the coach ("open" in coach.json, or from the
+   app), anyone with an account, each within a ceiling of dollars. The app answers what it can by itself and sends here only what needs a model;
    this side decides which model (the complexity score in coach.js), keeps the daily limits, and never writes the person's
    documents: what the model proposes goes back to the app as "acts", and the person confirms each one there.
    Files in this folder for it: this file, setim_coach_lib.js (who may ask, limits, the call, the bookkeeping), coach.js (score,

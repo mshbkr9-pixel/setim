@@ -20,12 +20,15 @@
 # After the install, add the coach's collections to the live database (from any computer), touching nothing else:
 #   python -I -X utf8 pb_schema.py https://getonekeyai.com <admin email> '<admin password>' coach_usage,coach_access,coach_invites,coach_config
 # Without them the coach refuses to call the model (it will not spend what it cannot count, or answer people it cannot check).
-# The coach answers invited people only. The owner invites people from the app; the owner's own link is made once with
+# By default the coach answers invited people only. The owner invites people from the app; the owner's own link is made once with
 #   EM=<admin email> PW=<admin password> python -I -X utf8 coach_owner.py https://getonekeyai.com link
 # and whoever opens it while signed in becomes the owner.
 # Knobs (models, score cuts, limits of each kind, the daily budget): /opt/pocketbase/pb_hooks/coach.json. A later install does
-# not overwrite it. The number of answers a day per person and the daily budget can also be changed by the owner from the app
-# (kept in the database, and they win over the file). Rollback: rm /opt/pocketbase/pb_hooks/setim_coach.pb.js && systemctl restart pocketbase
+# not overwrite it. Three more knobs live there, read by setim_coach_lib.js itself: "open": true lets everyone with an account
+# ask; "userUsd" is the dollars each person but the owner gets (2 by default; 0: no ceiling of their own); "userPer" is what
+# they are counted over ("all": everything the person ever asked, "month" or "day"). The number of answers a day per person,
+# the daily budget, "open" and "userUsd" can also be changed by the owner from the app (kept in the database, and they win
+# over the file). Rollback: rm /opt/pocketbase/pb_hooks/setim_coach.pb.js && systemctl restart pocketbase
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SRC="$HERE/pb_hooks"
