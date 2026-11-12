@@ -14,7 +14,8 @@ Schema:
                                   their own rows; nobody edits one. The hook /api/setim/voice looks a code up by its hash.
   coach_usage (base)            — one row per (user, day): how many coach answers of each kind the person got that day,
                                   the tokens and the cost in millionths of a dollar. A signed-in user may read their own
-                                  rows; only the hook /api/setim/coach writes them.
+                                  rows; only the hook /api/setim/coach writes them. A row stays when its person deletes
+                                  the account (the link is cleared), so the day's total cannot be erased that way.
 """
 import json, sys, urllib.request, urllib.error
 
@@ -60,15 +61,21 @@ voice_keys = {
     'listRule': OWN, 'viewRule': OWN, 'createRule': OWN, 'updateRule': None, 'deleteRule': OWN,
 }
 NUM = lambda name: {'name': name, 'type': 'number', 'min': 0}
+# A usage row must outlive the account that spent it. The daily budget for everyone is the sum of the day's rows, and a
+# person may delete their own account: if the row went with it, opening accounts, spending and deleting them would
+# take that spending out of the count and the budget would never be reached. So this link is not required and does
+# not cascade: PocketBase clears it when the person is deleted and the row stays, owned by nobody. The unique index
+# leaves such rows out, so several of them can share a day.
+SPENT_BY = {'name': 'user', 'type': 'relation', 'required': False, 'collectionId': '_pb_users_auth_', 'maxSelect': 1, 'cascadeDelete': False}
 coach_usage = {
     'name': 'coach_usage', 'type': 'base',
     'fields': [
-        USER,
+        SPENT_BY,
         {'name': 'day', 'type': 'text', 'required': True, 'min': 10, 'max': 10, 'pattern': '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'},
         NUM('cheap'), NUM('smart'), NUM('deep'), NUM('img'), NUM('tin'), NUM('tout'), NUM('cost'),
         {'name': 'updated', 'type': 'autodate', 'onCreate': True, 'onUpdate': True},
     ],
-    'indexes': ['CREATE UNIQUE INDEX idx_coach_usage_user_day ON coach_usage (user, day)', 'CREATE INDEX idx_coach_usage_day ON coach_usage (day)'],
+    'indexes': ["CREATE UNIQUE INDEX idx_coach_usage_user_day ON coach_usage (user, day) WHERE user != ''", 'CREATE INDEX idx_coach_usage_day ON coach_usage (day)'],
     # a person may see their own rows; only the coach hook writes them, so nobody can reset their own count
     'listRule': OWN, 'viewRule': OWN, 'createRule': None, 'updateRule': None, 'deleteRule': None,
 }

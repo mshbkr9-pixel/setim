@@ -6,6 +6,10 @@ hook sent. The hook must have been started with that address in its coach.json (
 
 Usage:  python -I -X utf8 coach_try.py <PB_URL> <stand-in port>
         e.g.  python -I -X utf8 coach_try.py http://127.0.0.1:8099 8098       (what coach_setup.sh --try runs)
+        python -I -X utf8 coach_try.py <PB_URL> <stand-in port> --spent
+        the second pass of coach_setup.sh --try, after it has set a daily budget smaller than what the first pass cost:
+        a new person must be refused, although the person who spent has deleted the account. The day's count has to
+        outlive the account, or deleting accounts would be a way around the budget.
 
 It needs no admin password: everything goes through the same doors the app uses. The test user deletes itself at the end.
 Exit code 0 only when every step passed.
@@ -67,6 +71,16 @@ st, r = call('POST', '/api/collections/users/auth-with-password', {'identity': e
 check('sign in', st == 200 and r.get('token'), (st, r))
 tok, uid = r.get('token', ''), (r.get('record') or {}).get('id', '')
 ask = lambda body: call('POST', '/api/setim/coach', body, tok)
+
+if '--spent' in sys.argv[3:]:
+    st, r = call('GET', '/api/setim/coach', token=tok)
+    check("the day's spending is still counted after the account that spent it was deleted", r.get('on') is True and r.get('left') == {'cheap': 0, 'smart': 0, 'deep': 0, 'img': 0}, r)
+    st, r = ask({'text': 'מה כדאי לי לאכול אחרי האימון?'})
+    check('over the daily budget for everyone the hook says so and sends nothing', r.get('ok') is False and r.get('why') == 'budget' and not seen, (r, len(seen)))
+    st, r = call('DELETE', '/api/collections/users/records/' + uid, None, tok); check('the throwaway user deletes itself', st in (200, 204), (st, r))
+    srv.shutdown()
+    print('\n%s (%d failed, %d requests reached the stand-in)' % ('ALL PASSED' if not fails else 'SOME CHECKS FAILED', fails, len(seen)))
+    sys.exit(1 if fails else 0)
 
 st, r = ask({'text': 'מה כדאי לי לאכול אחרי האימון?', 'snap': {'today': '2026-11-12', 'me': {'name': 'ניסיון'}}, 'hist': [{'r': 'u', 't': 'היי'}, {'r': 'a', 't': 'היי.'}]})
 check('a short question is answered through the small model', st == 200 and r.get('ok') is True and r.get('say') == 'תשובת ניסיון' and r.get('tier') == 'cheap' and r.get('acts') == [], (st, r))

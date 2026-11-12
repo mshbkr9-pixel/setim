@@ -5,8 +5,9 @@
 #
 #   bash coach_setup.sh --try      starts a second, temporary PocketBase on 127.0.0.1:8099 with an empty data folder and the hook
 #                                  pointed at a stand-in for the Claude API (inside coach_try.py), creates the collections in it,
-#                                  runs coach_try.py against it, and removes it. The live service is not touched and nothing is
-#                                  spent: no request leaves the server.
+#                                  runs coach_try.py against it (twice: the second pass checks that the day's spending is still
+#                                  counted after the person who spent it deleted the account), and removes it. The live service
+#                                  is not touched and nothing is spent: no request leaves the server.
 #   bash coach_setup.sh            installs into /opt/pocketbase/pb_hooks, adds the key file to the service once, restarts
 #                                  PocketBase. If it is not healthy within 15 seconds, the hook is taken out again and PocketBase
 #                                  is started without it.
@@ -44,6 +45,10 @@ if [ "${1:-}" = "--try" ]; then
   healthy 8099 || { echo "TRY: the temporary PocketBase did not start. Its log:"; tail -n 40 "$TMP/pb.log"; exit 1; }
   python3 -I -X utf8 "$HERE/pb_schema.py" http://127.0.0.1:8099 try@example.test "$TRY_PW"
   if python3 -I -X utf8 "$HERE/coach_try.py" http://127.0.0.1:8099 8098; then echo "TRY: passed"; else echo "TRY: failed. PocketBase log:"; tail -n 40 "$TMP/pb.log"; exit 1; fi
+  # The person who just spent has deleted the account. With a daily budget smaller than that spending, the next person must be
+  # refused: the day's count has to outlive the account. The hook reads coach.json on every request, so no restart is needed.
+  printf '{"apiUrl":"http://127.0.0.1:8098/v1/messages","dailyUsd":0.000001}\n' > "$TMP/pb_hooks/coach.json"
+  if python3 -I -X utf8 "$HERE/coach_try.py" http://127.0.0.1:8099 8098 --spent; then echo "TRY: the daily budget outlives a deleted account"; else echo "TRY: failed. PocketBase log:"; tail -n 40 "$TMP/pb.log"; exit 1; fi
   exit 0
 fi
 

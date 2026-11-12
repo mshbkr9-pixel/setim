@@ -4,8 +4,9 @@
    read it. Use it once before the hook is installed, and again after changing a model, the system prompt or the answer schema.
 
    Run from the project folder, with the key in the environment (never as an argument, never printed):
-       ANTHROPIC_API_KEY=... node server/coach_live.js            the small model, then the large one (two requests)
-       ANTHROPIC_API_KEY=... node server/coach_live.js photo.jpg  the same, plus a photo of a plate (three requests)
+       ANTHROPIC_API_KEY=... node server/coach_live.js            the small model (cheap), then the large one (deep): two requests
+       ANTHROPIC_API_KEY=... node server/coach_live.js photo.jpg  the same, plus a photo sent to the large model (smart): three requests
+       ... --only=2,3                                              only those requests, by their number
    Exit code 0 only when every answer came back in the expected shape. */
 const fs = require('fs');
 const path = require('path');
@@ -16,6 +17,11 @@ const CK = require('../parts/coach.js');
 
 const KEY = (process.env.ANTHROPIC_API_KEY || '').trim();
 if (!KEY) { console.error('ANTHROPIC_API_KEY is not set in the environment.'); process.exit(2); }
+/* A value with a space, a quote or a comment after it would make fetch refuse the header, and its error message quotes the
+   value. Stop before that, and say nothing about what the value holds. */
+if (!/^[A-Za-z0-9_\-]{20,}$/.test(KEY)) { console.error('ANTHROPIC_API_KEY does not look like a key (it has a space, a quote or other text in it). Nothing was sent.'); process.exit(2); }
+const ARGS = process.argv.slice(2), PHOTO = ARGS.find(a => !a.startsWith('--'));
+const ONLY = ((ARGS.find(a => a.startsWith('--only=')) || '').slice(7)).split(',').filter(Boolean).map(Number);
 const root = path.join(__dirname, '..');
 const core = JSON.parse(fs.readFileSync(path.join(root, 'data', 'food-core.json'), 'utf8'));
 const cfg = CK.config(JSON.parse(fs.readFileSync(path.join(__dirname, 'pb_hooks', 'coach.json'), 'utf8')));
@@ -31,17 +37,19 @@ const snap = { today, weekday: 'חמישי', time: '13:10', me: { name: 'בדי�
 
 const ASKS = [
   { name: 'the small model: a short question', o: { text: 'מה כדאי לי לאכול אחרי האימון?' }, want: 'cheap', expect: A => A.say.length > 20 },
-  { name: 'the large model: a menu for tomorrow, from the recipe list', o: { text: 'תבנה לי תפריט למחר (' + tomorrow + ') לפי היעדים שלי, ממה שיש לי בבית, בתקציב נמוך. תסביר בקצרה למה בחרת כך.' }, want: 'smart',
+  /* A menu, the pantry, the budget and a "why" in one sentence: by the score this is the top step (deep), not the middle one. */
+  { name: 'the large model, longer thinking: a menu for tomorrow, from the recipe list', o: { text: 'תבנה לי תפריט למחר (' + tomorrow + ') לפי היעדים שלי, ממה שיש לי בבית, בתקציב נמוך. תסביר בקצרה למה בחרת כך.' }, want: 'deep',
     expect: A => A.acts.some(a => a.t === 'plan' && a.days.length >= 1 && a.days[0].meals.some(m => core.recipes.some(r => r.id === m.recipe))) },
 ];
-if (process.argv[2]) {
-  const file = process.argv[2], ext = path.extname(file).toLowerCase(), type = ext === '.png' ? 'image/png' : (ext === '.webp' ? 'image/webp' : 'image/jpeg');
+if (PHOTO) {
+  const file = PHOTO, ext = path.extname(file).toLowerCase(), type = ext === '.png' ? 'image/png' : (ext === '.webp' ? 'image/webp' : 'image/jpeg');
   ASKS.push({ name: 'the large model: a photo of a plate', o: { text: '', img: { type, data: fs.readFileSync(file).toString('base64') } }, want: 'smart', expect: A => A.say.length > 10 });
 }
 
 (async () => {
   let bad = 0, total = 0;
-  for (const ask of ASKS) {
+  const RUN = ASKS.filter((a, i) => !ONLY.length || ONLY.includes(i + 1));
+  for (const ask of RUN) {
     const rq = CK.request(Object.assign({ snap, catalog, hist: [] }, ask.o), cfg);
     const headers = { 'content-type': 'application/json', 'x-api-key': KEY, 'anthropic-version': '2026-10-21' };
     if (rq.betas.length) headers['anthropic-beta'] = rq.betas.join(',');
@@ -60,6 +68,6 @@ if (process.argv[2]) {
     const ok = rq.tier === ask.want && ask.expect(A);
     console.log(ok ? '   OK' : '   NOT AS EXPECTED (tier wanted ' + ask.want + ')'); if (!ok) bad++;
   }
-  console.log('\n' + (bad ? bad + ' of ' + ASKS.length + ' not as expected' : 'all ' + ASKS.length + ' as expected') + ' · total cost $' + (total / 1e6).toFixed(4));
+  console.log('\n' + (bad ? bad + ' of ' + RUN.length + ' not as expected' : 'all ' + RUN.length + ' as expected') + ' · total cost $' + (total / 1e6).toFixed(4));
   process.exit(bad ? 1 : 0);
 })();
