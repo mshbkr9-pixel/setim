@@ -24,7 +24,7 @@ var CoachKit=(function(){
     effort:{cheap:'low',smart:'low',deep:'medium'},
     score:{smart:35,deep:70},                         // a score below `smart` goes to the small model; from `deep` up the large one thinks more
     maxTokens:{cheap:4000,smart:8000,deep:16000},     // thinking counts toward these, so they are roomy; the cost cap is the daily budget below
-    perUser:{cheap:60,smart:15,deep:5,img:8},         // answers per person per day
+    perUser:{total:20,cheap:60,smart:15,deep:5,img:8},  // per person per day: `total` is every answer a model gave (the owner changes it from the app); the rest cap each kind inside it
     dailyUsd:3,                                       // everyone together, per day; past it the coach answers only locally until midnight (UTC)
     prices:{'claude-haiku-5-5':[0.10,0.50],'claude-sonnet-5-5':[2,10],'claude-opus-5-5':[4,20]},      // dollars per million tokens: input, output
     fallbacks:true,                                   // large model only: a request its safety filter declines is retried on the model Anthropic recommends

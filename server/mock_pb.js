@@ -22,6 +22,9 @@ const TOKENS = {};  // token -> user id
 const DOCS = {};    // id -> {id,user,key,data}
 const VKEYS = {};   // id -> {id,user,hash,label}
 const USAGE = {};   // id -> {id,user,day,cheap,smart,deep,img,tin,tout,cost}
+const ACCESS = {};  // id -> {id,user,role,by}          who was invited to the coach
+const INVITES = {}; // id -> {id,hash,role,by,exp,used,used_at}
+const CONFIG = {};  // id -> {id,key,total,usd}        the owner's limits
 let TEST_LINK = '';   // set through POST /__test/shortcut, only in this stand-in
 const COACH = { mode: '', calls: [], cfg: null };   // set through POST /__test/coach: how the stand-in model behaves, and the knobs for a test
 
@@ -73,7 +76,11 @@ class Rec {
   getString(f) { const v = this.o[f]; return v == null ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)); }
   set(f, v) { this.o[f] = f === 'data' ? JSON.parse(JSON.stringify(v)) : v; }
 }
-const storeOf = coll => coll === 'voice_keys' ? VKEYS : (coll === 'coach_usage' ? USAGE : DOCS);
+const COACH_STORES = { coach_usage: USAGE, coach_access: ACCESS, coach_invites: INVITES, coach_config: CONFIG };
+const storeOf = coll => coll === 'voice_keys' ? VKEYS : (COACH_STORES[coll] || DOCS);
+/* the handful of filters the coach hook uses: `field = {:param}`, `field = ''`, `id != ''` */
+const matches = (o, filter, p) => filter.split('&&').every(part => { const m = /^\s*(\w+)\s*(!?=)\s*(?:\{:(\w+)\}|'')\s*$/.exec(part); if (!m) throw new Error('a filter this stand-in does not know: ' + filter);
+  const want = m[3] ? p[m[3]] : '', cur = o[m[1]] == null ? '' : o[m[1]]; return m[2] === '=' ? cur === want : cur !== want; });
 const G = {
   hooks: HOOKS, Record: Rec,
   text: b => Buffer.from(b).toString('utf8'),
@@ -83,15 +90,18 @@ const G = {
   },
   http: { send: opts => LIVE ? liveClaude(opts) : fakeClaude(JSON.parse(opts.body)) },
   sleep: () => { },
-  security: { sha256: s => crypto.createHash('sha256').update(s).digest('hex') },
+  security: { sha256: s => crypto.createHash('sha256').update(s).digest('hex'), randomString: k => crypto.randomBytes(k).toString('hex').slice(0, k) },
   app: {
     findFirstRecordByData(coll, field, value) { const hit = Object.values(storeOf(coll)).find(o => o[field] === value); if (!hit) throw new Error('sql: no rows in result set'); return new Rec(coll, hit); },
     findRecordsByFilter(coll, filter, sort, limit, offset, params) {
-      if (coll === 'coach_usage') return Object.values(USAGE).filter(r => r.day === params.d).map(r => new Rec('coach_usage', r));
+      if (COACH_STORES[coll]) return Object.values(COACH_STORES[coll]).filter(o => matches(o, filter, params || {})).map(o => new Rec(coll, o));
       return Object.values(DOCS).filter(d => d.user === params.u && (d.key.startsWith('log-') || ['vinbox', 'vdone', 'deck', 'week', 'days'].includes(d.key))).map(d => new Rec('docs', d));
     },
+    findRecordById(coll, id) { const hit = Object.values(USERS).find(x => x.id === id); if (!hit) throw new Error('sql: no rows in result set'); return new Rec(coll, hit); },
     findCollectionByNameOrId(name) { return { name }; },
-    save(rec) { if (!rec.o.id) rec.o.id = uid(); storeOf(rec.coll)[rec.o.id] = rec.o; }
+    save(rec) { if (!rec.o.id) rec.o.id = uid(); storeOf(rec.coll)[rec.o.id] = rec.o; },
+    delete(rec) { delete storeOf(rec.coll)[rec.o.id]; },
+    runInTransaction(fn) { return fn(G.app); }
   }
 };
 
@@ -119,10 +129,20 @@ http.createServer((req, res) => {
         const e = { requestInfo: () => ({ body: b }), request: { header: { get: n => req.headers[String(n).toLowerCase()] || '' } }, json: (code, body) => send(res, code, body) };
         return lib.post(e, G);
       }
-      if (p === '/__test/coach' && req.method === 'POST') { COACH.mode = String(b.mode || ''); if ('cfg' in b) COACH.cfg = b.cfg || null; if (b.reset) { COACH.calls.length = 0; Object.keys(USAGE).forEach(k => delete USAGE[k]); } return send(res, 200, { mode: COACH.mode }); }
-      if (p === '/__test/coach' && req.method === 'GET') return send(res, 200, { mode: COACH.mode, live: LIVE, calls: COACH.calls, usage: Object.values(USAGE) });
-      if (p === '/api/setim/coach') {
+      if (p === '/__test/coach' && req.method === 'POST') {
+        COACH.mode = String(b.mode || ''); if ('cfg' in b) COACH.cfg = b.cfg || null;
+        if (b.reset) { COACH.calls.length = 0; [USAGE, ACCESS, INVITES, CONFIG].forEach(st => Object.keys(st).forEach(k => delete st[k])); }
+        /* what a real server gets from coach_owner.py: letting the signed-in account in, or a link (owner or guest) to open */
+        const out = { mode: COACH.mode };
+        if (b.grant && me) { Object.keys(ACCESS).forEach(k => { if (ACCESS[k].user === me) delete ACCESS[k]; }); const id = uid(); ACCESS[id] = { id, user: me, role: b.grant === 'owner' ? 'owner' : 'guest', by: '' }; }
+        if (b.invite) { const code = G.security.randomString(24), id = uid(); INVITES[id] = { id, hash: G.security.sha256(code), role: b.invite === 'owner' ? 'owner' : 'guest', by: '', exp: Date.now() + 7 * 86400000, used: '', used_at: 0 }; out.code = code; }
+        return send(res, 200, out);
+      }
+      if (p === '/__test/coach' && req.method === 'GET') return send(res, 200, { mode: COACH.mode, live: LIVE, calls: COACH.calls, usage: Object.values(USAGE), access: Object.values(ACCESS), invites: Object.values(INVITES).length, config: Object.values(CONFIG) });
+      if (p === '/api/setim/coach' || p === '/api/setim/coach/join' || p === '/api/setim/coach/admin') {
         const e = { auth: me ? { id: me } : null, requestInfo: () => ({ body: b }), json: (code, body) => send(res, code, body) };
+        if (p.endsWith('/join')) return req.method === 'POST' ? coachLib.join(e, G) : send(res, 404, { message: 'not found' });
+        if (p.endsWith('/admin')) return req.method === 'POST' ? coachLib.admin(e, G) : send(res, 404, { message: 'not found' });
         return req.method === 'GET' ? coachLib.info(e, G) : coachLib.post(e, G);
       }
 
@@ -145,7 +165,8 @@ http.createServer((req, res) => {
 
       if (p.startsWith('/api/collections/users/records/') && req.method === 'DELETE') {          // rule: a person can delete only their own account; their rows go with it
         const id = p.split('/').pop(); if (!me || me !== id) return send(res, 404, { message: "The requested resource wasn't found." });
-        for (const store of [DOCS, VKEYS, USAGE]) Object.keys(store).forEach(k => { if (store[k].user === id) delete store[k]; });
+        for (const store of [DOCS, VKEYS, ACCESS]) Object.keys(store).forEach(k => { if (store[k].user === id) delete store[k]; });
+        Object.keys(USAGE).forEach(k => { if (USAGE[k].user === id) USAGE[k].user = ''; });          // a usage row stays, owned by nobody: the day's spending is not erased with the account
         Object.keys(USERS).forEach(k => { if (USERS[k].id === id) delete USERS[k]; }); Object.keys(TOKENS).forEach(k => { if (TOKENS[k] === id) delete TOKENS[k]; });
         return send(res, 204);
       }

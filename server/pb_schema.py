@@ -16,6 +16,9 @@ Schema:
                                   the tokens and the cost in millionths of a dollar. A signed-in user may read their own
                                   rows; only the hook /api/setim/coach writes them. A row stays when its person deletes
                                   the account (the link is cleared), so the day's total cannot be erased that way.
+  coach_access, coach_invites, coach_config
+                                — who may use the coach (invited accounts only), the invitation links (by their SHA-256)
+                                  and the limits the owner set. Only the hook reads and writes them.
 """
 import json, sys, urllib.request, urllib.error
 
@@ -79,7 +82,46 @@ coach_usage = {
     # a person may see their own rows; only the coach hook writes them, so nobody can reset their own count
     'listRule': OWN, 'viewRule': OWN, 'createRule': None, 'updateRule': None, 'deleteRule': None,
 }
-for coll in (docs, voice_keys, coach_usage):
+# The three below are read and written by the coach hook only: no rule lets a person through, not even to their own row.
+# coach_access: who may use the model. One row per invited account; it goes when the account is deleted.
+coach_access = {
+    'name': 'coach_access', 'type': 'base',
+    'fields': [
+        USER,
+        {'name': 'role', 'type': 'text', 'required': True, 'max': 10},        # owner | guest
+        {'name': 'by', 'type': 'text', 'max': 20},                             # the account that invited this one
+        {'name': 'created', 'type': 'autodate', 'onCreate': True},
+    ],
+    'indexes': ['CREATE UNIQUE INDEX idx_coach_access_user ON coach_access (user)'],
+    'listRule': None, 'viewRule': None, 'createRule': None, 'updateRule': None, 'deleteRule': None,
+}
+# coach_invites: one row per invitation link. Only the SHA-256 of the code is kept; `used` is the account that opened it.
+coach_invites = {
+    'name': 'coach_invites', 'type': 'base',
+    'fields': [
+        {'name': 'hash', 'type': 'text', 'required': True, 'min': 64, 'max': 64, 'pattern': '^[a-f0-9]{64}$'},
+        {'name': 'role', 'type': 'text', 'max': 10},
+        {'name': 'by', 'type': 'text', 'max': 20},
+        {'name': 'exp', 'type': 'number'},                                    # milliseconds since 1970: the link works until then
+        {'name': 'used', 'type': 'text', 'max': 20},
+        {'name': 'used_at', 'type': 'number'},
+        {'name': 'created', 'type': 'autodate', 'onCreate': True},
+    ],
+    'indexes': ['CREATE UNIQUE INDEX idx_coach_invites_hash ON coach_invites (hash)'],
+    'listRule': None, 'viewRule': None, 'createRule': None, 'updateRule': None, 'deleteRule': None,
+}
+# coach_config: what the owner set from the app. One row, key "limits": answers a day per person, dollars a day for everyone.
+coach_config = {
+    'name': 'coach_config', 'type': 'base',
+    'fields': [
+        {'name': 'key', 'type': 'text', 'required': True, 'max': 30},
+        NUM('total'), NUM('usd'),
+        {'name': 'updated', 'type': 'autodate', 'onCreate': True, 'onUpdate': True},
+    ],
+    'indexes': ['CREATE UNIQUE INDEX idx_coach_config_key ON coach_config (key)'],
+    'listRule': None, 'viewRule': None, 'createRule': None, 'updateRule': None, 'deleteRule': None,
+}
+for coll in (docs, voice_keys, coach_usage, coach_access, coach_invites, coach_config):
     name = coll['name']
     if ONLY is not None and name not in ONLY:
         continue

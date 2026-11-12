@@ -123,17 +123,31 @@ test('the cost of an answer, from its tokens', () => {
 
 /* ---------- the server side, against a stand-in for the API ---------- */
 const lib = require('../server/pb_hooks/setim_coach_lib.js');
+const crypto = require('crypto');
+const sha = s => crypto.createHash('sha256').update(s).digest('hex');
+/* a few PocketBase objects, in memory. The filters are the handful the hook uses: `field = {:param}`, `field = ''`, `id != ''`.
+   By default u1 and u2 were invited and o1 is the owner; {access: {...}} says otherwise. */
 function server(over = {}) {
-  const USAGE = {}, sent = [], HOOKS = path.join(root, 'server', 'pb_hooks'); let n = 0;
-  class Rec { constructor(c, o) { this.o = o || {}; } get(f) { return this.o[f]; } getString(f) { return this.o[f] == null ? '' : String(this.o[f]); } set(f, v) { this.o[f] = v; } }
-  const G = { hooks: HOOKS, Record: Rec, text: b => Buffer.from(b).toString('utf8'), sleep: () => {},
+  const DB = { coach_usage: {}, coach_access: {}, coach_invites: {}, coach_config: {} }, USAGE = DB.coach_usage, sent = [], HOOKS = path.join(root, 'server', 'pb_hooks'); let n = 0;
+  class Rec { constructor(c, o) { this.c = typeof c === 'string' ? c : c.name; this.o = o || {}; } get(f) { return this.o[f]; } getString(f) { return this.o[f] == null ? '' : String(this.o[f]); } set(f, v) { this.o[f] = v; } }
+  const match = (o, filter, p) => filter.split('&&').every(part => { const m = /^\s*(\w+)\s*(!?=)\s*(?:\{:(\w+)\}|'')\s*$/.exec(part); if (!m) throw new Error('a filter this stand-in does not know: ' + filter);
+    const want = m[3] ? p[m[3]] : '', cur = o[m[1]] == null ? '' : o[m[1]]; return m[2] === '=' ? cur === want : cur !== want; });
+  const app = {
+    findRecordsByFilter: (c, f, s, l, off, p) => { if (over.noTable) throw new Error('no such collection'); return Object.values(DB[c]).filter(o => match(o, f, p || {})).map(o => new Rec(c, o)); },
+    findCollectionByNameOrId: name => { if (over.noTable) throw new Error('no such collection'); return { name }; },
+    findRecordById: (c, id) => new Rec(c, { id, name: 'שם ' + id, email: id + '@example.test' }),
+    save: rec => { if (!rec.o.id) rec.o.id = 'r' + (++n); DB[rec.c][rec.o.id] = rec.o; },
+    delete: rec => { delete DB[rec.c][rec.o.id]; },
+    runInTransaction: fn => fn(app)
+  };
+  Object.entries(over.access || { u1: 'guest', u2: 'guest', o1: 'owner' }).forEach(([user, role]) => app.save(new Rec('coach_access', { user, role, by: '' })));
+  const G = { hooks: HOOKS, Record: Rec, text: b => Buffer.from(b).toString('utf8'), sleep: () => {}, app,
+    security: { sha256: sha, randomString: k => crypto.randomBytes(k).toString('hex').slice(0, k) },
     os: { readFile: p => (/coach\.json$/.test(p) && over.cfg) ? Buffer.from(JSON.stringify(over.cfg)) : fs.readFileSync(p), getenv: k => k === 'ANTHROPIC_API_KEY' ? (over.key === undefined ? 'k' : over.key) : '' },
-    http: { send: o => { sent.push({ url: o.url, headers: o.headers, body: JSON.parse(o.body) }); const r = (over.answer || (() => ({ statusCode: 200, json: { model: 'm', content: [{ type: 'text', text: '{"say":"שלום","acts":[]}' }], stop_reason: 'end_turn', usage: { input_tokens: 1000, output_tokens: 100 } } })))(sent.length, JSON.parse(o.body)); if (r === 'throw') throw new Error('net'); return r; } },
-    app: { findRecordsByFilter: (c, f, s, l, off, p) => Object.values(USAGE).filter(r => r.day === p.d).map(r => new Rec(c, r)), findCollectionByNameOrId: name => { if (over.noTable) throw new Error('no such collection'); return { name }; }, save: rec => { if (!rec.o.id) rec.o.id = 'u' + (++n); USAGE[rec.o.id] = rec.o; } } };
-  if (over.noTable) G.app.findRecordsByFilter = () => { throw new Error('no such collection'); };
-  const ask = (body, user) => { let out; lib.post({ auth: user === null ? null : { id: user || 'u1' }, requestInfo: () => ({ body }), json: (c, o) => { out = o; } }, G); return out; };
+    http: { send: o => { sent.push({ url: o.url, headers: o.headers, body: JSON.parse(o.body) }); const r = (over.answer || (() => ({ statusCode: 200, json: { model: 'm', content: [{ type: 'text', text: '{"say":"שלום","acts":[]}' }], stop_reason: 'end_turn', usage: { input_tokens: 1000, output_tokens: 100 } } })))(sent.length, JSON.parse(o.body)); if (r === 'throw') throw new Error('net'); return r; } } };
+  const door = fn => (body, user) => { let out; lib[fn]({ auth: user === null ? null : { id: user || 'u1' }, requestInfo: () => ({ body }), json: (c, o) => { out = o; } }, G); return out; };
   const info = user => { let out; lib.info({ auth: user ? { id: user } : null, json: (c, o) => { out = o; } }, G); return out; };
-  return { ask, info, sent, USAGE };
+  return { ask: door('post'), join: (code, user) => door('join')({ code }, user), admin: door('admin'), info, sent, USAGE, DB, app, Rec };
 }
 test('server: only a signed-in person is answered, and only when the key is there', () => {
   assert.strictEqual(server().ask({ text: 'שלום' }, null).why, 'auth');
@@ -175,4 +189,57 @@ test('server: a busy model is tried twice, a refused answer shape once more with
   assert.strictEqual(server({ answer: () => 'throw' }).ask({ text: 'שאלה' }).why, 'net');
   const ref = server({ answer: () => ({ statusCode: 200, json: { content: [], stop_reason: 'refusal', usage: { input_tokens: 500, output_tokens: 0 } } }) }); const R = ref.ask({ text: 'שאלה' });
   assert.strictEqual(R.why, 'refusal'); assert.strictEqual(Object.values(ref.USAGE)[0].cheap, 1, 'a declined answer is still counted');
+});
+
+/* ---------- who may ask, and how much ---------- */
+test('server: only people who were invited reach the model', () => {
+  const S1 = server({ access: {} });
+  const A = S1.ask({ text: 'מה כדאי לי לאכול אחרי האימון?' }, 'stranger');
+  assert.strictEqual(A.why, 'invite'); assert.ok(/למוזמנים/.test(A.say)); assert.strictEqual(S1.sent.length, 0); assert.deepStrictEqual(Object.keys(S1.USAGE), []);
+  const I = S1.info('stranger'); assert.deepStrictEqual([I.on, I.access, I.owner, I.left], [true, false, false, null]);
+  const J = server().info('u1'); assert.deepStrictEqual([J.access, J.owner, J.left.total, J.limit], [true, false, 20, 20]);
+  assert.strictEqual(server().info('o1').owner, true);
+});
+test('server: an invitation link lets one account in, once, and for a week', () => {
+  const S1 = server({ access: { o1: 'owner' } });
+  const st = S1.admin({ do: 'invite' }, 'o1'); assert.strictEqual(st.ok, true); assert.ok(/^[A-Za-z0-9]{24}$/.test(st.code)); assert.strictEqual(st.pending, 1);
+  const row = Object.values(S1.DB.coach_invites)[0]; assert.strictEqual(row.hash, sha(st.code)); assert.ok(!JSON.stringify(row).includes(st.code), 'the code itself is not stored');
+  assert.ok(row.exp > Date.now() + 6 * 86400000 && row.exp <= Date.now() + 7 * 86400000);
+  assert.strictEqual(S1.join(st.code, null).why, 'auth'); assert.strictEqual(S1.join('nope', 'a1').why, 'code'); assert.strictEqual(S1.join('x'.repeat(24), 'a1').why, 'code');
+  assert.deepStrictEqual(S1.join(st.code, 'a1'), { ok: true, access: true, owner: false }); assert.strictEqual(S1.ask({ text: 'שאלה קצרה' }, 'a1').ok, true);
+  assert.strictEqual(S1.join(st.code, 'a2').why, 'used'); assert.strictEqual(S1.ask({ text: 'שאלה קצרה' }, 'a2').why, 'invite');
+  assert.strictEqual(S1.join(st.code, 'a1').ok, true, 'opening the link again does no harm');
+  const st2 = S1.admin({ do: 'invite' }, 'o1'); assert.strictEqual(S1.join(st2.code, 'a1').ok, true); assert.strictEqual(S1.admin({ do: 'state' }, 'o1').pending, 1, 'someone who is already in does not use up a link');
+  Object.values(S1.DB.coach_invites).find(r => r.hash === sha(st2.code)).exp = Date.now() - 1000; assert.strictEqual(S1.join(st2.code, 'a3').why, 'expired'); assert.strictEqual(S1.admin({ do: 'state' }, 'o1').pending, 0);
+});
+test('server: the owner sees who is in and removes someone, and a removed person stays out', () => {
+  const S1 = server({ access: { o1: 'owner' } }), code = S1.admin({ do: 'invite' }, 'o1').code; S1.join(code, 'a1'); S1.ask({ text: 'שאלה קצרה' }, 'a1');
+  const st = S1.admin({ do: 'state' }, 'o1'); assert.deepStrictEqual(st.people.map(p => [p.id, p.owner, p.today]).sort(), [['a1', false, 1], ['o1', true, 0]]); assert.strictEqual(st.people.find(p => p.id === 'a1').email, 'a1@example.test');
+  assert.deepStrictEqual([st.today.n, st.total, st.dailyUsd], [1, 20, 3]); assert.ok(st.today.cost > 0);
+  assert.strictEqual(S1.admin({ do: 'state' }, 'a1').why, 'owner'); assert.strictEqual(S1.admin({ do: 'invite' }, 'a1').why, 'owner'); assert.strictEqual(S1.admin({ do: 'state' }, null).why, 'auth');
+  assert.strictEqual(S1.admin({ do: 'revoke', user: 'o1' }, 'o1').people.length, 2, 'the owner cannot be removed');
+  assert.strictEqual(S1.admin({ do: 'revoke', user: 'a1' }, 'o1').people.length, 1); assert.strictEqual(S1.ask({ text: 'שאלה קצרה' }, 'a1').why, 'invite');
+  assert.strictEqual(S1.join(code, 'a1').why, 'used', 'the old link does not let a removed person back in');
+  assert.strictEqual(S1.admin({ do: 'nonsense' }, 'o1').why, 'bad');
+});
+test('server: an owner link makes an owner, once', () => {
+  const S1 = server({ access: {} }); S1.app.save(new S1.Rec('coach_invites', { hash: sha('OwnerCode0123456789abcd'), role: 'owner', by: '', exp: Date.now() + 60000, used: '', used_at: 0 }));
+  assert.strictEqual(S1.admin({ do: 'state' }, 'me').why, 'owner');
+  assert.deepStrictEqual(S1.join('OwnerCode0123456789abcd', 'me'), { ok: true, access: true, owner: true }); assert.strictEqual(S1.admin({ do: 'state' }, 'me').people[0].owner, true);
+  assert.strictEqual(S1.join('OwnerCode0123456789abcd', 'thief').why, 'used'); assert.strictEqual(S1.admin({ do: 'state' }, 'thief').why, 'owner');
+});
+test('server: one number of answers a day for each person, which the owner changes, within bounds', () => {
+  const S1 = server();
+  assert.strictEqual(S1.admin({ do: 'limits', total: 0, dailyUsd: 3 }, 'o1').why, 'bad'); assert.strictEqual(S1.admin({ do: 'limits', total: 500, dailyUsd: 3 }, 'o1').why, 'bad'); assert.strictEqual(S1.admin({ do: 'limits', total: 5, dailyUsd: 100 }, 'o1').why, 'bad');
+  assert.strictEqual(S1.admin({ do: 'limits', total: 2, dailyUsd: 3 }, 'u1').why, 'owner');
+  const st = S1.admin({ do: 'limits', total: 2, dailyUsd: 1.5 }, 'o1'); assert.deepStrictEqual([st.total, st.dailyUsd], [2, 1.5]); assert.strictEqual(S1.info('u1').limit, 2);
+  assert.strictEqual(S1.ask({ text: 'שאלה' }).ok, true); assert.strictEqual(S1.ask({ text: 'תבנה לי תפריט לשבוע' }).left.total, 0);
+  const R = S1.ask({ text: 'ועוד אחת' }); assert.strictEqual(R.why, 'quota'); assert.strictEqual(R.left.total, 0); assert.strictEqual(S1.sent.length, 2);
+  assert.strictEqual(S1.ask({ text: 'שאלה' }, 'u2').ok, true, 'the number is per person');
+  assert.strictEqual(S1.admin({ do: 'limits', total: 3, dailyUsd: 1.5 }, 'o1').total, 3); assert.strictEqual(S1.ask({ text: 'ועוד אחת' }).ok, true);
+});
+test('server: a call that never reached an answer gives its place in the count back', () => {
+  const S1 = server({ answer: () => 'throw' }); assert.strictEqual(S1.ask({ text: 'שאלה' }).why, 'net');
+  const row = Object.values(S1.USAGE)[0]; assert.deepStrictEqual([row.cheap, row.cost || 0], [0, 0]); assert.strictEqual(S1.info('u1').left.total, 20);
+  const S2 = server({ answer: () => ({ statusCode: 529, json: {} }) }); S2.ask({ text: '', img: 'data:image/jpeg;base64,AAAA' }); const r2 = Object.values(S2.USAGE)[0]; assert.deepStrictEqual([r2.smart, r2.img], [0, 0]);
 });

@@ -6,7 +6,7 @@ would see. Needs two local servers, on ports of their own so that they can run b
 Run:  python -X utf8 tests/ui_v13.py [output folder for screenshots]
 Nothing here costs money: the stand-in answers in the shape of the real API, so the real request and checking code runs.
 Exit code 0 only when every check passed. Screenshots are for the eye; the checks read the page itself."""
-import json, os, sys
+import json, os, re, sys
 from playwright.sync_api import sync_playwright
 
 APP = 'http://127.0.0.1:8793/index.html'
@@ -55,6 +55,8 @@ def run(pw, scheme):
     ctx = b.new_context(viewport={'width': 375, 'height': 812}, device_scale_factor=2, locale='he-IL', color_scheme=scheme,
                         user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1')
     ctx.add_init_script("try{ localStorage.setItem('gt:theme','%s'); localStorage.setItem('gt:onboarded','1'); localStorage.setItem('gtdev:pb','%s'); }catch(e){}" % (scheme, PBM))
+    # a desktop browser has a share dialog that a test cannot answer: without it the app shows the link in a sheet, which the test reads
+    ctx.add_init_script("try{ Object.defineProperty(navigator,'share',{value:undefined,configurable:true}); }catch(e){}")
     # the product database is a public service on the internet: the test answers in its place
     ctx.route('https://world.openfoodfacts.org/**', lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps(
         {'status': 1, 'product': {'code': '7290000000001', 'product_name_he': 'חטיף בדיקה', 'brands': 'מותג', 'serving_quantity': 30, 'nutriments': {'energy-kcal_100g': 480, 'proteins_100g': 8, 'carbohydrates_100g': 60, 'fat_100g': 22}}}
@@ -190,6 +192,25 @@ def run(pw, scheme):
     check(tag + 'sign up on the stand-in server', ok is True, ok)
     docs = page.request.get(PBM + '/api/collections/docs/records?perPage=500', headers={'Authorization': ev("PB.token")}).json()
     keys = sorted(x['key'] for x in docs['items']); check(tag + 'a first sign-in sends the new documents up too', all(k in keys for k in ['nut', 'pantry', 'shop', 'mplan', 'coach', 'myfood', 'food-' + today[:7]]), keys)
+    # ---- the full coach answers only people the owner invited ----
+    goto('#chat'); settle(300)
+    m = say('מה כדאי לי לאכול אחרי האימון?', 1200)
+    check(tag + 'someone who was not invited is told so, and nothing reaches a model', m.get('why') == 'invite' and 'למוזמנים' in m['t'] and len(calls()['calls']) == 0, m)
+    goto('#coach'); settle(600); t = view(); check(tag + 'the coach door says the full coach is for invited people', 'למוזמנים בלבד' in t and 'הזמנות ומגבלות' not in t, t[-300:])
+    code = page.request.post(PBM + '/__test/coach', data=json.dumps({'invite': 'owner'}), headers={'Content-Type': 'application/json'}).json()['code']
+    goto('#join-' + code); settle(1500)
+    st = ev("({page:route.page,hash:location.hash,info:CO.info,kept:joinCode(),toast:document.querySelector('#toastTx').textContent})")
+    check(tag + 'opening an invitation link unlocks the coach, and the code does not stay in the address', st['page'] == 'coach' and st['hash'] == '#coach' and st['info'] and st['info']['access'] and st['info']['owner'] and not st['kept'] and 'המאמן' in st['toast'], st)
+    t = view(); check(tag + 'the owner gets a box for invitations and limits', 'הזמנות ומגבלות' in t and '20 הודעות ביום' in t, t[-300:])
+    goto('#crew'); settle(1000); t = view()
+    check(tag + 'the owner sees the limits and who is in', 'הודעות ביום לאדם' in t and 'תקציב יומי' in t and 'בעלים' in t and 'להזמין מישהו' in ev("document.querySelector('#dock').innerText"), t[:400]); shot('21-crew'); contrast('the owner\'s corner')
+    page.click('#view .stepper >> nth=0 >> button >> nth=0'); settle(1600)
+    cfgs = calls()['config']; check(tag + 'the number of answers a day is changed from the app', ev("CREW.st.total") == 15 and len(cfgs) == 1 and cfgs[0]['total'] == 15 and ev("CO.info.limit") == 15, cfgs)
+    page.click('#view .stepper >> nth=0 >> button >> nth=1'); settle(1600)
+    page.click('#dock .btn'); settle(1300); t = sheet(); link = ev("(document.querySelector('#sheetBody input')||{}).value||''")
+    check(tag + 'an invitation is a link to this app with a code in it, and one more link is waiting', re.match(r'^http://127\.0\.0\.1:8793/index\.html#join-[A-Za-z0-9]{24}$', link) is not None and 'קישור הזמנה' in t and ev("CREW.st.pending") == 1 and ev("CREW.st.total") == 20, [link, t[:120]])
+    contrast('invitation link', '#sheetBody'); close()
+
     goto('#chat'); settle(300)
     m = say('מה כדאי לי לאכול אחרי האימון?', 1200); c = calls()['calls']
     check(tag + 'a short question goes to the small model, thinking little', m['tier'] == 'cheap' and len(c) == 1 and c[0]['model'] == 'claude-haiku-5-5' and c[0]['effort'] == 'low' and c[0]['fallbacks'] == '' and c[0]['format'] and c[0]['cached'], [m, c])
@@ -231,8 +252,9 @@ def run(pw, scheme):
     check(tag + 'a draft in the chat box survives a repaint', ev("document.querySelector('#dock .askbar textarea').value") == 'טיוטה שלא נשלחה')
     ev("Promise.all(Object.values(writeQ))"); settle(600)
     page.reload(); page.wait_for_function("typeof S !== 'undefined' && S.ex && S.ex.length > 700 && FD.core"); settle(1200)
-    st = ev("({goal:S.nut.goal,kosher:S.nut.kosher,pantry:S.pantry.items.length,meals:FoodKit.mealsOf(S.food,todayKey()).length,plan:Object.keys(S.mplan.days).length,mem:S.coach.mem.length,msgs:S.coach.msgs.length,mine:S.myfood.items.length,user:!!PB.user,tabs:[...document.querySelectorAll('#tabbar .tab')].map(t=>t.textContent)})")
-    check(tag + 'after a reload the nutrition data, the menu, the pantry and the conversation are all there', st['goal'] == 'lose' and st['kosher'] is True and st['pantry'] >= 5 and st['meals'] >= 5 and st['plan'] >= 7 and st['mem'] >= 1 and st['msgs'] >= 10 and st['mine'] == 1 and st['user'] and len(st['tabs']) == 3, st)
+    # the number of meals depends on the hour the test runs at (what is logged within 45 minutes into the same slot is one meal), so the foods are counted
+    st = ev("({goal:S.nut.goal,kosher:S.nut.kosher,pantry:S.pantry.items.length,meals:FoodKit.mealsOf(S.food,todayKey()).length,foods:FoodKit.mealsOf(S.food,todayKey()).reduce((a,m)=>a+m.it.length,0),plan:Object.keys(S.mplan.days).length,mem:S.coach.mem.length,msgs:S.coach.msgs.length,mine:S.myfood.items.length,user:!!PB.user,tabs:[...document.querySelectorAll('#tabbar .tab')].map(t=>t.textContent)})")
+    check(tag + 'after a reload the nutrition data, the menu, the pantry and the conversation are all there', st['goal'] == 'lose' and st['kosher'] is True and st['pantry'] >= 5 and st['meals'] >= 3 and st['foods'] >= 10 and st['plan'] >= 7 and st['mem'] >= 1 and st['msgs'] >= 10 and st['mine'] == 1 and st['user'] and len(st['tabs']) == 3, st)
     ctx.close(); b.close()
 
 with sync_playwright() as pw:
