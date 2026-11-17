@@ -2,6 +2,9 @@
 
 קובץ זה נשמר כדי שאפשר יהיה להמשיך את העבודה בכל שלב בלי לאבד מידע.
 
+## כתובת קבועה
+- **https://mshbkr9-pixel.github.io/setim/cs/** — GitHub Pages מפרסם כל push ל־`main`. האתר הבנוי נמצא ב־`cs/` בשורש הריפו; עדכון: `npm run publish:pages`, ואז commit ו־push ל־`main`.
+
 ## מקור
 - קובץ ה־PDF (98 עמודים): עמ' 1–22 מחברת מעובדת (טקסט נשלף ל־`content/source/pdf-text/`), עמ' 23–98 = 76 צילומי מקור.
 - הצילומים המקוריים, בלי שינוי בתים: `public/source/photo-NN.jpg` (צילום NN = עמוד NN+22 ב־PDF).
