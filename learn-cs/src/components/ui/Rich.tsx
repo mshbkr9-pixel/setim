@@ -4,7 +4,8 @@ import type { ReactNode } from 'react';
 /** Renders the RichText subset: **bold**, `code`, $math$, line breaks, "- " bullets. */
 function inline(text: string, keyBase: string): ReactNode[] {
   const out: ReactNode[] = [];
-  const re = /(\*\*[^*]+\*\*|`[^`]+`|\$[^$]+\$)/g;
+  // math-like runs ("4 → 3", "B = B + 2·A", "−1") are isolated as LTR so the bidi algorithm cannot reverse them
+  const re = /(\*\*[^*]+\*\*|`[^`]+`|\$[^$]+\$|(?:[A-Za-z0-9_.()=+\-−·×²³'^]+\s*[→←⇒↔]\s*)+[A-Za-z0-9_.()=+\-−·×²³'^]+|(?<=^|[\s(])[−-]\d+(?:\.\d+)?)/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let i = 0;
@@ -14,7 +15,8 @@ function inline(text: string, keyBase: string): ReactNode[] {
     const k = `${keyBase}-${i++}`;
     if (tok.startsWith('**')) out.push(<strong key={k}>{inline(tok.slice(2, -2), k)}</strong>);
     else if (tok.startsWith('`')) out.push(<code key={k} className="inline-code">{tok.slice(1, -1)}</code>);
-    else out.push(<Math key={k} tex={tok.slice(1, -1)} />);
+    else if (tok.startsWith('$') && tok.endsWith('$') && tok.length > 1) out.push(<Math key={k} tex={tok.slice(1, -1)} />);
+    else out.push(<span key={k} dir="ltr" className="whitespace-nowrap" style={{ unicodeBidi: 'isolate' }}>{tok}</span>);
     last = m.index + tok.length;
   }
   if (last < text.length) out.push(text.slice(last));

@@ -48,6 +48,8 @@ export interface AlgolemWidget {
   /** Which side panels to open initially. */
   panels?: ('trace' | 'frames' | 'modular' | 'lines')[];
   helperMode?: 'local' | 'shared';
+  /** Start with the step tutor on ("what will happen to the counter after the next command?"). */
+  tutor?: boolean;
   /** Optional target the learner must reach (checked by the engine). */
   goal?: { text: RichText; tests: AlgolemTest[] };
   caption?: RichText;

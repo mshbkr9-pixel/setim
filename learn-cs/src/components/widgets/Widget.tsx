@@ -12,7 +12,7 @@ export function Widget({ w }: { w: W }) {
   const body = (() => {
     switch (w.kind) {
       case 'algolem':
-        return <AlgolemLab code={w.code} inputs={w.inputs} procedures={w.procedures} editable={w.editable} panels={w.panels} helperMode={w.helperMode} goal={w.goal} />;
+        return <AlgolemLab code={w.code} inputs={w.inputs} procedures={w.procedures} editable={w.editable} panels={w.panels} helperMode={w.helperMode} goal={w.goal} tutor={w.tutor} />;
       case 'logo':
         return <LogoLab code={w.code} run={w.run} editable={w.editable} showStack={w.showStack} goal={w.goal} />;
       case 'counters':

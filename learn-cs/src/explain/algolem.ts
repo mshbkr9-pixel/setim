@@ -9,6 +9,8 @@ import { LIBRARY_BY_NAME } from '@/engines/algolem/library';
 
 export type Level = 1 | 2 | 3;
 
+/** Wraps a left-to-right fragment ("4 → 5") in Unicode isolates so Hebrew text never reverses it. */
+const ltr = (t: string) => `\u2066${t}\u2069`;
 const balls = (n: number) => (n === 1 ? 'כדור אחד' : n === 0 ? 'אפס כדורים' : `${n} כדורים`);
 
 /** Human label of a cell: "A", or "B (מונה עזר פרטי של TEN)". */
@@ -29,12 +31,12 @@ export function describeEvent(e: StepEvent, after: MachineState, level: Level = 
   switch (e.kind) {
     case 'add':
       if (level === 1) return `שמים כדור נוסף בכלי ${cellName(e.cell)}. היו בו ${balls(e.before)}, ועכשיו יש ${balls(e.after)}.`;
-      if (level === 3) return `ADD (${e.written}): ${cellName(e.cell)} ← ${cellName(e.cell)} + 1, כלומר ${e.before} → ${e.after}.${alias(e.written, e.cell, e.unit, after)}`;
-      return `ADD (${e.written}) מוסיפה כדור אחד למונה ${cellLabel(after, e.cell)}: ${e.before} → ${e.after}.${alias(e.written, e.cell, e.unit, after)}`;
+      if (level === 3) return `ADD (${e.written}): ${ltr(`${cellName(e.cell)} ← ${cellName(e.cell)} + 1`)}, כלומר ${ltr(`${e.before} → ${e.after}`)}.${alias(e.written, e.cell, e.unit, after)}`;
+      return `ADD (${e.written}) מוסיפה כדור אחד למונה ${cellLabel(after, e.cell)}: ${ltr(`${e.before} → ${e.after}`)}.${alias(e.written, e.cell, e.unit, after)}`;
     case 'sub':
       if (level === 1) return `מוציאים כדור אחד מהכלי ${cellName(e.cell)}. היו בו ${balls(e.before)}, נשארו ${balls(e.after)}.`;
-      if (level === 3) return `SUB (${e.written}): ${cellName(e.cell)} ← ${cellName(e.cell)} − 1 (מותר כי ${cellName(e.cell)} > 0), כלומר ${e.before} → ${e.after}.${alias(e.written, e.cell, e.unit, after)}`;
-      return `SUB (${e.written}) מוציאה כדור אחד מהמונה ${cellLabel(after, e.cell)}: ${e.before} → ${e.after}.${alias(e.written, e.cell, e.unit, after)}`;
+      if (level === 3) return `SUB (${e.written}): ${ltr(`${cellName(e.cell)} ← ${cellName(e.cell)} − 1`)} (מותר כי ${ltr(`${cellName(e.cell)} > 0`)}), כלומר ${ltr(`${e.before} → ${e.after}`)}.${alias(e.written, e.cell, e.unit, after)}`;
+      return `SUB (${e.written}) מוציאה כדור אחד מהמונה ${cellLabel(after, e.cell)}: ${ltr(`${e.before} → ${e.after}`)}.${alias(e.written, e.cell, e.unit, after)}`;
     case 'while-enter':
       if (level === 1) return `בודקים: האם יש כדורים בכלי ${cellName(e.cell)}? יש ${balls(e.value)} — אז עושים את מה שבתוך הלולאה (פעם מספר ${e.iteration}).`;
       if (level === 3) return `בדיקת WHILE (${e.written}) בשורה ${e.line}: ${cellName(e.cell)} = ${e.value} > 0 ⇒ נכנסים לסיבוב ${e.iteration}.`;
@@ -53,7 +55,7 @@ export function describeEvent(e: StepEvent, after: MachineState, level: Level = 
     case 'call': {
       const parts = Object.entries(e.bind)
         .filter(([name]) => !e.bind[name].includes('@') || true)
-        .map(([name, cell]) => (cell.includes('@') ? `${name} = מונה עזר חדש (מתחיל ב־0)` : name === cell ? `${name}` : `${name} ← ${cell}`));
+        .map(([name, cell]) => (cell.includes('@') ? `${name} = מונה עזר חדש (מתחיל ב־0)` : name === cell ? `${name}` : ltr(`${name} ← ${cell}`)));
       if (level === 1) return `קוראים לפרוצדורה ${e.proc}: היא עושה את העבודה שלה, ואחר כך חוזרים לכאן. בתוכה: ${parts.join(', ')}.`;
       return `קריאה לפרוצדורה ${e.proc}: נפתחת מסגרת חדשה. השמות בתוכה: ${parts.join(', ')}.`;
     }

@@ -133,7 +133,7 @@ export function LabelTable({ code, labels }: { code: string; labels: { from: num
           <div
             key={'l' + i}
             dir="rtl"
-            className="m-[2px] flex items-center rounded border border-ink-3/60 bg-card px-2 py-1 leading-snug"
+            className="m-[2px] flex items-center whitespace-pre-line rounded border border-ink-3/60 bg-card px-2 py-1 leading-snug"
             style={{ gridColumn: lab.level + 1, gridRow: `${lab.from} / ${lab.to + 1}` }}
           >
             {lab.text}

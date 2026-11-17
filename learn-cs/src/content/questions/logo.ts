@@ -281,7 +281,7 @@ export const logoQuestions: Question[] = [
         misconception: 'pen-up-draws',
       },
     ],
-    hints: ['האם PU משנה את המקום של הצב, או רק אם יישאר קו?'],
+    hints: ['האם PU משנה את המקום של הצב, או רק אם יישאר קו?', 'מה ההבדל בין FD כשהעט למטה לבין FD כשהעט למעלה?'],
     explanation: 'אחרי `PU` העט מורם. `FD 40` מזיזה את הצב 40 צעדים כרגיל — אבל בלי לצייר. כדי לצייר שוב צריך `PD`.',
   },
   {
@@ -588,6 +588,7 @@ export const logoQuestions: Question[] = [
       {
         text: 'ב־Commander כותבים הגדרות, ובעורך מריצים אותן',
         feedback: 'הפוך: Edall פותח את העורך — שם כותבים את ההגדרות. בשורת ה־Commander מקלידים פקודות ולוחצים Execute.',
+        misconception: 'definition-runs',
       },
       {
         text: 'בעורך הצב מצייר כל שורה מיד כשמקלידים אותה',
@@ -1054,7 +1055,7 @@ export const logoQuestions: Question[] = [
         feedback: 'TOOTH משתמשת רק ב־:MOO, וב־MOO יש 20 — הערך שנשלח. שם הפרמטר מקומי ל־TOOTH.',
         misconception: 'param-name-matters',
       },
-      { text: '3 שיניים בגודל 3', feedback: 'בשורה `TOOTH :SIZE` נשלח הערך של :SIZE (20), לא של :TIMES (3).' },
+      { text: '3 שיניים בגודל 3', feedback: 'בשורה `TOOTH :SIZE` נשלח הערך של :SIZE (20), לא של :TIMES (3).', misconception: 'param-name-matters' },
     ],
     hints: ['מה נשלח בקריאה `TOOTH :SIZE` — שם או ערך?', 'באיזה שם TOOTH שומרת את הערך שקיבלה?'],
     explanation:

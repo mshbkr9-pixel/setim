@@ -928,8 +928,8 @@ const lesson07: Lesson = {
   id: 'algolem-07',
   track: 'algolem',
   order: 7,
-  title: 'מאלגוריתם לפרוצדורה: הכללה ומתן שם',
-  subtitle: 'מ־WHILE (R1) אל @ ZERO (A) — והסימן @',
+  title: 'מאלגוריתם לפרוצדורה: הכללה ומתן שם, הסימן @',
+  subtitle: 'מ־WHILE (R1) אל @ ZERO (A): מילה חדשה בשפה',
   minutes: 12,
   difficulty: 2,
   prerequisites: ['algolem-05'],
@@ -982,7 +982,7 @@ const lesson07: Lesson = {
     steps: [
       { code: 'WHILE (R1)\n    SUB (R1)\nENDW' },
       { code: 'WHILE (A)\n    SUB (A)\nENDW', caption: 'אלגוריתם בעל משתנה' },
-      { code: '@ ZERO (A)\n   WHILE (A)\n      SUB (A)\n   ENDW', caption: 'פרוצדורה בעלת שם ומשתנה' },
+      { code: '@ ZERO (A)\n    WHILE (A)\n        SUB (A)\n    ENDW', caption: 'פרוצדורה בעלת שם ומשתנה' },
     ],
     arrows: ['הכללה', 'מתן שם'],
     caption:
@@ -1076,8 +1076,8 @@ const lesson07: Lesson = {
       'שורה אחת עדיין מזכירה מונה מהאלגוריתם המקורי.',
     ],
     explanation:
-      'בשורה 3 נשאר `SUB (R1)` במקום `SUB (A)`. ההכללה לא הושלמה: הלולאה בודקת את A, אבל מוציאה כדורים מ־R1. ' +
-      'למשל ב־`ZERO (R5)` הבדיקה תמצא את R5 מלא, ו־SUB תנסה להוציא ממונה אחר — A לא יקטן לעולם. התיקון: `SUB (A)`.',
+      'בשורה 3 נשאר `SUB (R1)` במקום `SUB (A)`. ההכללה לא הושלמה: הלולאה בודקת את A, אבל מוציאה כדורים מ־R1 — מונה אחר.\n' +
+      'למשל ב־`ZERO (R5)` כש־R5 = 3: הבדיקה מוצאת את R5 מלא, אבל A (כלומר R5) לא קטן לעולם. R1 מתרוקן (אם היה בו משהו), ואז `SUB (R1)` היא חיסור ממונה ריק — אין פלט. התיקון: `SUB (A)`.',
   },
 
   summary: {
@@ -1096,8 +1096,8 @@ const lesson08: Lesson = {
   id: 'algolem-08',
   track: 'algolem',
   order: 8,
-  title: 'פרוצדורות שקוראות לפרוצדורות',
-  subtitle: 'ONE, TWO, FIVE ו־TEN — ומונה העזר B',
+  title: 'פרוצדורות שקוראות לפרוצדורות: ONE, TWO, FIVE, TEN',
+  subtitle: 'קומה על קומה — ומונה העזר B של TEN',
   minutes: 14,
   difficulty: 2,
   prerequisites: ['algolem-07'],

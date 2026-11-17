@@ -12,7 +12,7 @@ const ALEF_BODY = '1. WHILE (A)\n2.    SUB (B)\n3.    SUB (A)\n4. ENDW';
 const HE_BODY = '1. WHILE (A)\n2.    WHILE (A)\n3.       SUB (B)\n4.    ENDW\n5. ENDW';
 const DALET_SOURCE = '@ DALET (A)\n1. SUB (A)\n2. ADD (A)\n3. ADD (A)';
 const S_SOURCE = '@S(A,B,C)\n   FIVE (B)\n   WHILE (A)\n      ADD (B)\n      ADD (C)\n      SUB (A)\n   ENDW';
-const NO_OUTPUT = '(אם לריצה אין משמעות — ענו "אין פלט".)';
+const NO_OUTPUT = '(אם לריצה אין משמעות — סמנו "אין פלט".)';
 
 export const errorsQuestions: Question[] = [
   // ============================================================ errors-01 — סוגי שגיאות

@@ -105,6 +105,24 @@ await check('Algolem: syntax errors are shown with the line number and block run
   assert(await page.locator('button[aria-label="צעד קדימה"]').first().isDisabled(), 'step must be disabled');
 });
 
+await check('Tutor mode: the tutor asks before each step, diagnoses a wrong answer, accepts the right one', async () => {
+  await page.goto(`${BASE}/lab/algolem`, { waitUntil: 'networkidle' });
+  await ready();
+  await page.getByRole('button', { name: /מצב מורה/ }).click();
+  await page.getByText('האם ניכנס לגוף הלולאה?').waitFor({ timeout: 3000 });
+  await page.getByRole('button', { name: 'לא, מדלגים אחרי ENDW' }).click();
+  await page.getByText('הוא לא ריק').first().waitFor({ timeout: 3000 });
+  await page.getByRole('button', { name: 'כן, נכנסים' }).click();
+  await page.getByText('מה לדעתך יהיה ערך המונה').waitFor({ timeout: 3000 });
+  await page.locator('input[aria-label="הערך שאתם צופים"]').fill('1');
+  await page.getByRole('button', { name: 'בדיקה' }).first().click();
+  await page.getByText('ADD מוסיפה כדור').first().waitFor({ timeout: 3000 });
+  await page.locator('input[aria-label="הערך שאתם צופים"]').fill('3');
+  await page.getByRole('button', { name: 'בדיקה' }).first().click();
+  await page.waitForTimeout(900);
+  assert((await jar('R2')) === 3, 'after the correct prediction the step is executed');
+});
+
 await check('Trace lab: rounds table of R1=5, R2=2 ends with 0 and 7', async () => {
   await page.goto(`${BASE}/lab/trace`, { waitUntil: 'networkidle' });
   await page.getByRole('tab', { name: 'לפי סיבובים' }).click();

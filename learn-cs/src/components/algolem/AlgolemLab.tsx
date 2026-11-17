@@ -11,6 +11,7 @@ import { Listing } from '@/components/ui/Listing';
 import { CounterJar, type CounterJarProps } from './CounterJar';
 import { TraceTable } from './TraceTable';
 import { setSettings, useProgress } from '@/progress/store';
+import { StepTutor } from './StepTutor';
 
 type Panel = 'trace' | 'rounds' | 'frames' | 'modular' | 'lines';
 type HistEvent = StepEvent | { kind: 'jump'; steps: number };
@@ -31,6 +32,8 @@ export interface AlgolemLabProps {
   onGoalChecked?: (ok: boolean) => void;
   /** Called on every state change (used by the tutor). */
   onStep?: (info: { state: MachineState; event: HistEvent | null; program: Program }) => void;
+  /** Start in tutor mode ("predict every step"). */
+  tutor?: boolean;
 }
 
 export function AlgolemLab(props: AlgolemLabProps) {
@@ -56,6 +59,8 @@ export function AlgolemLab(props: AlgolemLabProps) {
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [limitHit, setLimitHit] = useState(false);
+  const [tutorMode, setTutorMode] = useState(!!props.tutor);
+  const [tutorFlash, setTutorFlash] = useState<string | null>(null);
 
   const resetKey = `${code}|${mode}|${JSON.stringify(effectiveInputs)}|${(procedures ?? []).join('#')}`;
   const lastKey = useRef(resetKey);
@@ -177,6 +182,7 @@ export function AlgolemLab(props: AlgolemLabProps) {
     else if (lastEvent.kind === 'while-exit') flashes[k] = 'test-empty';
   }
   if (lastEvent?.kind === 'error' && lastEvent.error.cell) flashes[lastEvent.error.cell] = 'error';
+  if (tutorFlash) flashes[tutorFlash] = 'test-full';
 
   const explanation = (() => {
     if (!compiled.ok) return 'יש שגיאת תחביר — תקנו אותה כדי להריץ.';
@@ -244,6 +250,9 @@ export function AlgolemLab(props: AlgolemLabProps) {
       <button className="btn" onClick={() => forward()} disabled={!program || (finished && idx === hist.states.length - 1) || limitHit} aria-label="צעד קדימה">צעד ⏭</button>
       <button className="btn" onClick={toEnd} disabled={!program || finished} title="הרצה עד הסוף (עד 100,000 צעדים)">⏩ עד הסוף</button>
       <button className="btn btn-ghost" onClick={reset} disabled={idx === 0} aria-label="איפוס">⟲ איפוס</button>
+      <button className={`btn btn-sm ${tutorMode ? 'btn-primary' : ''}`} onClick={() => { setTutorMode((m) => !m); setPlaying(false); setTutorFlash(null); }} aria-pressed={tutorMode} title="המורה שואל מה יקרה לפני כל פקודה">
+        🧑‍🏫 מצב מורה
+      </button>
       <label className="ms-auto flex items-center gap-2 text-sm muted">
         מהירות
         <input type="range" min={1} max={10} value={speed} onChange={(e) => setSettings({ speed: Number(e.target.value) })} aria-label="מהירות ההרצה" className="w-24 accent-[var(--accent)]" />
@@ -471,6 +480,9 @@ export function AlgolemLab(props: AlgolemLabProps) {
           {controls}
         </div>
       </div>
+      {tutorMode && program && state && idx === hist.states.length - 1 && (
+        <StepTutor program={program} state={state} onCommit={() => forward()} onFlash={setTutorFlash} />
+      )}
       {explainBox}
       {props.goal && (
         <div className="rounded-xl border border-info/40 bg-info-soft p-3">
