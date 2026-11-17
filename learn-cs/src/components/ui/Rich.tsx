@@ -66,3 +66,18 @@ export function Rich({ text, className = '' }: { text: string; className?: strin
 export function RichInline({ text }: { text: string }) {
   return <>{inline(text, 'i')}</>;
 }
+
+const TEX: [RegExp, string][] = [
+  [/\\mathbb\{N\}/g, 'ℕ'], [/\\mathbb\{Z\}/g, 'ℤ'], [/\\mathbb\{R\}/g, 'ℝ'], [/\\notin/g, '∉'], [/\\in/g, '∈'],
+  [/\\subseteq/g, '⊆'], [/\\not\\subseteq/g, '⊈'], [/\\subset/g, '⊂'], [/\\emptyset|\\varnothing/g, '∅'], [/\\setminus/g, '\\'],
+  [/\\cdot/g, '·'], [/\\times/g, '×'], [/\\to|\\rightarrow/g, '→'], [/\\le(q)?/g, '≤'], [/\\ge(q)?/g, '≥'], [/\\neq|\\ne/g, '≠'],
+  [/\\cup/g, '∪'], [/\\cap/g, '∩'], [/\\\{/g, '{'], [/\\\}/g, '}'], [/\\mid/g, '|'], [/\^2/g, '²'], [/\^3/g, '³'], [/\^0/g, '⁰'],
+  [/\\sqrt\{([^}]*)\}/g, '√$1'], [/\\text\{([^}]*)\}/g, '$1'], [/\\[,;! ]/g, ' '], [/[{}]/g, ''],
+];
+
+/** Plain-text version of RichText (for places that cannot hold markup, such as <option>). */
+export function plainText(text: string): string {
+  return text
+    .replace(/\$([^$]+)\$/g, (_, tex: string) => TEX.reduce((acc, [re, rep]) => acc.replace(re, rep), tex))
+    .replace(/\*\*|`/g, '');
+}

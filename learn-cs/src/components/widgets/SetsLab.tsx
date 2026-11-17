@@ -27,13 +27,17 @@ export interface SetsLabProps {
   sets: Record<string, El[]>;
   show?: 'none' | 'difference' | 'intersection' | 'union' | 'subset' | 'equal';
   draggable?: boolean;
+  /** false = do not print computed results (used as a hint inside a question). */
+  reveal?: boolean;
 }
 
 /** Venn diagram with draggable elements; the notation updates live. */
-export function SetsLab({ universe, sets, show = 'none', draggable = true }: SetsLabProps) {
+export function SetsLab({ universe, sets, show = 'none', draggable = true, reveal = true }: SetsLabProps) {
   const names = Object.keys(sets);
   const nA = names[0] ?? 'A';
+  const single = names.length < 2;
   const nB = names[1] ?? 'B';
+  const extra = names.slice(2);
   const [place, setPlace] = useState<Record<string, Region>>(() => {
     const r: Record<string, Region> = {};
     for (const e of universe) {
@@ -85,9 +89,11 @@ export function SetsLab({ universe, sets, show = 'none', draggable = true }: Set
   const diffAB = difference(A, B);
   const diffBA = difference(B, A);
   const inter = intersection(A, B);
-  const verdictSub = isSubset(A, B)
-    ? `${nA} ⊆ ${nB}: כל איבר של ${nA} נמצא גם ב־${nB}${isProperSubset(A, B) ? ' (הכלה ממש: ' + nA + ' ⊂ ' + nB + ')' : ''}.`
-    : `${nA} ⊄ ${nB}: האיבר ${diffAB[0]} נמצא ב־${nA} אבל לא ב־${nB}.`;
+  const subLine = (X: El[], Y: El[], nx: string, ny: string) =>
+    isSubset(X, Y)
+      ? `${nx} ⊆ ${ny}: כל איבר של ${nx} נמצא גם ב־${ny}${isProperSubset(X, Y) ? ` (הכלה ממש: ${nx} ⊂ ${ny})` : ''}.`
+      : `${nx} ⊄ ${ny}: האיבר ${difference(X, Y)[0]} נמצא ב־${nx} אבל לא ב־${ny}.`;
+  const verdictSub = `${subLine(A, B, nA, nB)} ${subLine(B, A, nB, nA)}`;
   const verdictEq = isEqual(A, B) ? `${nA} = ${nB}: יש להן בדיוק אותם איברים.` : `${nA} ≠ ${nB}: ${diffAB.length ? `${diffAB[0]} נמצא רק ב־${nA}` : `${diffBA[0]} נמצא רק ב־${nB}`}.`;
 
   return (
@@ -120,9 +126,9 @@ export function SetsLab({ universe, sets, show = 'none', draggable = true }: Set
         {(mode === 'intersection' || mode === 'union') && <circle cx={CB.x} cy={CB.y} r={CB.r} clipPath="url(#clipA)" fill="color-mix(in oklab, var(--ball) 30%, transparent)" />}
         {mode === 'difference' && <circle cx={CB.x} cy={CB.y} r={CB.r} clipPath="url(#clipA)" fill="var(--card-2)" />}
         <circle cx={CA.x} cy={CA.y} r={CA.r} fill="none" stroke="var(--t-sets)" strokeWidth={2} />
-        <circle cx={CB.x} cy={CB.y} r={CB.r} fill="none" stroke="var(--info)" strokeWidth={2} />
+        {!single && <circle cx={CB.x} cy={CB.y} r={CB.r} fill="none" stroke="var(--info)" strokeWidth={2} />}
         <text x={CA.x - 70} y={CA.y - 78} fontSize={16} fontWeight={700} fill="var(--t-sets)">{nA}</text>
-        <text x={CB.x + 58} y={CB.y - 78} fontSize={16} fontWeight={700} fill="var(--info)">{nB}</text>
+        {!single && <text x={CB.x + 58} y={CB.y - 78} fontSize={16} fontWeight={700} fill="var(--info)">{nB}</text>}
         {universe.map((e) => {
           const k = String(e);
           const [x, y] = positions[k];
@@ -158,9 +164,14 @@ export function SetsLab({ universe, sets, show = 'none', draggable = true }: Set
         <div className="rounded-lg bg-card-2 p-2 font-mono" dir="ltr">
           <div>{nA} = {formatSet(A)}</div>
           <div>{nB} = {formatSet(B)}</div>
-          <div className={mode === 'difference' ? 'font-bold text-[var(--ball-dark)]' : ''}>{nA} − {nB} = {formatSet(diffAB)}</div>
-          <div>{nB} − {nA} = {formatSet(diffBA)}</div>
-          {mode === 'intersection' && <div className="font-bold text-[var(--ball-dark)]">{nA} ∩ {nB} = {formatSet(inter)}</div>}
+          {reveal && !single && (
+            <>
+              <div className={mode === 'difference' ? 'font-bold text-[var(--ball-dark)]' : ''}>{nA} − {nB} = {formatSet(diffAB)}</div>
+              <div>{nB} − {nA} = {formatSet(diffBA)}</div>
+              {mode === 'intersection' && <div className="font-bold text-[var(--ball-dark)]">{nA} ∩ {nB} = {formatSet(inter)}</div>}
+            </>
+          )}
+          {extra.length > 0 && <div className="font-sans text-xs muted" dir="rtl">בציור מוצגות רק שתי הקבוצות הראשונות ({extra.join(', ')} לא מצוירות).</div>}
         </div>
         <div className="space-y-1 rounded-lg bg-card-2 p-2 text-sm">
           {picked ? (
@@ -171,9 +182,9 @@ export function SetsLab({ universe, sets, show = 'none', draggable = true }: Set
           ) : (
             <div className="muted">גררו איבר לאזור אחר (או לחצו עליו ובחרו לאן). לחיצה על איבר מראה את השייכות שלו.</div>
           )}
-          {mode === 'subset' && <div>{verdictSub}</div>}
-          {mode === 'equal' && <div>{verdictEq}</div>}
-          {mode === 'difference' && <div>{nA} − {nB}: כל מה שב־{nA} ואינו ב־{nB}. {diffAB.length === 0 && 'כאן ההפרש ריק — כלומר ∅.'}</div>}
+          {reveal && !single && mode === 'subset' && <div>{verdictSub}</div>}
+          {reveal && !single && mode === 'equal' && <div>{verdictEq}</div>}
+          {mode === 'difference' && <div>{nA} − {nB}: כל מה שב־{nA} ואינו ב־{nB}.{reveal && diffAB.length === 0 && ' כאן ההפרש ריק — כלומר ∅.'}</div>}
         </div>
       </div>
     </div>

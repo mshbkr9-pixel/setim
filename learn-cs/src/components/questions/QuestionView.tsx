@@ -4,7 +4,7 @@ import type { Question } from '@/content/types';
 import { MISCONCEPTIONS } from '@/content/skills';
 import { grade, solutionText, traceBlanks, traceColumns, LOGO_ASK, type Answer, type GradeResult } from '@/questions/grade';
 import { recordAttempt } from '@/progress/store';
-import { Rich, RichInline } from '@/components/ui/Rich';
+import { Rich, RichInline, plainText } from '@/components/ui/Rich';
 import { Listing } from '@/components/ui/Listing';
 import { OriginTag, PhotoRefs } from '@/components/ui/Origin';
 import { CodeEditor } from '@/components/code/CodeEditor';
@@ -176,7 +176,7 @@ function Visual({ q }: { q: Question }) {
     case 'set-answer': {
       const names = Object.keys(q.sets);
       const universe = [...new Set(Object.values(q.sets).flat())];
-      return <SetsLab universe={universe} sets={Object.fromEntries(names.slice(0, 2).map((n) => [n, q.sets[n]]))} show="none" />;
+      return <SetsLab universe={universe} sets={Object.fromEntries(names.slice(0, 2).map((n) => [n, q.sets[n]]))} show="none" reveal={false} />;
     }
     default:
       return null;
@@ -360,7 +360,7 @@ function AnswerInput({ q, answer, setAnswer, locked, wrong, showTrace }: { q: Qu
               <select className="input" disabled={locked} value={answer.mapping[i] ?? ''} onChange={(e) => setAnswer({ type: 'match', mapping: { ...answer.mapping, [i]: Number(e.target.value) } })} aria-label={`התאמה ל: ${left}`}>
                 <option value="">בחרו…</option>
                 {order.map((j) => (
-                  <option key={j} value={j}>{q.pairs[j][1].replace(/[`*$]/g, '')}</option>
+                  <option key={j} value={j}>{plainText(q.pairs[j][1])}</option>
                 ))}
               </select>
             </div>

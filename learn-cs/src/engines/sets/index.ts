@@ -40,7 +40,7 @@ export function evalSetExpr(expr: string, sets: Record<string, El[]>): El[] {
       if (end < 0) throw new Error('חסר סוגר }');
       const inner = src.slice(p + 1, end).trim();
       p = end + 1;
-      return inner ? uniq(inner.split(',').map((t) => parseEl(t.trim()))) : [];
+      return inner ? uniq(splitTop(inner).map((t) => t.trim()).map((t) => (t.startsWith('(') ? t.replace(/\s+/g, '') : parseEl(t)))) : [];
     }
     if (src[p] === '∅') { p++; return []; }
     const m = /^[A-Za-zא-ת][A-Za-z0-9א-ת]*/.exec(src.slice(p));
@@ -71,11 +71,33 @@ export function parseEl(t: string): El {
   return t !== '' && Number.isFinite(n) ? n : t;
 }
 
-/** Parses the learner's answer "{2, 4}" / "2,4" / "∅" into elements. */
+/** Splits on commas that are not inside parentheses, so "(1,1), (2,3)" gives two pairs. */
+function splitTop(t: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of t) {
+    if (ch === '(') depth++;
+    if (ch === ')') depth = Math.max(0, depth - 1);
+    if ((ch === ',' || ch === '،') && depth === 0) {
+      out.push(cur);
+      cur = '';
+    } else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+/** Parses the learner's answer "{2, 4}" / "2,4" / "∅" / "{(1,1), (2,3)}" into elements. */
 export function parseSetAnswer(text: string): El[] {
   const t = text.trim().replace(/^\{|\}$/g, '').trim();
   if (t === '' || t === '∅') return [];
-  return uniq(t.split(/[,،]/).map((x) => parseEl(x.trim())).filter((x) => x !== ''));
+  return uniq(
+    splitTop(t)
+      .map((x) => x.trim())
+      .filter((x) => x !== '')
+      .map((x) => (x.startsWith('(') ? x.replace(/\s+/g, '') : parseEl(x))),
+  );
 }
 
 export const formatSet = (s: El[]) => (s.length ? `{${uniq(s).join(', ')}}` : '∅');

@@ -1409,8 +1409,12 @@ const lesson08: Lesson = {
     {
       text:
         '**שאלה 20**: נגדיר את הקבוצה $K$ כך: $K = \\{0, 2, 4, 6, 8, \\dots\\}$. נתונים שלושה כללי התאמה וכן עשרה ביטויי תחום־טווח. סמנו V בכל תא בטבלה שבו התחום־טווח וכלל ההתאמה הם פונקציה.\n' +
-        'הכללים: $f(a) = 2 \\cdot a$, $g(a) = \\frac{1}{2} \\cdot a$, $h(a) = \\sqrt{a}$.\n' +
-        'התחומים־טווחים: $\\mathbb{N} \\to \\mathbb{N}$, $\\mathbb{R} \\to \\mathbb{R}$, $\\mathbb{N} \\to \\mathbb{R}$, $K \\to \\mathbb{R}$, $K \\to \\mathbb{N}$, $\\mathbb{N} \\to K$, $\\mathbb{R} \\to \\mathbb{N}$, $\\mathbb{R} \\to K$, $\\{0,1\\} \\to \\{0,2\\}$, $\\{0,1\\} \\to \\{0,1,2\\}$.',
+        'הכללים (שלושת הטורים בטבלה): $f(a) = 2 \\cdot a$, $g(a) = \\frac{1}{2} \\cdot a$, $h(a) = \\sqrt{a}$.\n' +
+        'התחומים־טווחים (עשר השורות בטבלה):\n' +
+        '- $\\mathbb{N} \\to \\mathbb{N}$, $\\mathbb{R} \\to \\mathbb{R}$, $\\mathbb{N} \\to \\mathbb{R}$\n' +
+        '- $K \\to \\mathbb{R}$, $K \\to \\mathbb{N}$, $\\mathbb{N} \\to K$\n' +
+        '- $\\mathbb{R} \\to \\mathbb{N}$, $\\mathbb{R} \\to K$\n' +
+        '- $\\{0,1\\} \\to \\{0,2\\}$, $\\{0,1\\} \\to \\{0,1,2\\}$',
       photos: [55],
     },
     {
