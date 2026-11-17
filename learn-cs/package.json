@@ -10,7 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "node tests/e2e.mjs",
-    "export:knowledge": "tsx scripts/export-knowledge.ts"
+    "export:knowledge": "tsx scripts/export-knowledge.ts",
+    "build:pages": "PAGES_BASE_PATH=/setim/cs next build",
+    "publish:pages": "bash scripts/publish-pages.sh"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",

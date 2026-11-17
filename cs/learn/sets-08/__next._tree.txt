@@ -1,0 +1,6 @@
+:HL["/setim/cs/_next/static/chunks/136gw_amw3shj.css","style"]
+:HC["/",""]
+3:[["children",{"s":"__PAGE__","h":160}]]
+2:[["children",{"s":{"n":"lesson","t":"d","k":"sets-08","s":[]},"h":65632,"c":"$Q3"}]]
+1:[["children",{"s":"learn","h":131168,"c":"$Q2"}]]
+0:{"b":"AxbgIndlwZNQRKqqrXwXA","t":{"t":{"s":"","h":131152,"c":"$Q1"}}}

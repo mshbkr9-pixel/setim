@@ -1,0 +1,5 @@
+:HL["/setim/cs/_next/static/chunks/136gw_amw3shj.css","style"]
+:HC["/",""]
+2:[["children",{"s":"__PAGE__","h":160}]]
+1:[["children",{"s":"lab","h":96,"c":"$Q2"}]]
+0:{"b":"AxbgIndlwZNQRKqqrXwXA","t":{"t":{"s":"","h":80,"c":"$Q1"}}}

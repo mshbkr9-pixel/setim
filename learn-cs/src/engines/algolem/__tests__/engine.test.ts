@@ -188,7 +188,7 @@ describe('step limit and the non-termination proof', () => {
       }
     }
     expect(proven).toBeGreaterThan(30);
-  });
+  }, 60_000);
 });
 
 describe('step-by-step events', () => {

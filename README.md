@@ -4,6 +4,8 @@
 
 עותק ב-GitHub Pages (אותו קוד, API דרך sslip.io): https://mshbkr9-pixel.github.io/setim/
 
+אתר הלימוד במדעי המחשב (מקור ב-`learn-cs/`, האתר הבנוי ב-`cs/`): https://mshbkr9-pixel.github.io/setim/cs/
+
 ריפו: https://github.com/mshbkr9-pixel/setim · כל push ל-main מתפרסם אוטומטית.
 
 גרסת claude.ai (פרטית, עם שמירה בחשבון): https://claude.ai/artifact/2wucA64fpWrpBqDN8fmcHQ

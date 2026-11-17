@@ -1,4 +1,5 @@
 'use client';
+import { asset } from '@/lib/asset';
 import { useMemo, useState } from 'react';
 import { compile, createMachine, run, visibleCounters } from '@/engines/algolem';
 import { buildTrace, iterationTable, lineTable } from '@/engines/algolem/trace';
@@ -151,7 +152,7 @@ export function PhotoFigure({ photo, caption }: { photo: number; caption?: strin
     <figure className="card overflow-hidden">
       <button className="block w-full" onClick={() => setOpen(true)} aria-label={`פתיחת צילום מקור ${photo}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`/source/photo-${String(photo).padStart(2, '0')}.jpg`} alt={`צילום מקור ${photo}`} className="max-h-80 w-full object-cover object-top" loading="lazy" />
+        <img src={asset(`/source/photo-${String(photo).padStart(2, '0')}.jpg`)} alt={`צילום מקור ${photo}`} className="max-h-80 w-full object-cover object-top" loading="lazy" />
       </button>
       <figcaption className="flex items-center gap-2 p-2 text-sm">
         <span className="chip">צילום מקור {photo}</span>

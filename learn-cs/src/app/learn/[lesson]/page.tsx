@@ -4,6 +4,9 @@ import type { Metadata } from 'next';
 import { LESSONS, LESSON_BY_ID, lessonsOf, questionsOf } from '@/content';
 import { LessonView } from '@/components/lesson/LessonView';
 
+/** Only the lessons that exist are pages (required for the static export). */
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return LESSONS.map((l) => ({ lesson: l.id }));
 }

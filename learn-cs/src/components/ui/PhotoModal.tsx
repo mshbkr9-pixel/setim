@@ -1,4 +1,5 @@
 'use client';
+import { asset } from '@/lib/asset';
 import { useEffect, useRef, useState } from 'react';
 
 /** Original source photo with zoom and pan. */
@@ -25,7 +26,7 @@ export function PhotoModal({ photo, onClose }: { photo: number; onClose: () => v
         </div>
         <div className="thin-scroll overflow-auto bg-black/5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/source/photo-${String(photo).padStart(2, '0')}.jpg`} alt={`צילום מקור ${photo}`} style={{ width: `${zoom * 100}%`, maxWidth: 'none' }} className="mx-auto block" />
+          <img src={asset(`/source/photo-${String(photo).padStart(2, '0')}.jpg`)} alt={`צילום מקור ${photo}`} style={{ width: `${zoom * 100}%`, maxWidth: 'none' }} className="mx-auto block" />
         </div>
       </div>
     </div>
