@@ -5,7 +5,7 @@
 - **Kind:** slide
 - **Page / slide number visible:** 15 (bottom-left corner of the slide)
 - **Parts in this photo:** one slide (complete)
-- **Continuity:** Same deck and same header band as photo-69, but photo-69 is slide 10 and this photo is slide 15, so slides 11–14 lie between them and are not in photo-69/photo-68. Nothing on this slide overlaps with photo-69 (photo-69 shows the SQUARE → SQUARE :SIZE → POLYGONS chain; this slide is a new example, "דוגמה 2", with TOOTH / TEETH). The procedures TOOTH and TEETH shown here are the ones whose parameter names are varied in the "case 1–4" slides (photos 73–76, deck "א.2 דיון במשתנים ומחסניות"). The reference file photo-69.md says photo-69 is "followed in the deck by photo-68"; that is true in photo order, but by slide number the two slides are not adjacent (10 vs 15).
+- **Continuity:** Same deck and same header band as photo-69, but photo-69 is slide 10 and this photo is slide 15, so slides 11–14 lie between them and are not in photo-69/photo-68. Nothing on this slide overlaps with photo-69 (photo-69 shows the SQUARE → SQUARE :SIZE → POLYGONS chain; this slide is a new example, "דוגמה 2", with TOOTH / TEETH). The procedures TOOTH and TEETH shown here are the ones whose parameter names are varied in the "case 1–4" slides (photos 73–76, deck "א.2 (3) דיון במשתנים ומחסניות"). The reference file photo-69.md says photo-69 is "followed in the deck by photo-68"; that is true in photo order, but by slide number the two slides are not adjacent (10 vs 15).
 
 ## Transcription
 
@@ -71,7 +71,7 @@ END
 
 ## Visuals
 
-Layout (positions within the slide): green header band across the top. Under it, at the right: "דוגמה 2" and the one-line sentence. Under the sentence, at about the horizontal centre of the slide body (slightly left of centre): the two square-wave drawings (א) above (ב), their labels "(א)" and "(ב)" to the left of each drawing. Lower half of the slide: two framed boxes side by side with aligned tops — the **TOOTH box on the left** (narrower, taller: about 1/3 of the slide width, holding 11 code lines) and the **TEETH box on the right** (wider, about 45% of the slide width, but only about half the height of the TOOTH box). Under the TEETH box: the 4-column table (thin grey grid lines). Slide number "15" at the bottom-left.
+Layout (positions within the slide): green header band across the top. Under it, at the right: "דוגמה 2" and the one-line sentence. Under the sentence, at about the horizontal centre of the slide body (slightly left of centre): the two square-wave drawings (א) above (ב), their labels "(א)" and "(ב)" to the left of each drawing. Lower half of the slide: two framed boxes side by side with aligned tops — the **TOOTH box on the left** (narrower, taller: about 1/3 of the slide width, holding 10 code lines) and the **TEETH box on the right** (wider, about 45% of the slide width, but only about half the height of the TOOTH box). Under the TEETH box: the 4-column table (thin grey grid lines). Slide number "15" at the bottom-left.
 
 Both boxes have a thick black outline. Inside each, the left part (the code) has a grey background; the right part (the drawing) is white/light. Code font: bold black serif (Times-like), upper case.
 

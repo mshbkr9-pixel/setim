@@ -5,7 +5,7 @@
 - **Kind:** reading page
 - **Page / slide number visible:** footer "עמוד 2 מתוך 4"
 - **Parts in this photo:** lower part of page 2 — from the heading "יחסים בין איבר לקבוצה ובין קבוצה לקבוצה" down to the footer of page 2; below the footer only the grey gap of the viewer and the white top edge of page 3 (empty). The upper part of page 2 is above the visible area (only a dark band at the top edge, see Visuals).
-- **Continuity:** Continues photo 41 (page 2, upper part: "קבוצות מיוחדות שיהיו שימושיות במסגרת קורס זה", the number sets N, Z, R, ∅). Overlap with photo 41: the heading "יחסים בין איבר לקבוצה ובין קבוצה לקבוצה" and the first lines of "יחס שייכות" (the exact overlap is stated in photo-41.md). New here: everything from "יחס הכלה" to the end of page 2 (הכלה, "אינה מוכלת" ⊄, E ⊆ E remark, שוויון, הכלה-ממש), the Venn diagram and the page-2 footer. Reading order of this document: 43 → 42 → 41 → 40 (→ 39, presumably page 3). No reference transcription covers this part of page 2, so everything here is from my own tiles.
+- **Continuity:** Continues photo 41, which shows the upper part of page 2: "קבוצות מיוחדות שיהיו שימושיות במסגרת קורס זה", the sets N, R, Z, ∅ and the paragraph rewriting D. Overlap with photo 41 (same text in both): from the heading "יחסים בין איבר לקבוצה ובין קבוצה לקבוצה" through the whole "יחס שייכות" block to the line "ניסוחים נוספים: …" of "יחס הכלה", plus the upper part of the Venn diagram. New here: the rest of "יחס הכלה" (the two examples, "אינה מוכלת" ⊄, the E ⊆ E remark), "יחס שוויון", "יחס הכלה-ממש", the complete Venn diagram and the page-2 footer. Reading order of this document: 43 → 42 → 41 → 40. Page 3 should be in a lower-numbered photo; I did not check which. No reference transcription covers this part of page 2, so everything here comes from my own tiles.
 
 ## Transcription
 
@@ -57,7 +57,7 @@ Footer, left side: עמוד 2 מתוך 4
   - One small ellipse entirely inside the large one, in its lower-right part; it is about half the width and about 40% of the height of the large ellipse, and its right edge comes very close to (almost touches) the right edge of the large ellipse. Bold label **B** in its centre.
   - It illustrates "קבוצה A מכילה את קבוצה B" (B ⊆ A). No arrows, no other marks.
 - Bullets: four solid black round dots, at the right end of the four "יחס …" heading lines.
-- Top edge of the visible page area: a dark horizontal band (shadow of the viewer toolbar); a few tiny dark marks along its lower edge are probably the bottoms of the preceding text line of page 2, which is cut off — not legible.
+- Top edge of the visible page area: a dark horizontal band (shadow of the viewer toolbar); a few tiny dark marks along its lower edge are probably the bottoms of the preceding text line of page 2, which is cut off — not legible here (in photo 41 the line just above this heading is "כאמור, בהמשך הקורס נחליף את הסימון פסיק …").
 - Mouse pointer (small white pointer with a text-cursor shape) on the second line of the "נשים לב" paragraph, right after "הקבוצה E".
 - Footer: a thin black horizontal rule spanning the text width, title at the right, page number at the left. Below the footer: the grey gap of the viewer and the empty white top edge of the next page.
 
@@ -98,7 +98,7 @@ Footer, left side: עמוד 2 מתוך 4
 
 - **Overall confidence:** high
 - **Uncertain items:**
-  - "B ⊄ A": the sign is read as ⊄ (subset sign with a slash, no bar underneath). At high zoom no underbar is visible, unlike the clearly barred "⊆" in "E ⊆ E" two lines below, so ⊈ is unlikely but cannot be ruled out completely at this resolution.
+  - (resolved) "B ⊄ A": a pixel-level check of the zoomed crop shows a subset arc crossed by one slash and nothing under the lower arc, so the sign is ⊄ and not ⊈. In the same way I checked that "B⊂A" (הכלה-ממש) has no bar, while the "⊆" signs clearly do.
   - The dash in "הקבוצה E – שייך גם ל-E": partly covered by the mouse pointer; read as a dash ("–"); the bold "E" before it is legible.
   - The cut-off line at the very top of the visible page area (only tiny descender marks) is not legible.
   - Browser tab titles other than the active one were read only from the unzoomed photo and are approximate.

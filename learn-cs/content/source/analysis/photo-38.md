@@ -21,7 +21,7 @@ Notation note (whole page, same convention as photo-37.md): the number sets are 
 
 נגדיר: H = {(x,y) | x+y > 3   x∈ℕ  y∈ℕ}, ונזכיר: E = {(x,y) | 1≤x≤6 , 1≤y≤6   x∈ℕ  y∈ℕ}
 
-[displayed left to right: `= E :ונזכיר ,{(x,y) | x+y > 3  x∈N y∈N} = H :נגדיר` then, to the left of it, `{(x,y) | 1≤x≤6 , 1≤y≤6  x∈N y∈N}`. In H there are no commas between the three conditions, only spaces. In E there is a comma between "1≤x≤6" and "1≤y≤6", then only spaces.]
+[on screen the line reads, from right to left: "נגדיר:", then the formula of H, then ", ונזכיר:", then the formula of E at the far left. Each formula is laid out left to right with the set name at its RIGHT end: `{(x,y) | x+y > 3  x∈N y∈N} = H` and `{(x,y) | 1≤x≤6 , 1≤y≤6  x∈N y∈N} = E`. In H there are no commas between the three conditions, only spaces. In E there is a comma between "1≤x≤6" and "1≤y≤6", then only spaces.]
 
 א.   כתבו את כל איברי הקבוצה:          E-H.
 
@@ -104,7 +104,7 @@ No diagrams or drawings; the page is text only.
 - A white mouse-pointer arrow is on the page just left of the heading "שאלה 16" (screen capture artefact, not part of the document).
 - The page is a white sheet in the Google Drive PDF viewer on a dark grey background. Its top edge is visible above the heading.
 - The Windows taskbar covers the bottom of the viewer, hiding question 19 ב. It shows app icons and a search box labelled "חפש".
-- Browser chrome, Chrome tabs from right to left: "שיעורים ומשאבי…" [Sheets icon]; the active tab "א.5 יסודות בתורת…" [Drive icon]; "א.3 (1) אלגולם ב…" [Slides icon]; "א.2 (א) היכרות ע…" [Drive icon]; "א.2 (3) דיון במשה…" [Slides icon]; "א.2 (2) פרוצדורו…" [Slides icon]; one more tab cut off at the left edge. All tab titles are truncated.
+- Browser chrome, Chrome tabs from right to left: "שיעורים ומשאבי…" [Sheets icon]; the active tab "א.5 יסודות בתורת…" [Drive icon]; "א.3 (1) אלגולם ב…" [Slides icon]; "א.2 (א) היכרות ע…" [Drive icon]; "א.2 (3) דיון במש…" [Slides icon]; "א.2 (2) פרוצדורו…" [Slides icon]; one more tab cut off at the left edge. All tab titles are truncated.
 
 ## Structured inventory
 
@@ -123,7 +123,7 @@ No diagrams or drawings; the page is text only.
   - שאלה 17: הכרנו את הקבוצות B ו-D בעמוד הראשון של הסעיף הנוכחי: הקבוצה B היא קבוצת כל הספרות על קוביית משחק. הקבוצה D היא קבוצת כל התוצאות האפשריות בהטלת קובייה פעמיים (ולא, סכום ההטלות). קבעו האם B ⊆ D. נמקו.
   - שאלה 18: מצאו איבר ששייך לקבוצה (ℕ²)².
   - שאלה 19: א. קבעו האם ∅ ⊆ ℕ. נמקו. ב. [cut off in this photo; photo-37: "קבעו האם ∅ = ℕ⁰. נמקו."]
-- **References to earlier material:** שאלה 13 "ונזכיר: E = …" recalls a set E known from earlier (the 6×6 pairs). שאלה 17 refers to "הקבוצות B ו-D בעמוד הראשון של הסעיף הנוכחי". The numbering starts at 13, which suggests that questions 1–12 appear elsewhere (not visible here).
+- **References to earlier material:** שאלה 13 brings in E with "ונזכיר:" ("and recall"). Its formula has the same form as the set D of the reading (photo-42: D = {(x,y) | 1≤x≤6 , 1≤y≤6 וכן x,y שלמים}), but here it is called E. שאלה 17 refers to "הקבוצות B ו-D בעמוד הראשון של הסעיף הנוכחי". The numbering starts at 13, which suggests that questions 1–12 appear elsewhere (not visible here).
 - **Lecturer's solution method / emphasis:** No solutions are shown. The instructions used are "כתבו את כל איברי", "מצאו איבר", "הגדירו את הקבוצה", "קבעו האם … נמקו." and "הוכיחו כי". Question 17 stresses in parentheses "(ולא, סכום ההטלות)".
 
 ## Legibility
@@ -131,5 +131,5 @@ No diagrams or drawings; the page is text only.
 - **Overall confidence:** high (all lines read from 2.2× tiles; the formulas of questions 15–19 re-read at 3.5×–4×)
 - **Uncertain items:**
   - Question 19 ב: the line is cut off by the taskbar. The relation sign between ∅ and ℕ⁰ is not visible, and the superscript after ℕ looks like "0" but only its top shows. Photo-37 reads the full line as "ב. קבעו האם ∅ = ℕ⁰. נמקו."; what is visible here agrees with it.
-  - The reading direction of two-operand expressions on this right-to-left page is an interpretation question, not a legibility one. Photo-37.md raises the same caveat for "ℕ²- J". All expressions are copied in their displayed left-to-right order. Question 13 supports the view that the displayed order is the intended order: sub-item א asks to list *all* elements of E-H, which is finite (displayed `.E-H`), and sub-item ב asks only to *find one* t∈H-E, which is infinite (displayed `.t∈H-E`). For ℕ²- J (question 15) and B ⊆ D (question 17) the displayed order is ℕ² / B on the left and J / D on the right. The alternative readings, if read right to left, would be J-ℕ² and D ⊆ B.
+  - The reading direction of two-operand expressions on this right-to-left page is an interpretation question, not a legibility one. Photo-37.md raises the same caveat for "ℕ²- J". All expressions are copied in their displayed left-to-right order. Question 13 supports the view that the displayed order is the intended order: sub-item א asks to list *all* elements of E-H, which is finite (displayed `.E-H`), and sub-item ב asks only to *find one* t∈H-E, which is infinite (displayed `.t∈H-E`). The reading page in photo-39 points the same way: its formulas display in natural left-to-right order ("{1,2,3,4,5} – {1,3,5} = {2,4}", "ℕ² = {(0,0),(0,1),…}"). For ℕ²- J (question 15) and B ⊆ D (question 17) the displayed order is ℕ² / B on the left and J / D on the right. The alternative readings, if read right to left, would be J-ℕ² and D ⊆ B.
   - The definitions display the set name to the right of the braces (`{…} = H`, `{…} = E`, `{…} = J`); they are written here as "H = {…}" etc. (equivalent equalities).

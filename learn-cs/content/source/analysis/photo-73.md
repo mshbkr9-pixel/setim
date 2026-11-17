@@ -129,7 +129,7 @@ Colours: header band green with white text; big "4" green; everything else black
 - **Worked examples (with the lecturer's solution steps):** Case 4 — `TEETH 3 20` with TOOTH's parameter struck out (header `TO TOOTH ~~:SIZE~~`, call `TOOTH ~~:SIZE~~`) while TOOTH's body still uses `FD :SIZE`. Stage 1 (left drawing): TEETH floor with size = 20, times = 3. Stage 2 (right drawing): a TOOTH floor with no cell, only "?", on top of the TEETH floor (size = 20, times = 3). No answer to the "?" is written on this slide.
 - **Questions / exercises (verbatim, with numbers):** none written as a sentence; the open question is the "?" in TOOTH's floor of the right stack drawing.
 - **References to earlier material:** same procedures, command line and turtle drawing as cases 1–3 (photos 76, 75, 74); the TOOTH / TEETH procedures were introduced in "דוגמה 2" (photo-68, other deck).
-- **Lecturer's solution method / emphasis:** the change from the earlier cases is marked by strikethrough on the removed parameter/argument; the case number is emphasised by the large green digit; the stack drawings are shown in stages from left to right.
+- **Lecturer's solution method / emphasis:** the change from the earlier cases is marked by strikethrough on TOOTH's parameter and on the argument of the call; the case number is emphasised by the large green digit; the stack drawings are shown in stages from left to right.
 
 ## Legibility
 
