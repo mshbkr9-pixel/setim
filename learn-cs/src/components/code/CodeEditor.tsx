@@ -48,7 +48,7 @@ function language(lang: Lang) {
 }
 
 const style = HighlightStyle.define([
-  { tag: tags.keyword, color: 'var(--accent)', fontWeight: '600' },
+  { tag: tags.keyword, color: 'var(--accent-strong)', fontWeight: '600' },
   { tag: tags.meta, color: 'var(--ball-dark)', fontWeight: '700' },
   { tag: tags.definition(tags.variableName), color: 'var(--ball-dark)', fontWeight: '600', textDecoration: 'underline' },
   { tag: tags.variableName, color: 'var(--info)' },

@@ -83,7 +83,7 @@ export function SetsLab({ universe, sets, show = 'none', draggable = true, revea
       (mode === 'difference' && r === 'A') ||
       (mode === 'intersection' && r === 'AB') ||
       (mode === 'union' && r !== 'out');
-    return hl ? 'color-mix(in oklab, var(--ball) 30%, transparent)' : 'transparent';
+    return hl ? 'color-mix(in oklab, var(--accent) 30%, transparent)' : 'transparent';
   };
 
   const diffAB = difference(A, B);
@@ -123,12 +123,12 @@ export function SetsLab({ universe, sets, show = 'none', draggable = true, revea
         <circle cx={CA.x} cy={CA.y} r={CA.r} fill={fill('A')} />
         <circle cx={CB.x} cy={CB.y} r={CB.r} fill={mode === 'union' ? fill('B') : 'transparent'} />
         {mode === 'difference' && <circle cx={CB.x} cy={CB.y} r={CB.r} fill="var(--card-2)" />}
-        {(mode === 'intersection' || mode === 'union') && <circle cx={CB.x} cy={CB.y} r={CB.r} clipPath="url(#clipA)" fill="color-mix(in oklab, var(--ball) 30%, transparent)" />}
+        {(mode === 'intersection' || mode === 'union') && <circle cx={CB.x} cy={CB.y} r={CB.r} clipPath="url(#clipA)" fill="color-mix(in oklab, var(--accent) 30%, transparent)" />}
         {mode === 'difference' && <circle cx={CB.x} cy={CB.y} r={CB.r} clipPath="url(#clipA)" fill="var(--card-2)" />}
-        <circle cx={CA.x} cy={CA.y} r={CA.r} fill="none" stroke="var(--t-sets)" strokeWidth={2} />
-        {!single && <circle cx={CB.x} cy={CB.y} r={CB.r} fill="none" stroke="var(--info)" strokeWidth={2} />}
-        <text x={CA.x - 70} y={CA.y - 78} fontSize={16} fontWeight={700} fill="var(--t-sets)">{nA}</text>
-        {!single && <text x={CB.x + 58} y={CB.y - 78} fontSize={16} fontWeight={700} fill="var(--info)">{nB}</text>}
+        <circle cx={CA.x} cy={CA.y} r={CA.r} fill="none" stroke="var(--info)" strokeWidth={2} />
+        {!single && <circle cx={CB.x} cy={CB.y} r={CB.r} fill="none" stroke="var(--ball-dark)" strokeWidth={2} />}
+        <text x={CA.x - 70} y={CA.y - 78} fontSize={16} fontWeight={700} fill="var(--info)">{nA}</text>
+        {!single && <text x={CB.x + 58} y={CB.y - 78} fontSize={16} fontWeight={700} fill="var(--ball-dark)">{nB}</text>}
         {universe.map((e) => {
           const k = String(e);
           const [x, y] = positions[k];
@@ -166,9 +166,9 @@ export function SetsLab({ universe, sets, show = 'none', draggable = true, revea
           <div>{nB} = {formatSet(B)}</div>
           {reveal && !single && (
             <>
-              <div className={mode === 'difference' ? 'font-bold text-[var(--ball-dark)]' : ''}>{nA} − {nB} = {formatSet(diffAB)}</div>
+              <div className={mode === 'difference' ? 'font-bold text-accent-strong' : ''}>{nA} − {nB} = {formatSet(diffAB)}</div>
               <div>{nB} − {nA} = {formatSet(diffBA)}</div>
-              {mode === 'intersection' && <div className="font-bold text-[var(--ball-dark)]">{nA} ∩ {nB} = {formatSet(inter)}</div>}
+              {mode === 'intersection' && <div className="font-bold text-accent-strong">{nA} ∩ {nB} = {formatSet(inter)}</div>}
             </>
           )}
           {extra.length > 0 && <div className="font-sans text-xs muted" dir="rtl">בציור מוצגות רק שתי הקבוצות הראשונות ({extra.join(', ')} לא מצוירות).</div>}

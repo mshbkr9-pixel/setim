@@ -90,11 +90,11 @@ export function Dashboard({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
 
   return (
     <div className="space-y-8">
-      <section className="card relative overflow-hidden p-5 sm:p-7">
+      <section className="card hero relative overflow-hidden p-5 sm:p-7">
         <div className="pointer-events-none absolute -bottom-6 -start-6 opacity-[0.07]" aria-hidden><svg width="220" height="220" viewBox="0 0 32 32"><circle cx="13" cy="24" r="3" fill="var(--ink)" /><circle cx="19.2" cy="24" r="3" fill="var(--ink)" /><circle cx="16.1" cy="18.8" r="3" fill="var(--ink)" /></svg></div>
         <div className="flex items-center gap-2"><Logo /><span className="kicker">מחברת לימוד חיה</span></div>
         <h1 className="mt-2 text-3xl sm:text-4xl">{fresh ? 'ברוכים הבאים למעבדה' : 'ממשיכים מאיפה שעצרנו'}</h1>
-        <p className="mt-2 max-w-2xl text-ink-2">
+        <p className="mt-2 max-w-2xl text-[var(--hero-ink-2)]">
           כל חומר הקורס — LOGO, אלגולם, טבלאות מעקב, שגיאות, קבוצות ופונקציות — כשיעורים קצרים שבהם מפעילים קוד, מזיזים כדורים, גוררים חצים ועונים על שאלות.
           כל תוצאה מחושבת במנוע מדויק, וכל נושא מקושר לצילום המקור.
         </p>
@@ -104,8 +104,8 @@ export function Dashboard({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
               {fresh ? 'להתחיל ללמוד' : 'המשך ללמוד'}: {continueTo.title} ←
             </Link>
           )}
-          <Link href="/lab/algolem" className="btn">לסימולטור אלגולם</Link>
-          <Link href="/exam" className="btn btn-ghost">הכנה למבחן</Link>
+          <Link href="/lab/algolem" className="btn border-transparent bg-white/10 text-[var(--hero-ink)] hover:bg-white/20">לסימולטור אלגולם</Link>
+          <Link href="/exam" className="btn btn-ghost text-[var(--hero-ink)] hover:bg-white/10">הכנה למבחן</Link>
         </div>
         {last && <p className="mt-3 text-sm muted">השיעור האחרון: <Link className="underline" href={`/learn/${last.id}`}>{last.title}</Link></p>}
       </section>
@@ -137,7 +137,7 @@ export function Dashboard({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
               <Link key={t.id} href={nextL ? `/learn/${nextL.id}` : '/learn'} className="card-flat group block p-4 transition-colors hover:border-ink-3">
                 <div className="flex items-center gap-2">
                   <span className="display text-2xl" style={{ color: t.color }} aria-hidden>{i + 1}</span>
-                  <span className="font-semibold group-hover:text-accent">{t.title}</span>
+                  <span className="font-semibold group-hover:text-accent-strong">{t.title}</span>
                   <span className="ms-auto text-sm text-ink-2">{pct}%</span>
                 </div>
                 <p className="mt-0.5 text-sm muted">{t.subtitle}</p>

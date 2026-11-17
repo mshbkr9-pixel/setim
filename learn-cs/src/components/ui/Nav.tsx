@@ -34,7 +34,7 @@ const active = (path: string, href: string) => (href === '/' ? path === '/' : pa
 export function Logo() {
   return (
     <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden>
-      <path d="M8 6v19a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V6" fill="none" stroke="var(--ink)" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M8 6v19a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <circle cx="13" cy="24" r="3" fill="var(--ball)" />
       <circle cx="19.2" cy="24" r="3" fill="var(--ball)" />
       <circle cx="16.1" cy="18.8" r="3" fill="var(--ball)" />
@@ -45,7 +45,7 @@ export function Logo() {
 export function SiteHeader() {
   const path = usePathname();
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur supports-[backdrop-filter]:bg-paper/70">
+    <header className="site-header sticky top-0 z-30 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2" aria-label="דף הבית">
           <Logo />
@@ -56,7 +56,7 @@ export function SiteHeader() {
             <Link
               key={l.href}
               href={l.href}
-              className={`rounded-lg px-3 py-1.5 text-[0.93rem] transition-colors ${active(path, l.href) ? 'bg-accent-soft font-semibold text-accent' : 'text-ink-2 hover:bg-paper-2'}`}
+              className={`nav-link rounded-lg px-3 py-1.5 text-[0.93rem] transition-colors ${active(path, l.href) ? 'active' : ''}`}
             >
               {l.label}
             </Link>
@@ -73,7 +73,7 @@ export function MobileNav() {
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 backdrop-blur md:hidden" aria-label="ניווט">
       <div className="mx-auto grid max-w-md grid-cols-6">
         {LINKS.map((l) => (
-          <Link key={l.href} href={l.href} className={`flex flex-col items-center gap-0.5 py-2 text-[0.68rem] ${active(path, l.href) ? 'text-accent' : 'text-ink-3'}`}>
+          <Link key={l.href} href={l.href} className={`flex flex-col items-center gap-0.5 py-2 text-[0.68rem] ${active(path, l.href) ? 'text-accent-strong' : 'text-ink-3'}`}>
             <Icon name={l.icon} />
             <span>{l.label}</span>
           </Link>

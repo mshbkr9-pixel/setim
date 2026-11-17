@@ -23,7 +23,7 @@ export default function Page() {
         {LABS.map((l) => (
           <Link key={l.href} href={l.href} className="card group block p-5 transition-colors hover:border-ink-3">
             <span className="mb-2 block h-1.5 w-10 rounded-full" style={{ background: l.color }} />
-            <h2 className="text-xl group-hover:text-accent">{l.title}</h2>
+            <h2 className="text-xl group-hover:text-accent-strong">{l.title}</h2>
             <p className="mt-1 text-sm text-ink-2">{l.text}</p>
           </Link>
         ))}

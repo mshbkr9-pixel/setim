@@ -40,7 +40,7 @@ export function CounterJar({ name, value, flash = null, caption, size = 'md', di
         <svg width={W * scale} height={H * scale} viewBox={`0 0 ${W} ${H}`} role="img" aria-hidden>
           <defs>
             <radialGradient id="ball-grad" cx="35%" cy="32%" r="70%">
-              <stop offset="0%" stopColor="#fff6dd" />
+              <stop offset="0%" stopColor="var(--ball-light)" />
               <stop offset="35%" stopColor="var(--ball)" />
               <stop offset="100%" stopColor="var(--ball-dark)" />
             </radialGradient>

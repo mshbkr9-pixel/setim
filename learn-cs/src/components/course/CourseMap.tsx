@@ -50,7 +50,7 @@ export function CourseMap({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
                           {st?.completedAt ? <span className="ms-auto text-ok">✓ הושלם</span> : st ? <span className="ms-auto">התחלתם</span> : null}
                           {weak.has(l.id) && <span className="chip border-warn text-warn">חיזוק</span>}
                         </div>
-                        <span className="font-semibold group-hover:text-accent">{l.title}</span>
+                        <span className="font-semibold group-hover:text-accent-strong">{l.title}</span>
                         <span className="text-sm muted">{l.subtitle}</span>
                       </Link>
                     </li>

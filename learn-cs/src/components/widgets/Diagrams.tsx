@@ -59,7 +59,7 @@ function TreeNode({ n, highlight }: { n: Node; highlight?: string }) {
   return (
     <li className="mt-2">
       <div
-        className={`inline-block rounded-lg border px-3 py-1.5 text-sm ${n.tone === 'syn' ? 'border-info/40 bg-info-soft' : 'border-[var(--t-sets)]/40 bg-[color-mix(in_oklab,var(--t-sets)_14%,var(--card))]'} ${circled ? 'ring-2 ring-[color-mix(in_oklab,#7ab317_80%,transparent)] ring-offset-2 ring-offset-[var(--card)]' : ''} ${hl ? 'outline outline-2 outline-[var(--ball)]' : ''}`}
+        className={`inline-block rounded-lg border px-3 py-1.5 text-sm ${n.tone === 'syn' ? 'border-info/40 bg-info-soft' : 'border-[var(--t-errors)]/40 bg-[color-mix(in_oklab,var(--t-errors)_14%,var(--card))]'} ${circled ? 'ring-2 ring-[color-mix(in_oklab,#7ab317_80%,transparent)] ring-offset-2 ring-offset-[var(--card)]' : ''} ${hl ? 'outline outline-2 outline-[var(--ball)]' : ''}`}
       >
         <b>{n.text}</b>
         {n.sub && <span className="block text-xs text-ink-2">{n.sub}</span>}

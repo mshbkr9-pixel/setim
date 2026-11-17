@@ -18,7 +18,7 @@ function Section({ letter, title, children, id, origin }: { letter: string; titl
   return (
     <section id={id} className="scroll-mt-28 space-y-3">
       <h2 className="flex items-center gap-2 text-xl">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-accent-soft font-sans text-base font-bold text-accent">{letter}</span>
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-accent-soft font-sans text-base font-bold text-accent-strong">{letter}</span>
         {title}
         {origin && <OriginTag origin={origin} />}
       </h2>
