@@ -114,7 +114,7 @@ export function LessonView({ lesson, prev, next, quiz }: { lesson: Lesson; prev?
       </header>
 
       <div className="sticky top-14 z-20 -mx-4 border-y border-line bg-paper/95 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
-        <div className="thin-scroll flex items-center gap-1.5 overflow-x-auto">
+        <div className="thin-scroll flex items-center gap-1.5 overflow-x-auto md:flex-wrap md:overflow-visible">
           <span className="kicker shrink-0">המורה שלך</span>
           {tutorButtons.map((b) => (
             <button key={b.label} className="btn btn-sm shrink-0" onClick={b.onClick}>{b.label}</button>

@@ -3,19 +3,18 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { LESSONS, LESSON_BY_ID, lessonsOf } from '@/content';
 import { SKILLS, TRACKS } from '@/content/skills';
-import { dueReviews, questionStats, useProgress, weakSkills, type ProgressData } from '@/progress/store';
+import { dueReviews, questionStats, useNow, useProgress, weakSkills, type ProgressData } from '@/progress/store';
 import { Logo } from '@/components/ui/Nav';
 
-function days(n: number) {
+function days(n: number, now: number) {
   const out: string[] = [];
-  const now = new Date();
-  for (let i = n - 1; i >= 0; i--) out.push(new Date(now.getTime() - i * 86_400_000).toISOString().slice(0, 10));
+  for (let i = n - 1; i >= 0; i--) out.push(new Date(now - i * 86_400_000).toISOString().slice(0, 10));
   return out;
 }
 
 /** Answered vs. correct per day — grouped thin bars, one y-axis, hover tooltip, table view. */
-function ActivityChart({ p }: { p: ProgressData }) {
-  const ds = days(14);
+function ActivityChart({ p, now }: { p: ProgressData; now: number }) {
+  const ds = days(14, now);
   const data = ds.map((d) => ({ d, answered: p.daily[d]?.answered ?? 0, correct: p.daily[d]?.correct ?? 0, lessons: p.daily[d]?.lessons ?? 0 }));
   const max = Math.max(4, ...data.map((x) => x.answered));
   const [hover, setHover] = useState<number | null>(null);
@@ -76,9 +75,10 @@ function ActivityChart({ p }: { p: ProgressData }) {
 
 export function Dashboard() {
   const p = useProgress();
+  const now = useNow();
   const stats = questionStats(p);
   const weak = weakSkills(p);
-  const due = dueReviews(p);
+  const due = now ? dueReviews(p, now) : [];
   const completed = Object.values(p.lessons).filter((l) => l.completedAt).length;
   const last = p.lastLesson ? LESSON_BY_ID[p.lastLesson] : undefined;
   const firstOpen = LESSONS.find((l) => !p.lessons[l.id]?.completedAt) ?? LESSONS[0];
@@ -152,7 +152,7 @@ export function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card space-y-2 p-4">
           <h2 className="text-xl">התקדמות לאורך זמן</h2>
-          <ActivityChart p={p} />
+          {now ? <ActivityChart p={p} now={now} /> : <div className="h-40" />}
         </section>
         <section className="card space-y-3 p-4">
           <h2 className="text-xl">מה כדאי לעשות עכשיו</h2>

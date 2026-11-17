@@ -5,7 +5,7 @@ import { LESSONS, LESSON_BY_ID, QUESTIONS, QUESTION_BY_ID } from '@/content';
 import { SKILLS, TRACKS } from '@/content/skills';
 import type { Question, TrackId } from '@/content/types';
 import { QuestionView } from '@/components/questions/QuestionView';
-import { dueReviews, reviewConcept, useProgress } from '@/progress/store';
+import { dueReviews, reviewConcept, useNow, useProgress } from '@/progress/store';
 import { Rich } from '@/components/ui/Rich';
 
 const TYPES: Record<string, string> = { mcq: 'בחירה מרובה', 'complete-code': 'השלמת קוד', 'find-bug': 'מציאת שגיאה', predict: 'חיזוי פלט', 'trace-fill': 'טבלת מעקב', order: 'סידור שלבים', build: 'בניית אלגוריתם', 'sim-goal': 'הפעלת סימולטור', match: 'התאמה', numeric: 'מספרית', 'set-answer': 'קבוצות', 'arrows-classify': 'דיאגרמת חצים', 'logo-state': 'מצב הצב' };
@@ -57,7 +57,8 @@ export function Practice() {
     () => QUESTIONS.filter((q) => (!track || q.track === track) && (!skill || q.skills.includes(skill)) && (!type || q.type === type) && (!origin || q.origin === origin)),
     [track, skill, type, origin],
   );
-  const due = dueReviews(p);
+  const now = useNow();
+  const due = now ? dueReviews(p, now) : [];
   const [reviewIdx, setReviewIdx] = useState(0);
   const item = due[reviewIdx % Math.max(1, due.length)];
   const q: Question | undefined = list[Math.min(i, list.length - 1)];

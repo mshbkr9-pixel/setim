@@ -72,24 +72,35 @@ export function AlgolemLab(props: AlgolemLabProps) {
   const lastEvent: HistEvent | null = idx > 0 ? hist.events[idx - 1] ?? null : null;
   const finished = !!state && state.status !== 'running';
 
+  // functional updates through refs, so rapid clicks never act on a stale history
+  const histRef = useRef(hist);
+  histRef.current = hist;
+  const idxRef = useRef(idx);
+  idxRef.current = idx;
   const forward = useCallback(() => {
     if (!program) return false;
-    if (idx < hist.states.length - 1) {
-      setIdx(idx + 1);
+    const h = histRef.current;
+    const i = idxRef.current;
+    if (i < h.states.length - 1) {
+      idxRef.current = i + 1;
+      setIdx(i + 1);
       return true;
     }
-    const cur = hist.states[idx];
+    const cur = h.states[i];
     if (!cur || cur.status !== 'running') return false;
-    if (hist.states.length >= MAX_HISTORY) {
+    if (h.states.length >= MAX_HISTORY) {
       setLimitHit(true);
       setPlaying(false);
       return false;
     }
     const r = step(program, cur);
-    setHist((h) => ({ ...h, states: [...h.states, r.state], events: [...h.events, r.event] }));
-    setIdx(idx + 1);
+    const next = { ...h, states: [...h.states, r.state], events: [...h.events, r.event] };
+    histRef.current = next;
+    idxRef.current = i + 1;
+    setHist(next);
+    setIdx(i + 1);
     return r.state.status === 'running';
-  }, [program, hist, idx]);
+  }, [program]);
 
   const back = () => setIdx((i) => Math.max(0, i - 1));
   const reset = () => {

@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createLogo, describeLogo, parseLogo, runLogo, sameDrawing, stepLogo, type LogoEvent, type LogoProgram, type LogoState, type Segment } from '@/engines/logo';
 import { CodeEditor } from '@/components/code/CodeEditor';
 import { useProgress, setSettings } from '@/progress/store';
@@ -65,7 +65,7 @@ export function StackView({ frames }: { frames: { proc: string | null; vars: { n
           <div key={i} className={`relative mt-1 border-b border-dashed border-ink-3 pb-1 ${i === 0 ? '' : 'opacity-80'}`}>
             <div className="absolute -start-[4.6rem] top-1 w-16 text-end font-mono text-[0.72rem] font-semibold" dir="ltr">{f.proc}</div>
             {f.vars.length === 0 && <div className="py-1 text-center font-mono text-sm muted">?</div>}
-            {f.vars.map((v) => (
+            {[...f.vars].reverse().map((v) => (
               <div key={v.name} className="flex items-center justify-end gap-2 py-0.5 font-mono text-sm" dir="ltr">
                 <span className="text-ink-2">{v.name.toLowerCase()}</span>
                 <span className="min-w-[2.4rem] border border-ink-2 bg-card px-1 text-center">{v.value}</span>
@@ -108,23 +108,33 @@ export function LogoLab({ code: initialCode, run: initialRun = '', editable = fa
   const ev = idx > 0 ? hist.events[idx - 1] : null;
   const finished = !!state && state.status !== 'running';
 
+  const histRef = useRef(hist);
+  histRef.current = hist;
+  const idxRef = useRef(idx);
+  idxRef.current = idx;
   const forward = useCallback(() => {
     if (!program) return false;
-    if (idx < hist.states.length - 1) {
-      setIdx(idx + 1);
+    const h = histRef.current;
+    const i = idxRef.current;
+    if (i < h.states.length - 1) {
+      idxRef.current = i + 1;
+      setIdx(i + 1);
       return true;
     }
-    const cur = hist.states[idx];
+    const cur = h.states[i];
     if (!cur || cur.status !== 'running') return false;
-    if (hist.states.length >= MAX_HISTORY) {
+    if (h.states.length >= MAX_HISTORY) {
       setNote('הגענו למגבלת ההיסטוריה. לחצו "עד הסוף" כדי להמשיך בבת אחת.');
       return false;
     }
     const r = stepLogo(program, cur);
-    setHist((h) => ({ states: [...h.states, r.state], events: [...h.events, r.event] }));
-    setIdx(idx + 1);
+    const next = { states: [...h.states, r.state], events: [...h.events, r.event] };
+    histRef.current = next;
+    idxRef.current = i + 1;
+    setHist(next);
+    setIdx(i + 1);
     return r.state.status === 'running';
-  }, [program, hist, idx]);
+  }, [program]);
 
   useEffect(() => {
     if (!playing) return;

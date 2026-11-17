@@ -220,3 +220,18 @@ export function questionStats(p: ProgressData) {
   for (const a of p.attempts) if (a.ok) seen.set(a.q, true);
   return { answered: p.attempts.length, correct: p.attempts.filter((a) => a.ok).length, distinctCorrect: seen.size };
 }
+
+// ------------------------------------------------------------------ time (client only)
+let nowCache = 0;
+const noopSubscribe = () => () => {};
+/** Current time on the client (null while prerendering), cached so renders stay consistent. */
+export function useNow(): number | null {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => {
+      if (!nowCache || Date.now() - nowCache > 60_000) nowCache = Date.now();
+      return nowCache;
+    },
+    () => null,
+  );
+}

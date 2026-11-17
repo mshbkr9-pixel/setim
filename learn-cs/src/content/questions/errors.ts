@@ -1,4 +1,1133 @@
 import type { Question } from '../types';
 
-/** Placeholder — replaced by the errors track question bank. */
-export const errorsQuestions: Question[] = [];
+/**
+ * Question bank of the "errors" track (שגיאות וחוסר משמעות).
+ * Answers of predict / trace-fill / complete-code are computed by the Algolem engine.
+ * mcq / numeric / match / order / find-bug answers were checked against the engine.
+ */
+
+// Code from the slides (bodies with the lecturer's line numbers, photos 22, 23, 18) and the task sheet (photo 17).
+const BET_BODY = '1. WHILE (A)\n2.    ADD (B)\n3.    ADD (A)\n4. ENDW';
+const ALEF_BODY = '1. WHILE (A)\n2.    SUB (B)\n3.    SUB (A)\n4. ENDW';
+const HE_BODY = '1. WHILE (A)\n2.    WHILE (A)\n3.       SUB (B)\n4.    ENDW\n5. ENDW';
+const DALET_SOURCE = '@ DALET (A)\n1. SUB (A)\n2. ADD (A)\n3. ADD (A)';
+const S_SOURCE = '@S(A,B,C)\n   FIVE (B)\n   WHILE (A)\n      ADD (B)\n      ADD (C)\n      SUB (A)\n   ENDW';
+const NO_OUTPUT = '(אם לריצה אין משמעות — ענו "אין פלט".)';
+
+export const errorsQuestions: Question[] = [
+  // ============================================================ errors-01 — סוגי שגיאות
+  {
+    id: 'errors-q-001',
+    track: 'errors',
+    lesson: 'errors-01',
+    type: 'mcq',
+    skills: ['error-kinds'],
+    difficulty: 1,
+    origin: 'source',
+    sources: { photos: [24] },
+    prompt: 'בעץ השגיאות של המרצה, ליד כל סוג שגיאה כתוב הסבר קצר בסוגריים. איזה הסבר מופיע ליד **שגיאות סינטקטיות**?',
+    choices: [
+      { text: '"לא ברור למה התכוונו"', correct: true },
+      {
+        text: '"לא קורה מה שרצינו"',
+        feedback: 'זה ההסבר של **שגיאות סמנטיות**: המחשב מבין את התוכנית, אבל התוצאה אינה מה שרצינו.',
+        misconception: 'syntax-vs-meaning',
+      },
+      {
+        text: '"שגיאה אלגוריתמית-לוגית"',
+        feedback: 'זה ההסבר של **משמעות שגויה** — סוג של שגיאה סמנטית. התוכנית רצה, אבל הרעיון שלה שגוי.',
+        misconception: 'syntax-vs-meaning',
+      },
+      {
+        text: '"Run-Time Errors"',
+        feedback: 'זה ההסבר של **פעולות לא חוקיות** — סוג של חוסר משמעות, שמתגלה רק בזמן הריצה.',
+        misconception: 'syntax-vs-meaning',
+      },
+    ],
+    hints: ['"סינטקס" פירושו צורת הכתיבה — הכללים לבניית משפט.', 'כשיש טעות בצורת הכתיבה, מה המחשב (או הקורא) לא מבין?'],
+    explanation:
+      'בשקף 2: שגיאות **סינטקטיות** — "(לא ברור למה התכוונו)"; שגיאות **סמנטיות** — "(לא קורה מה שרצינו)". שגיאה סינטקטית היא בעיה בצורה — מילה שלא קיימת או משפט שבור — ולכן לא ברור מה ביקשנו.',
+  },
+  {
+    id: 'errors-q-002',
+    track: 'errors',
+    lesson: 'errors-01',
+    type: 'match',
+    skills: ['error-kinds'],
+    difficulty: 2,
+    origin: 'new',
+    sources: { photos: [24] },
+    prompt: 'התאימו כל מקרה לסוג השגיאה שלו בעץ של המרצה.',
+    pairs: [
+      ['`ADDD (A)`', 'סינטקטית — מילונית'],
+      ['`ADD (A` (בלי סוגר סוגר)', 'סינטקטית — תחבירית'],
+      ['התוכנית רצה עד הסוף, אבל הפלט אינו מה שרצינו', 'סמנטית — משמעות שגויה'],
+      ['`SUB (A)` כש־A ריק', 'חוסר משמעות — פעולה לא חוקית'],
+      ['`WHILE (A)` שבתוכה רק `ADD (A)`, כש־A ≠ 0', 'חוסר משמעות — אינסופיות'],
+    ],
+    hints: [
+      'קודם החליטו: האם המחשב בכלל מבין את הקוד? (סינטקטית או סמנטית)',
+      'בשגיאות הסמנטיות: האם יש פלט? ואם אין — האם הריצה נעצרת, או שהיא לא נגמרת?',
+    ],
+    explanation:
+      '- `ADDD` אינה מילה של השפה — מילונית.\n' +
+      '- `ADD (A` — המילים קיימות, אבל המבנה שבור — תחבירית.\n' +
+      '- יש פלט, אבל שגוי — משמעות שגויה.\n' +
+      '- `SUB` ממונה ריק — הריצה נעצרת — פעולה לא חוקית.\n' +
+      '- A רק גדל והלולאה לא נגמרת — אינסופיות.',
+  },
+  {
+    id: 'errors-q-003',
+    track: 'errors',
+    lesson: 'errors-01',
+    type: 'mcq',
+    skills: ['error-kinds'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'איזה סוג שגיאה הסימולטור **לא יכול** לגלות לבד?',
+    choices: [
+      { text: 'משמעות שגויה — התוכנית נותנת פלט, אבל לא את הפלט שרצינו', correct: true },
+      {
+        text: 'שגיאה מילונית — מילה שאינה בשפה',
+        feedback: 'את זו הסימולטור מגלה עוד לפני הריצה, ומודיע: "המילה … אינה פקודה ואינה פרוצדורה מוגדרת".',
+        misconception: 'syntax-vs-meaning',
+      },
+      {
+        text: 'שגיאה תחבירית — למשל סוגר חסר',
+        feedback: 'גם את זו הסימולטור מגלה לפני הריצה, למשל: "חסר סוגר סוגר )".',
+        misconception: 'syntax-vs-meaning',
+      },
+      {
+        text: 'חיסור ממונה ריק',
+        feedback: 'כשזה קורה הסימולטור עוצר מיד ומודיע על פעולה לא חוקית. הריצה לא ממשיכה "בשקט".',
+        misconception: 'sub-negative',
+      },
+    ],
+    hints: ['כדי לדעת שפלט "לא נכון", צריך לדעת משהו שלא כתוב בתוכנית. מה?', 'הסימולטור מבצע בדיוק את מה שכתוב. האם הוא יודע מה **רצינו**?'],
+    explanation:
+      'שגיאות סינטקטיות נתפסות לפני הריצה, וחיסור ממונה ריק נתפס בזמן הריצה. אבל על **משמעות שגויה** הסימולטור לא יודע: הוא לא יודע מה רצינו, ולכן לא יכול לדעת שהפלט שגוי. כדי לגלות אותה בודקים את הפלט מול המטרה (בסימולטור: מטרה עם בדיקות).',
+  },
+  {
+    id: 'errors-q-004',
+    track: 'errors',
+    lesson: 'errors-01',
+    type: 'order',
+    skills: ['error-kinds'],
+    difficulty: 1,
+    origin: 'new',
+    prompt: 'סדרו לפי הזמן: מתי מתגלה כל סוג שגיאה? (מהמוקדם למאוחר)',
+    items: [
+      'כותבים את התוכנית',
+      'בודקים את צורת התוכנית — כאן נעצרות שגיאות סינטקטיות',
+      'מריצים — כאן מתגלה חוסר משמעות: פעולה לא חוקית או לולאה שלא נגמרת',
+      'משווים את הפלט למה שרצינו — כאן מתגלה משמעות שגויה',
+    ],
+    hints: ['תוכנית עם שגיאה סינטקטית לא מתחילה לרוץ בכלל.', 'כדי לדעת שפלט שגוי, צריך קודם שיהיה פלט.'],
+    explanation:
+      'קודם כותבים. לפני הריצה נבדקת הצורה (שגיאות סינטקטיות). בזמן הריצה מתגלים `SUB` ממונה ריק או לולאה שלא נגמרת (חוסר משמעות). רק כשיש פלט אפשר להשוות אותו למטרה ולגלות משמעות שגויה.',
+  },
+  {
+    id: 'errors-q-005',
+    track: 'errors',
+    lesson: 'errors-01',
+    type: 'order',
+    skills: ['error-kinds', 'sub-empty'],
+    difficulty: 1,
+    origin: 'source',
+    sources: { photos: [24] },
+    prompt: 'בעץ השגיאות של המרצה: סדרו את התיבות שבדרך אל המקרה "`SUB (A)` כש־A ריק" — מהכללית ביותר לספציפית ביותר.',
+    items: ['שגיאות סמנטיות (לא קורה מה שרצינו)', 'חוסר משמעות', 'פעולות לא חוקיות (Run-Time Errors)'],
+    hints: ['התחילו מאחת משתי המשפחות הגדולות שבצד ימין של העץ.', 'התיבה הספציפית ביותר היא זו שאין לה תיבות־בת.'],
+    explanation:
+      'הקוד כתוב נכון, ולכן זו שגיאה **סמנטית**. אין פלט — **חוסר משמעות**. והסיבה היא פעולה אסורה בזמן הריצה — **פעולות לא חוקיות (Run-Time Errors)**.',
+  },
+
+  // ============================================================ errors-02 — שגיאות תחביר
+  {
+    id: 'errors-q-006',
+    track: 'errors',
+    lesson: 'errors-02',
+    type: 'find-bug',
+    skills: ['syntax'],
+    difficulty: 1,
+    origin: 'new',
+    prompt: 'התוכנית אמורה להעביר את כל הכדורים מ־A ל־B, אבל הסימולטור לא מוכן להריץ אותה. באיזו שורה השגיאה?',
+    lang: 'algolem',
+    listing: 'WHILE (A)\n   ADD (B)\n   SUBB (A)\nENDW',
+    bugLines: [3],
+    hints: ['בדקו את האיות של כל מילה.', 'אילו ארבע מילות יסוד יש באלגולם?'],
+    explanation:
+      'בשורה 3 כתוב `SUBB` — מילה שאינה במילון של אלגולם. זו שגיאה **מילונית**. הסימולטור מודיע: "המילה SUBB אינה פקודה ואינה פרוצדורה מוגדרת". התיקון: `SUB (A)`.',
+  },
+  {
+    id: 'errors-q-007',
+    track: 'errors',
+    lesson: 'errors-02',
+    type: 'find-bug',
+    skills: ['syntax'],
+    difficulty: 1,
+    origin: 'new',
+    prompt: 'בתוכנית יש שגיאה תחבירית אחת. באיזו שורה היא?',
+    lang: 'algolem',
+    listing: 'ZERO (C)\nWHILE (A)\n   ADD (B\n   ADD (C)\n   SUB (A)\nENDW',
+    bugLines: [3],
+    hints: ['כל המילים קיימות. בדקו את הסימנים.', 'לכל סוגר פותח צריך סוגר סוגר.'],
+    explanation:
+      'בשורה 3, `ADD (B` — חסר הסוגר הסוגר. זו שגיאה **תחבירית**.\n' +
+      'שימו לב: הסימולטור מגלה את החוסר רק כשהוא מגיע לשורה 4 (שם הוא פוגש את `ADD` במקום סוגר), ולכן ההודעה שלו — "חסר סוגר סוגר ) או פסיק בין שמות" — מצביעה על שורה 4.',
+  },
+  {
+    id: 'errors-q-008',
+    track: 'errors',
+    lesson: 'errors-02',
+    type: 'find-bug',
+    skills: ['syntax'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'בתוכנית יש **שתי** שגיאות תחביריות. סמנו את שתי השורות.',
+    lang: 'algolem',
+    listing: 'WHILE (A)\n   ADD (B)\n   SUB A\nENDW\nENDW',
+    bugLines: [3, 5],
+    hints: ['בדקו שלכל `ADD` ולכל `SUB` יש סוגריים עם שם של מונה.', 'ספרו: כמה `WHILE` יש, וכמה `ENDW`?'],
+    explanation:
+      'שורה 3: `SUB A` — חסרים הסוגריים ("אחרי SUB צריך לבוא סוגר עם שם של מונה").\n' +
+      'שורה 5: `ENDW` מיותר — יש רק `WHILE` אחד, וה־`ENDW` שלו בשורה 4 ("ENDW בלי WHILE פתוח").\n' +
+      'שתיהן **תחביריות**: כל המילים קיימות, אבל המבנה שגוי.',
+  },
+  {
+    id: 'errors-q-009',
+    track: 'errors',
+    lesson: 'errors-02',
+    type: 'match',
+    skills: ['syntax'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'התאימו כל קטע קוד להודעת השגיאה שהסימולטור מציג עליו.',
+    pairs: [
+      ['`SUBB (A)`', '"המילה SUBB אינה פקודה ואינה פרוצדורה מוגדרת"'],
+      ['`ADD (A)` ובשורה הבאה `ENDW`', '"ENDW בלי WHILE פתוח"'],
+      ['`MOVE (A)`', '"MOVE מקבלת 2 מונים, אבל נשלחו 1"'],
+      ['`ADD (5)`', '"בתוך הסוגריים כותבים שם של מונה, לא מספר (5)"'],
+      ['`WHILE (A)` ובשורה הבאה `SUB (A)` — וזהו', '"ללולאת WHILE הזו אין ENDW סוגר"'],
+    ],
+    hints: ['בכל קטע חפשו מה חסר, מה מיותר, או איזו מילה לא קיימת.', 'ל־MOVE יש בהגדרה שני מונים: `@ MOVE (A,B)`.'],
+    explanation:
+      '- `SUBB` — מילה שאינה בשפה (מילונית).\n' +
+      '- `ENDW` בלי `WHILE` לפניו (תחבירית).\n' +
+      '- `MOVE` צריכה שני מונים, ונשלח אחד (תחבירית).\n' +
+      '- בסוגריים צריך שם של מונה, לא מספר (תחבירית).\n' +
+      '- `WHILE` שלא נסגרה ב־`ENDW` (תחבירית).',
+  },
+  {
+    id: 'errors-q-010',
+    track: 'errors',
+    lesson: 'errors-02',
+    type: 'mcq',
+    skills: ['syntax'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'מה סוג השגיאה בשורה `ADD (A,B)`?',
+    choices: [
+      { text: 'תחבירית: המילים קיימות, אבל `ADD` פועלת על מונה אחד בדיוק', correct: true },
+      {
+        text: 'מילונית: `ADD` אינה מילה של השפה',
+        feedback: '`ADD` היא מילת יסוד של אלגולם, וגם A ו־B הם שמות חוקיים. כל המילים במילון — הבעיה היא במבנה.',
+      },
+      {
+        text: 'חוסר משמעות: פעולה לא חוקית בזמן הריצה',
+        feedback: 'התוכנית לא מגיעה לריצה בכלל — הסימולטור עוצר עוד לפני, ומודיע: "ADD פועלת על מונה אחד בדיוק". זו בעיה בצורת הכתיבה.',
+        misconception: 'syntax-vs-meaning',
+      },
+    ],
+    hints: ['האם יש כאן מילה שאינה בשפה?', 'על כמה מונים פועלת `ADD`?'],
+    explanation:
+      'כל המילים קיימות (`ADD`, A, B), אבל המשפט בנוי לא נכון: `ADD` מוסיפה כדור למונה **אחד**. זו שגיאה **תחבירית**, והסימולטור מודיע: "ADD פועלת על מונה אחד בדיוק". כדי להוסיף לשניהם כותבים `ADD (A)` ו־`ADD (B)`.',
+  },
+  {
+    id: 'errors-q-011',
+    track: 'errors',
+    lesson: 'errors-02',
+    type: 'mcq',
+    skills: ['syntax'],
+    difficulty: 3,
+    origin: 'new',
+    prompt: 'על התוכנית הזו הסימולטור מציג את ההודעה "ENDW בלי WHILE פתוח" — ומצביע על שורה 3. מה הטעות האמיתית?',
+    code: 'WHILLE (A)\n   SUB (A)\nENDW',
+    codeLang: 'algolem',
+    choices: [
+      {
+        text: 'בשורה 1: `WHILLE` אינה מילה של השפה (שגיאה מילונית). לכן אין `WHILE` פתוח, וה־`ENDW` נשאר לבד',
+        correct: true,
+      },
+      {
+        text: 'בשורה 3: ה־`ENDW` מיותר, וצריך למחוק אותו',
+        feedback: 'אם נמחק את ה־`ENDW`, הסימולטור יתלונן על `WHILLE`. ה־`ENDW` נמצא במקומו — הבעיה מתחילה לפניו.',
+      },
+      {
+        text: 'בשורה 2: `SUB (A)` מוציאה כדור ממונה ריק',
+        feedback: 'זו לא שגיאה סינטקטית, וגם לא קרתה: התוכנית בכלל לא התחילה לרוץ. הודעה על `ENDW` היא הודעה על צורת הכתיבה.',
+        misconception: 'syntax-vs-meaning',
+      },
+    ],
+    hints: ['ההודעה מצביעה על המקום שבו הסימולטור **גילה** בעיה — לא בהכרח על המקום שבו היא נוצרה.', 'קראו את שורה 1 אות אחר אות.'],
+    explanation:
+      'הסימולטור קורא את `WHILLE (A)` כקריאה לפרוצדורה בשם WHILLE — לא כפתיחה של לולאה. לכן כשהוא מגיע ל־`ENDW` בשורה 3, אין לולאה פתוחה. הטעות האמיתית היא האיות בשורה 1 — שגיאה **מילונית**. אחרי התיקון ל־`WHILE`, ההודעה נעלמת.',
+  },
+  {
+    id: 'errors-q-012',
+    track: 'errors',
+    lesson: 'errors-02',
+    type: 'complete-code',
+    skills: ['syntax', 'zeroing'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'השלימו את המילה החסרה כך שבסוף הריצה יהיו ב־A בדיוק **6** כדורים, לכל ערך התחלתי של A.',
+    lang: 'algolem',
+    template: '___ (A)\nADD (A)',
+    options: ['SIX', 'FIVE', 'TEN', 'ZERO'],
+    tests: [
+      { inputs: { A: 9 }, expect: { A: 6 } },
+      { inputs: { A: 0 }, expect: { A: 6 } },
+    ],
+    hints: [
+      'אחרי המילה החסרה יש עוד `ADD (A)` אחד. כמה כדורים צריכים להיות ב־A לפניו?',
+      'רק מילים שהוגדרו עם @ נמצאות במילון. האם יש פרוצדורה בשם SIX?',
+    ],
+    explanation:
+      'צריך 5 כדורים לפני ה־`ADD (A)` האחרון, ולכן `FIVE (A)`.\n' +
+      '`SIX` נראית מפתה, אבל אין פרוצדורה כזו במילון — הסימולטור היה מודיע: "המילה SIX אינה פקודה ואינה פרוצדורה מוגדרת" (שגיאה מילונית). `TEN` הייתה נותנת 11, ו־`ZERO` — 1.',
+  },
+
+  // ============================================================ errors-03 — חיסור ממונה ריק: DALET
+  {
+    id: 'errors-q-013',
+    track: 'errors',
+    lesson: 'errors-03',
+    type: 'predict',
+    skills: ['sub-empty', 'meaning'],
+    difficulty: 1,
+    origin: 'source',
+    sources: { photos: [19] },
+    prompt: 'מפעילים את DALET (דוגמה 4) עם A = 0. מה יהיה A בסוף? ' + NO_OUTPUT,
+    code: DALET_SOURCE,
+    codeLang: 'algolem',
+    program: { code: 'DALET (A)', inputs: { A: 0 } },
+    ask: ['A'],
+    hints: ['מה השורה הראשונה של DALET?', 'כמה כדורים יש ב־A כשמגיעים לשורה הזו?'],
+    explanation:
+      'השורה הראשונה של DALET היא `SUB (A)`, ו־A ריק. זה חיסור ממונה ריק: הריצה נעצרת ו**אין פלט**. כמו בשקף: "A = 0 – יבוצע חיסור ממונה ריק, לפרוצדורה אין משמעות".',
+  },
+  {
+    id: 'errors-q-014',
+    track: 'errors',
+    lesson: 'errors-03',
+    type: 'predict',
+    skills: ['sub-empty', 'meaning'],
+    difficulty: 1,
+    origin: 'source',
+    sources: { photos: [19] },
+    prompt: 'מפעילים את DALET עם A = 4. מה יהיה A בסוף? ' + NO_OUTPUT,
+    code: DALET_SOURCE,
+    codeLang: 'algolem',
+    program: { code: 'DALET (A)', inputs: { A: 4 } },
+    ask: ['A'],
+    hints: ['האם ה־`SUB (A)` בשורה הראשונה חוקית כש־A = 4?', 'אחריה באות שתי הוספות.'],
+    explanation:
+      '`SUB (A)`: 4 → 3 (חוקי, A אינו ריק). שתי הוספות: 3 → 5. הפלט A = 5, כלומר $A^I + 1$. כמו בשקף: "A ≠ 0 – לפרוצדורה יש משמעות".',
+  },
+  {
+    id: 'errors-q-015',
+    track: 'errors',
+    lesson: 'errors-03',
+    type: 'predict',
+    skills: ['sub-empty'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'מה יהיו ערכי המונים בסוף? ' + NO_OUTPUT,
+    program: { code: 'SUB (B)\nADD (A)\nSUB (B)\nSUB (B)', inputs: { A: 0, B: 2 } },
+    ask: ['A', 'B'],
+    hints: ['כמה פעמים מוציאים כדור מ־B? כמה כדורים יש בו?', 'עקבו אחרי B אחרי כל `SUB (B)`.'],
+    explanation:
+      'יש שלוש הוצאות מ־B, אבל ב־B רק 2 כדורים. שורה 1: B = 1. שורה 2: A = 1. שורה 3: B = 0. שורה 4: `SUB (B)` כש־B ריק — **אין פלט**. ה־`ADD (A)` באמצע לא עוזר: הוא מוסיף ל־A, לא ל־B.',
+  },
+  {
+    id: 'errors-q-016',
+    track: 'errors',
+    lesson: 'errors-03',
+    type: 'numeric',
+    skills: ['sub-empty', 'meaning'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'מהו הערך ההתחלתי **הקטן ביותר** של A שבשבילו לתוכנית יש משמעות?',
+    code: 'SUB (A)\nSUB (A)\nADD (A)',
+    codeLang: 'algolem',
+    answer: 2,
+    hints: ['כמה כדורים יוצאים מ־A לפני שמוסיפים לו משהו?', 'נסו A = 1: מה קורה בשורה 2?'],
+    explanation:
+      'שתי ההוצאות באות **לפני** ההוספה, ולכן A צריך לפחות 2 כדורים. עם A = 1: שורה 1 מורידה ל־0, ושורה 2 מפחיתה מריק. עם A = 2: 2 → 1 → 0 → 1, ויש פלט.',
+  },
+  {
+    id: 'errors-q-017',
+    track: 'errors',
+    lesson: 'errors-03',
+    type: 'mcq',
+    skills: ['sub-empty'],
+    difficulty: 1,
+    origin: 'new',
+    sources: { photos: [53, 19] },
+    prompt: 'מה קורה כשמגיעים לפקודה `SUB (A)` והמונה A ריק?',
+    choices: [
+      { text: 'הריצה נעצרת, ואין פלט', correct: true },
+      {
+        text: 'A הופך ל־−1, והריצה ממשיכה',
+        feedback: 'מונה הוא כלי עם כדורים — אין בו "מינוס כדור". מונה לעולם אינו שלילי.',
+        misconception: 'sub-negative',
+      },
+      {
+        text: 'A נשאר 0, והריצה ממשיכה לשורה הבאה',
+        feedback: 'הריצה לא ממשיכה. הוצאה מכלי ריק היא פעולה **לא חוקית**, והריצה נעצרת בשורה הזו.',
+        misconception: 'sub-negative',
+      },
+      {
+        text: 'הסימולטור מדלג על השורה וממשיך',
+        feedback: 'אין דילוג. זו פעולה לא חוקית — הריצה נעצרת, ואין פלט.',
+        misconception: 'sub-negative',
+      },
+    ],
+    hints: ['איך הגדיר המרצה את `SUB`? מאיזה מונה מותר להוציא כדור?', 'האם יכולים להיות בכלי פחות מאפס כדורים?'],
+    explanation:
+      'המרצה הגדיר את `SUB` כהוצאת כדור ממונה **שאינו ריק** (צילום 53). כשהמונה ריק, הפעולה לא חוקית: הריצה נעצרת בשורה הזו ואין פלט — **חוסר משמעות**.',
+  },
+  {
+    id: 'errors-q-018',
+    track: 'errors',
+    lesson: 'errors-03',
+    type: 'complete-code',
+    skills: ['sub-empty', 'meaning'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'השלימו את השורה הראשונה כך שלתוכנית תהיה משמעות **לכל** קלט, ו־A בסוף יהיה $A + 2$.',
+    lang: 'algolem',
+    template: '___\nSUB (A)\nADD (A)\nADD (A)',
+    options: ['ADD (A)', 'SUB (A)', 'ZERO (A)', 'ADD (B)'],
+    tests: [
+      { inputs: { A: 0 }, expect: { A: 2 } },
+      { inputs: { A: 3 }, expect: { A: 5 } },
+    ],
+    hints: [
+      'הבעיה של DALET היא A = 0 בשורה של ה־`SUB`. מה יבטיח שיהיה שם כדור?',
+      'השורה החסרה צריכה לשנות את **A**, ולא מונה אחר.',
+    ],
+    explanation:
+      'עם `ADD (A)` בהתחלה, לפני ה־`SUB (A)` יש תמיד לפחות כדור אחד, ולכן אין חיסור מריק. החשבון: $A + 1 - 1 + 2 = A + 2$.\n' +
+      '`SUB (A)` רק מחמירה (שתי הוצאות לפני ההוספות); `ZERO (A)` מרוקנת את A — ואז ה־`SUB` נכשלת תמיד; `ADD (B)` מוסיפה למונה הלא נכון.',
+  },
+  {
+    id: 'errors-q-019',
+    track: 'errors',
+    lesson: 'errors-03',
+    type: 'numeric',
+    skills: ['meaning', 'sub-empty'],
+    difficulty: 1,
+    origin: 'new',
+    sources: { photos: [19] },
+    prompt: 'בודקים את DALET על הקלטים A = 0, 1, 2, …, 9 (עשרה קלטים). לכמה מהם יש לפרוצדורה משמעות?',
+    code: DALET_SOURCE,
+    codeLang: 'algolem',
+    answer: 9,
+    hints: ['לאיזה ערך של A אין ל־DALET משמעות?', 'כמה קלטים יש ברשימה, וכמה מהם בעייתיים?'],
+    explanation:
+      'ל־DALET אין משמעות רק כש־A = 0 (חיסור ממונה ריק בשורה 1). לכל A ≠ 0 יש משמעות. מתוך 10 הקלטים רק אחד בעייתי — ולכן 9.',
+  },
+
+  // ============================================================ errors-04 — לולאה אינסופית: BET
+  {
+    id: 'errors-q-020',
+    track: 'errors',
+    lesson: 'errors-04',
+    type: 'predict',
+    skills: ['infinite-loop', 'meaning'],
+    difficulty: 1,
+    origin: 'source',
+    sources: { photos: [22] },
+    prompt: 'הטבלה העליונה של דוגמה 2: מפעילים את BET עם A = 0, B = 8. מה יהיו ערכי המונים בסוף? ' + NO_OUTPUT,
+    code: BET_BODY,
+    codeLang: 'algolem',
+    program: { code: 'BET (A,B)', inputs: { A: 0, B: 8 } },
+    ask: ['A', 'B'],
+    hints: ['מה בודקת הלולאה של BET לפני הסיבוב הראשון?', 'האם נכנסים ללולאה כש־A ריק?'],
+    explanation:
+      'הבדיקה `WHILE (A)` מוצאת את A ריק, ולכן מדלגים על כל הלולאה. שום דבר לא משתנה: A = 0, B = 8 — בדיוק כמו בטבלה העליונה בשקף.',
+  },
+  {
+    id: 'errors-q-021',
+    track: 'errors',
+    lesson: 'errors-04',
+    type: 'predict',
+    skills: ['infinite-loop', 'meaning'],
+    difficulty: 2,
+    origin: 'source',
+    sources: { photos: [22] },
+    prompt: 'הטבלה התחתונה של דוגמה 2: מפעילים את BET עם A = 2, B = 13. מה יהיו ערכי המונים בסוף? ' + NO_OUTPUT,
+    code: BET_BODY,
+    codeLang: 'algolem',
+    program: { code: 'BET (A,B)', inputs: { A: 2, B: 13 } },
+    ask: ['A', 'B'],
+    hints: ['מה קורה ל־A בכל סיבוב?', 'מתי הלולאה `WHILE (A)` נגמרת? האם זה יקרה?'],
+    explanation:
+      'בכל סיבוב A גדל ב־1 (וגם B). אחרי סיבוב n: A = n + 2 — אף פעם לא 0. הלולאה לעולם לא נגמרת: **אין פלט**. בשקף עמודת הפלט מסומנת ב־X אדום.',
+  },
+  {
+    id: 'errors-q-022',
+    track: 'errors',
+    lesson: 'errors-04',
+    type: 'numeric',
+    skills: ['infinite-loop', 'trace-formula'],
+    difficulty: 2,
+    origin: 'source',
+    sources: { photos: [22] },
+    prompt: 'בטבלה התחתונה של דוגמה 2 (BET עם A = 2, B = 13): מה יהיה ערכו של **B** אחרי סיבוב 10?',
+    code: BET_BODY,
+    codeLang: 'algolem',
+    answer: 23,
+    hints: ['בכמה גדל B בכל סיבוב?', 'בטבלה של המרצה: אחרי סיבוב n, B = n + 13.'],
+    explanation: 'בכל סיבוב B גדל ב־1. אחרי סיבוב n: $B = n + 13$. אחרי סיבוב 10: $10 + 13 = 23$.',
+  },
+  {
+    id: 'errors-q-023',
+    track: 'errors',
+    lesson: 'errors-04',
+    type: 'mcq',
+    skills: ['infinite-loop'],
+    difficulty: 2,
+    origin: 'new',
+    sources: { photos: [22] },
+    prompt: 'למה הלולאה של BET עם A = 2, B = 13 לא נגמרת לעולם?',
+    code: BET_BODY,
+    codeLang: 'algolem',
+    choices: [
+      {
+        text: 'בכל סיבוב A גדל ב־1 ושום שורה לא מקטינה אותו, ולכן הבדיקה `WHILE (A)` לעולם לא תמצא אותו ריק',
+        correct: true,
+      },
+      {
+        text: 'כי B גדל בלי סוף',
+        feedback: 'הלולאה בודקת את **A**, לא את B. גם אם B היה גדל לנצח, הלולאה הייתה נגמרת אילו A היה מתרוקן.',
+        misconception: 'limit-means-infinite',
+      },
+      {
+        text: 'כי הריצה עוברת יותר מ־100,000 צעדים',
+        feedback: 'מספר צעדים גדול אינו הוכחה. לולאה יכולה להיות ארוכה מאוד ובכל זאת להיגמר.',
+        misconception: 'limit-means-infinite',
+      },
+      {
+        text: 'כי חסר בה `ENDW`',
+        feedback: 'יש בה `ENDW` (שורה 4). ואילו היה חסר, זו הייתה שגיאה סינטקטית — והריצה לא הייתה מתחילה בכלל.',
+        misconception: 'syntax-vs-meaning',
+      },
+    ],
+    hints: ['איזה מונה בודקת הלולאה?', 'מה קורה למונה הזה בכל סיבוב?'],
+    explanation:
+      'לולאת `WHILE (A)` נגמרת רק כש־A ריק. ב־BET יש בכל סיבוב `ADD (A)` ואין `SUB (A)`: A הולך וגדל (A = n + 2 אחרי סיבוב n). הוא לעולם לא יתרוקן — וזו ההוכחה שהלולאה אינסופית.',
+  },
+  {
+    id: 'errors-q-024',
+    track: 'errors',
+    lesson: 'errors-04',
+    type: 'predict',
+    skills: ['infinite-loop'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'מה יהיו ערכי המונים בסוף? ' + NO_OUTPUT,
+    program: { code: 'WHILE (A)\n   ADD (B)\n   SUB (B)\nENDW', inputs: { A: 1, B: 0 } },
+    ask: ['A', 'B'],
+    hints: ['איזה מונה בודקת הלולאה? האם משהו בתוך הלולאה משנה אותו?', 'מה המצב בסוף כל סיבוב, לעומת תחילתו?'],
+    explanation:
+      'הלולאה בודקת את A, אבל הגוף משנה רק את B — ומחזיר אותו לאותו ערך. בסוף כל סיבוב המצב **זהה** לתחילתו (A = 1, B = 0). אותו מצב יחזור לנצח: **אין פלט**. הסימולטור מוכיח זאת כשהוא רואה את אותו מצב חוזר בבדיקת ה־`WHILE`.',
+  },
+  {
+    id: 'errors-q-025',
+    track: 'errors',
+    lesson: 'errors-04',
+    type: 'predict',
+    skills: ['infinite-loop', 'procedure-call'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'הריצה של התוכנית הזו אורכת יותר מ־1,300 צעדים. מה יהיו ערכי המונים בסוף? ' + NO_OUTPUT,
+    program: { code: 'HUN (B)\nWHILE (B)\n   ADD (C)\n   SUB (B)\nENDW', inputs: { B: 0, C: 3 } },
+    ask: ['B', 'C'],
+    hints: ['מה עושה `HUN (B)`?', 'האם הלולאה מקטינה את B בכל סיבוב? אם כן — היא תיגמר.'],
+    explanation:
+      '`HUN (B)` שמה ב־B מאה כדורים. הלולאה מעבירה אותם אחד־אחד ל־C, ובכל סיבוב B קטן ב־1 — ולכן היא **נגמרת**. בסוף: B = 0, C = 3 + 100 = 103. הרבה צעדים — אבל ריצה ארוכה אינה ריצה אינסופית.',
+  },
+  {
+    id: 'errors-q-026',
+    track: 'errors',
+    lesson: 'errors-04',
+    type: 'mcq',
+    multi: true,
+    skills: ['infinite-loop'],
+    difficulty: 3,
+    origin: 'new',
+    prompt: 'אילו מהלולאות הבאות **לא נגמרות לעולם** כש־A = 1 ו־B = 0? סמנו את כל התשובות הנכונות.',
+    choices: [
+      { text: '`WHILE (A)` / `SUB (A)` / `ADD (A)` / `ENDW`', correct: true },
+      { text: '`WHILE (A)` / `ADD (A)` / `ENDW`', correct: true },
+      {
+        text: '`WHILE (A)` / `ADD (B)` / `SUB (A)` / `ENDW`',
+        feedback: 'A יורד ל־0 כבר בסיבוב הראשון, והלולאה נגמרת עם B = 1.',
+        misconception: 'limit-means-infinite',
+      },
+      {
+        text: '`WHILE (A)` / `SUB (A)` / `SUB (A)` / `ENDW`',
+        feedback: 'הריצה הזו נעצרת — בגלל **חיסור ממונה ריק** (ה־`SUB` השנייה, כש־A כבר 0). זה חוסר משמעות, אבל לא אינסופיות.',
+        misconception: 'sub-negative',
+      },
+    ],
+    hints: ['לכל לולאה: מה ערכו של A בסוף הסיבוב הראשון?', 'לולאה שנעצרת בגלל `SUB` ממונה ריק — נעצרת (בלי פלט). היא לא אינסופית.'],
+    explanation:
+      '- `SUB (A)` ואז `ADD (A)`: A חוזר ל־1 בכל סיבוב — אותו מצב לנצח. **אינסופית**.\n' +
+      '- `ADD (A)`: A רק גדל. **אינסופית**.\n' +
+      '- `ADD (B)`, `SUB (A)`: A יורד ל־0 — נגמרת, ויש פלט.\n' +
+      '- `SUB (A)` פעמיים: A = 1 → 0, ואז חיסור מריק. נעצרת בלי פלט — חוסר משמעות מהסוג **האחר**.',
+  },
+
+  // ============================================================ errors-05 — ALEF, GIMEL, HE
+  {
+    id: 'errors-q-027',
+    track: 'errors',
+    lesson: 'errors-05',
+    type: 'trace-fill',
+    skills: ['meaning', 'trace-general'],
+    difficulty: 2,
+    origin: 'source',
+    sources: { photos: [23] },
+    prompt: 'השלימו את טבלת המעקב של ALEF עם הקלט מהטבלה העליונה של דוגמה 1 (A = 3, B = 10): עמודה אחרי כל שורה שבוצעה.',
+    program: { code: ALEF_BODY, inputs: { A: 3, B: 10 } },
+    mode: 'lines',
+    hints: ['בכל סיבוב מתבצעות שתי שורות: שורה 2 (`SUB (B)`) ושורה 3 (`SUB (A)`).', 'כמה סיבובים יהיו? הלולאה בודקת את A.'],
+    explanation:
+      'שלושה סיבובים. בכל סיבוב שורה 2 מורידה כדור מ־B, ושורה 3 מורידה כדור מ־A. B: 10 → 9 → 8 → 7; A: 3 → 2 → 1 → 0. הפלט A = 0, B = 7 — בדיוק כמו בטבלה של המרצה.',
+  },
+  {
+    id: 'errors-q-028',
+    track: 'errors',
+    lesson: 'errors-05',
+    type: 'predict',
+    skills: ['meaning', 'sub-empty'],
+    difficulty: 2,
+    origin: 'source',
+    sources: { photos: [23] },
+    prompt: 'הטבלה התחתונה של דוגמה 1: מפעילים את ALEF עם A = 6, B = 2. מה יהיו ערכי המונים בסוף? ' + NO_OUTPUT,
+    code: ALEF_BODY,
+    codeLang: 'algolem',
+    program: { code: 'ALEF (A,B)', inputs: { A: 6, B: 2 } },
+    ask: ['A', 'B'],
+    hints: ['כמה כדורים יוצאים מ־B בכל סיבוב? כמה סיבובים הלולאה "רוצה" לבצע?', 'מה ערכו של B בתחילת סיבוב 3?'],
+    explanation:
+      'הלולאה רוצה לבצע 6 סיבובים (A = 6) ולהוציא בכל אחד כדור מ־B — אבל ב־B יש רק 2. אחרי סיבוב 2: A = 4, B = 0. בסיבוב 3, `SUB (B)` מפחיתה מריק — **אין פלט**. בשקף: פצצה אדומה במשבצת הזו ו־X על עמודת הפלט.',
+  },
+  {
+    id: 'errors-q-029',
+    track: 'errors',
+    lesson: 'errors-05',
+    type: 'numeric',
+    skills: ['meaning', 'sub-empty'],
+    difficulty: 2,
+    origin: 'source',
+    sources: { photos: [23] },
+    prompt: 'ALEF עם A = 6, B = 2: **באיזה סיבוב** הריצה נעצרת?',
+    code: ALEF_BODY,
+    codeLang: 'algolem',
+    answer: 3,
+    hints: ['בכל סיבוב B קטן ב־1. אחרי כמה סיבובים הוא ריק?', 'הריצה נעצרת בסיבוב **שאחרי** הסיבוב שבו B התרוקן.'],
+    explanation:
+      'B = 2. אחרי סיבוב 1: B = 1. אחרי סיבוב 2: B = 0. בסיבוב 3 הלולאה עדיין נכנסת (A = 4), ושורה 2 מנסה להוציא כדור מ־B הריק — כאן הפצצה של המרצה.',
+  },
+  {
+    id: 'errors-q-030',
+    track: 'errors',
+    lesson: 'errors-05',
+    type: 'mcq',
+    skills: ['meaning', 'sub-empty'],
+    difficulty: 2,
+    origin: 'new',
+    sources: { photos: [23] },
+    prompt: 'לאילו קלטים יש ל־ALEF משמעות?',
+    code: ALEF_BODY,
+    codeLang: 'algolem',
+    choices: [
+      { text: 'בדיוק כש־$B \\geq A$', correct: true },
+      {
+        text: 'בדיוק כש־$B > A$',
+        feedback: 'גם $B = A$ עובד: בסיבוב האחרון B יורד בדיוק ל־0, וזה מותר. למשל A = 3, B = 3 נותן A = 0, B = 0.',
+        misconception: 'off-by-one',
+      },
+      {
+        text: 'לכל קלט',
+        feedback: 'כש־B קטן מ־A, `SUB (B)` מגיעה למונה ריק — למשל A = 6, B = 2 בשקף, עם הפצצה בסיבוב 3.',
+        misconception: 'sub-negative',
+      },
+      {
+        text: 'בדיוק כש־$A \\geq B$',
+        feedback: 'הפוך: B הוא שצריך מספיק כדורים, כי ממנו יוצא כדור בכל אחד מ־A הסיבובים.',
+      },
+    ],
+    hints: ['כמה סיבובים מבצעת הלולאה?', 'כמה כדורים יוצאים מ־B בסך הכול?', 'בדקו את המקרה A = 3, B = 3.'],
+    explanation:
+      'הלולאה מבצעת A סיבובים, ובכל אחד יוצא כדור מ־B. לכן B צריך לפחות A כדורים: $B \\geq A$. אז הפלט הוא $A = 0,\\; B = B - A$. כש־$B < A$ — חיסור ממונה ריק.',
+  },
+  {
+    id: 'errors-q-031',
+    track: 'errors',
+    lesson: 'errors-05',
+    type: 'predict',
+    skills: ['meaning'],
+    difficulty: 1,
+    origin: 'source',
+    sources: { photos: [20] },
+    prompt: 'מפעילים את GIMEL (דוגמה 3) עם A = 3, B = 4. מה יהיו ערכי המונים בסוף? ' + NO_OUTPUT,
+    program: { code: 'GIMEL (A,B)', inputs: { A: 3, B: 4 } },
+    ask: ['A', 'B'],
+    hints: ['הלולאה הראשונה של GIMEL עובדת רק על A. מה היא עושה לו?', 'הלולאה השנייה מעבירה כדורים. מאיפה לאן?'],
+    explanation:
+      'לולאה 1 מרוקנת את A (3 → 0). לולאה 2 מעבירה את כל B ל־A: A = 4, B = 0. לכל קלט GIMEL נותנת A = הערך ההתחלתי של B, ו־B = 0 — "יש משמעות לכל קלט".',
+  },
+  {
+    id: 'errors-q-032',
+    track: 'errors',
+    lesson: 'errors-05',
+    type: 'predict',
+    skills: ['meaning'],
+    difficulty: 1,
+    origin: 'source',
+    sources: { photos: [18] },
+    prompt: 'מפעילים את HE (דוגמה 5) עם A = 0, B = 5. מה יהיו ערכי המונים בסוף? ' + NO_OUTPUT,
+    code: HE_BODY,
+    codeLang: 'algolem',
+    program: { code: 'HE (A,B)', inputs: { A: 0, B: 5 } },
+    ask: ['A', 'B'],
+    hints: ['מה בודקת הלולאה החיצונית לפני הסיבוב הראשון?', 'אם לא נכנסים ללולאה — מה קורה למונים?'],
+    explanation:
+      'A ריק, ולכן הלולאה החיצונית לא מתחילה בכלל. שום דבר לא משתנה: A = 0, B = 5. כמו בשקף: "A = 0 – לפרוצדורה יש משמעות".',
+  },
+  {
+    id: 'errors-q-033',
+    track: 'errors',
+    lesson: 'errors-05',
+    type: 'predict',
+    skills: ['meaning', 'sub-empty'],
+    difficulty: 2,
+    origin: 'source',
+    sources: { photos: [18] },
+    prompt: 'מפעילים את HE עם A = 1, B = 3. מה יהיו ערכי המונים בסוף? ' + NO_OUTPUT,
+    code: HE_BODY,
+    codeLang: 'algolem',
+    program: { code: 'HE (A,B)', inputs: { A: 1, B: 3 } },
+    ask: ['A', 'B'],
+    hints: ['האם הלולאה הפנימית משנה את A?', 'מה קורה ל־B בכל סיבוב של הלולאה הפנימית? כמה זמן זה יכול להימשך?'],
+    explanation:
+      'הלולאה הפנימית בודקת את A (שנשאר 1), ובכל סיבוב מוציאה כדור מ־B: 3 → 2 → 1 → 0. בסיבוב הרביעי `SUB (B)` מפחיתה מריק — **אין פלט**. כמו בשקף: "A ≠ 0 – יבוצע חיסור ממונה ריק".',
+  },
+  {
+    id: 'errors-q-034',
+    track: 'errors',
+    lesson: 'errors-05',
+    type: 'mcq',
+    skills: ['meaning', 'sub-empty', 'infinite-loop'],
+    difficulty: 3,
+    origin: 'new',
+    sources: { photos: [18] },
+    prompt: 'מפעילים את HE עם A = 2, B = 3. מה מסיים את הריצה?',
+    code: HE_BODY,
+    codeLang: 'algolem',
+    choices: [
+      { text: 'חיסור ממונה ריק: הלולאה הפנימית מוציאה כדורים מ־B עד שהוא נגמר', correct: true },
+      {
+        text: 'שום דבר — זו לולאה אינסופית, כי A לא משתנה',
+        feedback: 'נכון ש־A לא משתנה, אבל כל סיבוב מוציא כדור מ־B. אחרי 3 סיבובים B ריק, וה־`SUB (B)` הבאה היא פעולה לא חוקית — הריצה נעצרת.',
+        misconception: 'sub-negative',
+      },
+      {
+        text: 'הריצה מסתיימת עם A = 2, B = 0',
+        feedback: 'הלולאות בודקות את A, לא את B. כש־B מתרוקן, A עדיין 2 — והלולאה הפנימית ממשיכה ומנסה להוציא כדור מ־B הריק.',
+      },
+      {
+        text: 'הריצה מסתיימת עם A = 0, B = 1',
+        feedback: 'אף שורה ב־HE לא מוציאה כדורים מ־A. A נשאר 2 כל הזמן.',
+      },
+    ],
+    hints: ['אילו שורות משנות את A? ואילו את B?', 'הלולאה הפנימית בודקת את A. מה יקרה כש־B יתרוקן?'],
+    explanation:
+      'A = 2 ואינו משתנה, ולכן הלולאה הפנימית לא נגמרת "מעצמה". אבל כל סיבוב שלה מוציא כדור מ־B: 3 → 2 → 1 → 0, ואז `SUB (B)` מפחיתה מריק. הריצה נעצרת **לפני** שהאינסופיות "מספיקה" לקרות — ולכן בשקף: "A ≠ 0 – יבוצע חיסור ממונה ריק".',
+  },
+  {
+    id: 'errors-q-035',
+    track: 'errors',
+    lesson: 'errors-05',
+    type: 'mcq',
+    multi: true,
+    skills: ['meaning'],
+    difficulty: 2,
+    origin: 'new',
+    sources: { photos: [17, 18, 19, 20, 22, 23] },
+    prompt: 'לאילו מהפרוצדורות של המרצה יש משמעות **לכל קלט**? סמנו את כל התשובות הנכונות.',
+    choices: [
+      { text: 'GIMEL', correct: true },
+      { text: 'S (מהמשחק של מלכת הלבבות)', correct: true },
+      { text: 'ALEF', feedback: 'ל־ALEF אין משמעות כש־$B < A$: `SUB (B)` מגיעה למונה ריק.', misconception: 'sub-negative' },
+      { text: 'BET', feedback: 'ל־BET אין משמעות כש־A ≠ 0: A רק גדל, והלולאה לא נגמרת.' },
+      { text: 'DALET', feedback: 'ל־DALET אין משמעות כש־A = 0: השורה הראשונה מפחיתה מריק.', misconception: 'sub-negative' },
+      { text: 'HE', feedback: 'ל־HE אין משמעות כש־A ≠ 0: הלולאה הפנימית מרוקנת את B, ואז מפחיתה מריק.', misconception: 'sub-negative' },
+    ],
+    hints: ['בכל פרוצדורה חפשו `SUB` שאין סביבה `WHILE` על אותו מונה.', 'וחפשו `WHILE` שהמונה שלה לא קטן בתוכה.'],
+    explanation:
+      'GIMEL ו־S: כל `SUB` מוגנת ע"י `WHILE` על אותו מונה, וכל לולאה מקטינה את המונה שלה — משמעות לכל קלט.\n' +
+      'ALEF (כש־$B < A$), DALET (כש־A = 0) ו־HE (כש־A ≠ 0): חיסור ממונה ריק. BET (כש־A ≠ 0): אינסופיות.',
+  },
+  {
+    id: 'errors-q-036',
+    track: 'errors',
+    lesson: 'errors-05',
+    type: 'predict',
+    skills: ['infinite-loop', 'meaning', 'nested-loop'],
+    difficulty: 3,
+    origin: 'new',
+    prompt: 'זו HE — אבל עם `ADD (B)` במקום `SUB (B)`. מה יהיו ערכי המונים בסוף כש־A = 1, B = 0? ' + NO_OUTPUT,
+    program: { code: 'WHILE (A)\n   WHILE (A)\n      ADD (B)\n   ENDW\nENDW', inputs: { A: 1, B: 0 } },
+    ask: ['A', 'B'],
+    hints: ['האם יש כאן `SUB` שיכולה להיכשל?', 'האם משהו בלולאה הפנימית משנה את A?'],
+    explanation:
+      'אין כאן `SUB` בכלל, ולכן אין חיסור מריק שיעצור את הריצה. הלולאה הפנימית בודקת את A (שנשאר 1) ורק מוסיפה ל־B — היא **אינסופית**: אין פלט. השוו ל־HE המקורית, שבה ה־`SUB (B)` עוצרת את הריצה קודם.',
+  },
+
+  // ============================================================ errors-06 — טבלת חוסר משמעות
+  {
+    id: 'errors-q-037',
+    track: 'errors',
+    lesson: 'errors-06',
+    type: 'match',
+    skills: ['sub-empty', 'infinite-loop'],
+    difficulty: 1,
+    origin: 'source',
+    sources: { photos: [21] },
+    prompt: 'השלימו את הטבלה "חוסר משמעות באלגולם" של המרצה: התאימו כל שאלה לתשובה.',
+    pairs: [
+      ['הפשע "הפחתה מריק" — מי החשוד?', '`SUB`'],
+      ['הפשע "אינסופיות" — מי החשוד?', '`WHILE`'],
+      ['האליבי של `SUB`', 'סביבו יש `WHILE` רלוונטי'],
+      ['האליבי של `WHILE`', 'בתוכה יש `SUB` רלוונטי'],
+    ],
+    hints: ['איזו פקודה מוציאה כדורים? איזו פקודה חוזרת שוב ושוב?', 'מה יכול להבטיח שבמונה יש כדור? ומה יכול להבטיח שמונה יתרוקן בסוף?'],
+    explanation:
+      'בטבלה של המרצה: **פשע** — הפחתה מריק | אינסופיות. **חשוד** — `SUB` | `WHILE`. **אליבי** — "סביבו יש WHILE רלוונטי" | "בתוכה יש SUB רלוונטי".',
+  },
+  {
+    id: 'errors-q-038',
+    track: 'errors',
+    lesson: 'errors-06',
+    type: 'find-bug',
+    skills: ['infinite-loop', 'meaning'],
+    difficulty: 2,
+    origin: 'new',
+    sources: { photos: [21] },
+    prompt: 'לפי הטבלה של המרצה: איזו שורה היא **חשוד באינסופיות שאין לו אליבי**?',
+    lang: 'algolem',
+    listing: 'WHILE (A)\n   ADD (B)\n   SUB (A)\nENDW\nWHILE (B)\n   ADD (C)\nENDW',
+    bugLines: [5],
+    hints: ['החשודים באינסופיות הם שורות ה־`WHILE`. יש כאן שתיים.', 'לכל `WHILE (X)` בדקו: האם יש בתוכה `SUB (X)`?'],
+    explanation:
+      '`WHILE (A)` בשורה 1 מכילה `SUB (A)` — יש לה אליבי. `WHILE (B)` בשורה 5 מכילה רק `ADD (C)`: אין בתוכה `SUB (B)`, ולכן **אין אליבי**. אם B אינו ריק כשמגיעים אליה (למשל כש־A > 0 בהתחלה, כי הלולאה הראשונה ממלאת את B), היא תסתובב לנצח.',
+  },
+  {
+    id: 'errors-q-039',
+    track: 'errors',
+    lesson: 'errors-06',
+    type: 'predict',
+    skills: ['infinite-loop', 'meaning'],
+    difficulty: 3,
+    origin: 'new',
+    prompt: 'בלולאה יש `SUB (A)` — האם זה מספיק? מה יהיה A בסוף כש־A = 2? ' + NO_OUTPUT,
+    program: { code: 'WHILE (A)\n   SUB (A)\n   ADD (A)\nENDW', inputs: { A: 2 } },
+    ask: ['A'],
+    hints: ['מה ערכו של A בסוף כל סיבוב, לעומת תחילתו?', 'אליבי צריך להיות **רלוונטי**: האם ה־`SUB (A)` באמת מקרבת את A ל־0?'],
+    explanation:
+      'בכל סיבוב A יורד ב־1 ומיד עולה ב־1 — וחוזר ל־2. אותו מצב חוזר לנצח: **אין פלט** (אינסופיות). ה־`SUB (A)` קיימת, אבל ה־`ADD (A)` מבטל אותה — זה אליבי **לא רלוונטי**.',
+  },
+  {
+    id: 'errors-q-040',
+    track: 'errors',
+    lesson: 'errors-06',
+    type: 'predict',
+    skills: ['sub-empty', 'meaning'],
+    difficulty: 3,
+    origin: 'new',
+    prompt: 'מה יהיה A בסוף כש־A = 3? ' + NO_OUTPUT,
+    program: { code: 'WHILE (A)\n   SUB (A)\n   SUB (A)\nENDW', inputs: { A: 3 } },
+    ask: ['A'],
+    hints: ['כמה כדורים יוצאים מ־A בכל סיבוב?', 'ה־`WHILE` בודק את A רק בתחילת סיבוב. מה ערכו של A לפני ה־`SUB` השנייה בסיבוב 2?'],
+    explanation:
+      'סיבוב 1: 3 → 2 → 1. סיבוב 2: הבדיקה מוצאת A = 1 ונכנסת; ה־`SUB` הראשונה מורידה ל־0, והשנייה מפחיתה מריק — **אין פלט**. ה־`WHILE (A)` הוא אליבי רק ל־`SUB` הראשונה. (עם A זוגי יש משמעות.)',
+  },
+  {
+    id: 'errors-q-041',
+    track: 'errors',
+    lesson: 'errors-06',
+    type: 'find-bug',
+    skills: ['sub-empty', 'infinite-loop', 'meaning'],
+    difficulty: 3,
+    origin: 'new',
+    sources: { photos: [21] },
+    prompt: 'סמנו את **כל** החשודים שאין להם אליבי — גם בהפחתה מריק וגם באינסופיות.',
+    lang: 'algolem',
+    listing: 'WHILE (A)\n   SUB (B)\n   ADD (C)\nENDW',
+    bugLines: [1, 2],
+    hints: ['יש כאן חשוד אחד מכל סוג: `SUB` אחת ו־`WHILE` אחת.', 'לכל חשוד בדקו: האם האליבי שלו עוסק באותו מונה?'],
+    explanation:
+      'שורה 1: `WHILE (A)` — אין בתוכה `SUB (A)`, ו־A לא משתנה: **אין אליבי** (חשודה באינסופיות).\n' +
+      'שורה 2: `SUB (B)` — סביבה `WHILE (A)`, לא `WHILE (B)`: **אין אליבי** (חשודה בהפחתה מריק).\n' +
+      'ומה קורה בפועל כש־A ≠ 0? כמו ב־HE: B מתרוקן אחרי B סיבובים, וההפחתה מריק עוצרת את הריצה. כש־A = 0 יש משמעות.',
+  },
+
+  // ============================================================ errors-07 — משחק מלכת הלבבות
+  {
+    id: 'errors-q-042',
+    track: 'errors',
+    lesson: 'errors-07',
+    type: 'mcq',
+    skills: ['determinism'],
+    difficulty: 1,
+    origin: 'source',
+    sources: { photos: [17, 16] },
+    prompt: '**סבב ראשון**: המלכה מגלה לכם את ערכי ההתחלה **בכל התאים** A, B, C, ושואלת על הערכים בסיום **בכל התאים**. האם בסבב זה אתם מסתכנים בהפסד?',
+    code: S_SOURCE,
+    codeLang: 'algolem',
+    choices: [
+      {
+        text: 'לא. S דטרמיניסטית ויש לה משמעות לכל קלט: מאותו קלט יוצא תמיד אותו פלט, ואפשר לחשב אותו ($A^O = 0$, $B^O = A^I + 5$, $C^O = C^I + A^I$)',
+        correct: true,
+      },
+      {
+        text: 'כן. המלכה יכולה לבחור ערכים ענקיים, ואז אי אפשר לחשב',
+        feedback: 'הנוסחאות עובדות לכל גודל: עם A = 1000 מקבלים B = 1005, בלי לעקוב אחרי אלף סיבובים.',
+      },
+      {
+        text: 'כן. אלגולם יכול לתת תוצאה אחרת בכל הפעלה',
+        feedback: 'אלגולם **דטרמיניסטי**: מאותו מצב התחלתי קורים תמיד אותם צעדים, ומגיעים תמיד לאותה תוצאה.',
+      },
+      {
+        text: 'כן. כש־A = 0 הלולאה לא מתבצעת, ולכן אין פלט',
+        feedback: 'כש־A = 0 מדלגים על הלולאה — אבל הריצה מסתיימת כרגיל, ויש פלט: A = 0, B = 5, ו־C לא משתנה.',
+      },
+    ],
+    hints: [
+      'האם אותה הפעלה של S יכולה לתת פעם תוצאה אחת ופעם תוצאה אחרת?',
+      'האם יש קלט שבשבילו ל־S אין משמעות (חיסור מריק או לולאה אינסופית)?',
+    ],
+    explanation:
+      'אין סיכון. אלגולם הוא תהליך דטרמיניסטי: מאותם ערכי התחלה קורים תמיד אותם צעדים ומתקבל אותו פלט. ל־S יש משמעות לכל קלט (ה־`SUB (A)` מוגנת, והלולאה מקטינה את A), ואת הפלט אפשר לחשב: $A^O = 0$, $B^O = A^I + 5$, $C^O = C^I + A^I$. כל הקלט גלוי — ולכן תמיד אפשר לענות נכון.',
+  },
+  {
+    id: 'errors-q-043',
+    track: 'errors',
+    lesson: 'errors-07',
+    type: 'mcq',
+    skills: ['determinism'],
+    difficulty: 1,
+    origin: 'source',
+    sources: { photos: [17, 16] },
+    prompt: '**סבב שני**: המלכה מגלה לכם את ערכי ההתחלה **בכל התאים**, ושואלת על הערכים בסיום רק **בתאים לבחירתה** (כולם, חלקם או אף אחד). האם בסבב זה אתם מסתכנים בהפסד?',
+    code: S_SOURCE,
+    codeLang: 'algolem',
+    choices: [
+      { text: 'לא. אם אפשר לחשב את ערכי הסיום של כל התאים (כמו בסבב הראשון), אפשר לענות על כל חלק מהם', correct: true },
+      {
+        text: 'כן. המלכה יכולה לבחור דווקא את התא הקשה',
+        feedback: 'אין כאן תא "קשה": כל הקלט גלוי, ולכל תא יש נוסחה פשוטה.',
+      },
+      {
+        text: 'כן — אם היא שואלת על B, כי התשובה תלויה בערך ההתחלתי של B',
+        feedback: '`FIVE (B)` מוחקת את הערך ההתחלתי של B. $B^O = A^I + 5$ — ואת A היא גילתה.',
+        misconception: 'zero-before-add',
+      },
+    ],
+    hints: ['במה הסבב הזה שונה מהסבב הראשון? מה מגלים לכם, ועל מה שואלים?', 'אם אתם יודעים לענות על שלוש שאלות, האם אתם יודעים לענות על שתיים מהן?'],
+    explanation:
+      'אין סיכון. כל ערכי ההתחלה גלויים, כמו בסבב הראשון — ולכן אפשר לחשב את כל ערכי הסיום. שאלה על חלק מהתאים (או על אף אחד) היא רק תת־משימה של הסבב הראשון.',
+  },
+  {
+    id: 'errors-q-044',
+    track: 'errors',
+    lesson: 'errors-07',
+    type: 'mcq',
+    skills: ['determinism'],
+    difficulty: 2,
+    origin: 'source',
+    sources: { photos: [16] },
+    prompt: '**סבב שלישי**: המלכה מגלה לכם את ערכי ההתחלה רק **בתאים לבחירתה**, ושואלת על הערכים בסיום **בתאים לבחירתה**. האם בסבב זה אתם מסתכנים בהפסד?',
+    code: S_SOURCE,
+    codeLang: 'algolem',
+    choices: [
+      { text: 'כן — אבל רק בחלק מהשאלות: כשהיא שואלת על תא שערכו בסוף תלוי בערך התחלה שהיא לא גילתה', correct: true },
+      {
+        text: 'לא. אלגולם דטרמיניסטי, ולכן תמיד אפשר לדעת את התוצאה',
+        feedback: 'דטרמיניסטי פירושו שהתוצאה **נקבעת** לפי הקלט. אבל אם לא מגלים לכם את הקלט, אתם לא יכולים לחשב אותה.',
+      },
+      {
+        text: 'כן — בכל שאלה בסבב הזה',
+        feedback: 'לא בכל שאלה: על A תמיד עונים 0, ואם היא גילתה את A — אפשר לענות גם על B ($B^O = A^I + 5$).',
+        misconception: 'source-destroyed',
+      },
+      {
+        text: 'לא. ערך שלא גולה הוא 0, ואפשר לחשב לפי זה',
+        feedback: 'ערך שלא גולה **לא ידוע** — הוא יכול להיות כל מספר. אסור להניח שהוא 0.',
+      },
+    ],
+    hints: ['במה הסבב הזה שונה מהקודמים?', 'לכל תא: באילו ערכי התחלה תלוי הערך שלו בסוף?'],
+    explanation:
+      'יש סיכון, אבל רק בשאלות מסוימות.\n' +
+      '**מסוכנות**: שאלה על B כש־A לא גולה ($B^O = A^I + 5$); שאלה על C כש־A או C לא גולו ($C^O = C^I + A^I$).\n' +
+      '**בטוחות**: שאלה על A (תמיד 0); שאלה על B כש־A גולה; שאלה על C כש־A ו־C גולו; ושאלה על אף תא.\n' +
+      'אלגולם נשאר דטרמיניסטי — מה שחסר הוא **מידע** על הקלט.',
+  },
+  {
+    id: 'errors-q-045',
+    track: 'errors',
+    lesson: 'errors-07',
+    type: 'mcq',
+    multi: true,
+    skills: ['determinism'],
+    difficulty: 3,
+    origin: 'source',
+    sources: { photos: [16, 17] },
+    prompt: 'סבב שלישי. אילו מהמצבים הבאים **מסכנים אתכם בהפסד**? סמנו את כל התשובות הנכונות.',
+    code: S_SOURCE,
+    codeLang: 'algolem',
+    choices: [
+      { text: 'המלכה מגלה רק את B ואת C, ושואלת על B', correct: true },
+      { text: 'המלכה מגלה רק את A, ושואלת על C', correct: true },
+      {
+        text: 'המלכה מגלה רק את A, ושואלת על B',
+        feedback: '$B^O = A^I + 5$ — תלוי רק ב־A, ואת A היא גילתה. בטוח.',
+        misconception: 'zero-before-add',
+      },
+      {
+        text: 'המלכה לא מגלה כלום, ושואלת על A',
+        feedback: 'A תמיד מסתיים ב־0: הלולאה מרוקנת אותו. אפשר לענות בלי לדעת כלום. בטוח.',
+        misconception: 'source-destroyed',
+      },
+      {
+        text: 'המלכה מגלה את A ואת C, ושואלת על כל התאים',
+        feedback: 'A = 0, B = A + 5, C = C + A — כל מה שצריך גלוי. הערך ההתחלתי של B לא נחוץ. בטוח.',
+        misconception: 'zero-before-add',
+      },
+      {
+        text: 'המלכה לא מגלה כלום, ולא שואלת על אף תא',
+        feedback: 'אם אין שאלה — אין תשובה שיכולה להיות שגויה. בטוח.',
+      },
+    ],
+    hints: ['כתבו לכל תא נוסחה לערך בסוף, בעזרת ערכי ההתחלה.', 'שאלה מסוכנת = שאלה על תא שהנוסחה שלו כוללת ערך שלא גולה.'],
+    explanation:
+      'הנוסחאות: $A^O = 0$, $B^O = A^I + 5$, $C^O = C^I + A^I$.\n' +
+      '- מגלה B, C ושואלת על B — חסר $A^I$: **מסוכן**.\n' +
+      '- מגלה A ושואלת על C — חסר $C^I$: **מסוכן**.\n' +
+      '- מגלה A ושואלת על B — בטוח.\n' +
+      '- לא מגלה כלום ושואלת על A — בטוח (תמיד 0).\n' +
+      '- מגלה A, C ושואלת על הכול — בטוח.\n' +
+      '- לא שואלת כלום — בטוח.',
+  },
+  {
+    id: 'errors-q-046',
+    track: 'errors',
+    lesson: 'errors-07',
+    type: 'predict',
+    skills: ['determinism', 'procedure-call'],
+    difficulty: 1,
+    origin: 'new',
+    prompt: 'סבב ראשון: המלכה מגלה A = 3, B = 40, C = 2. מה יהיו הערכים בסיום הפעלת S?',
+    code: S_SOURCE,
+    codeLang: 'algolem',
+    program: { code: 'S (A,B,C)', inputs: { A: 3, B: 40, C: 2 } },
+    ask: ['A', 'B', 'C'],
+    hints: ['מה עושה `FIVE (B)` לערך 40?', 'כמה סיבובים מבצעת הלולאה, ומה קורה ל־B ול־C בכל סיבוב?'],
+    explanation:
+      '`FIVE (B)`: B = 5 (ה־40 נמחק). הלולאה רצה 3 סיבובים: B עולה ל־8, C עולה ל־5, A יורד ל־0. התשובה: A = 0, B = 8, C = 5.',
+  },
+  {
+    id: 'errors-q-047',
+    track: 'errors',
+    lesson: 'errors-07',
+    type: 'numeric',
+    skills: ['determinism'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'המלכה מגלה A = 4, B = 100, C = 7, ושואלת: מה יהיה ב־**C** בסיום הפעלת S?',
+    code: S_SOURCE,
+    codeLang: 'algolem',
+    answer: 11,
+    hints: ['כמה פעמים מתבצע `ADD (C)`?', 'האם הערך של B משפיע על C בכלל?'],
+    explanation: 'הלולאה רצה 4 סיבובים, ובכל אחד C עולה ב־1: $C^O = 7 + 4 = 11$. הערך של B (100) לא משפיע על C.',
+  },
+  {
+    id: 'errors-q-048',
+    track: 'errors',
+    lesson: 'errors-07',
+    type: 'match',
+    skills: ['determinism'],
+    difficulty: 2,
+    origin: 'new',
+    sources: { photos: [17] },
+    prompt: 'בפרוצדורה S: התאימו כל ערך בסיום למה שהוא תלוי בו.',
+    code: S_SOURCE,
+    codeLang: 'algolem',
+    pairs: [
+      ['$A^O$ — הערך של A בסוף', 'לא תלוי באף ערך התחלה — תמיד 0'],
+      ['$B^O$ — הערך של B בסוף', 'תלוי רק בערך ההתחלה של A'],
+      ['$C^O$ — הערך של C בסוף', 'תלוי בערכי ההתחלה של A ושל C'],
+    ],
+    hints: ['מה עושה `FIVE (B)` לערך ההתחלתי של B?', 'כמה פעמים רצה הלולאה, ומה היא מוסיפה בכל סיבוב?'],
+    explanation:
+      'הלולאה מרוקנת את A: $A^O = 0$. `FIVE (B)` מוחקת את B ושמה בו 5, והלולאה מוסיפה $A^I$: $B^O = A^I + 5$. ל־C הלולאה מוסיפה $A^I$: $C^O = C^I + A^I$. זה בדיוק מה שקובע אילו שאלות מסוכנות בסבב השלישי.',
+  },
+  {
+    id: 'errors-q-049',
+    track: 'errors',
+    lesson: 'errors-07',
+    type: 'mcq',
+    skills: ['determinism'],
+    difficulty: 1,
+    origin: 'new',
+    prompt: 'מהו תהליך **דטרמיניסטי**?',
+    choices: [
+      { text: 'תהליך שבו אותו קלט מוביל תמיד לאותם צעדים ולאותה תוצאה', correct: true },
+      {
+        text: 'תהליך שתמיד מסתיים',
+        feedback: 'BET דטרמיניסטית ובכל זאת לא מסתיימת כש־A ≠ 0. דטרמיניזם פירושו שאותו קלט מתנהג תמיד אותו דבר — גם אם "אותו דבר" הוא ריצה אינסופית.',
+      },
+      {
+        text: 'תהליך שבו הפלט תמיד שווה לקלט',
+        feedback: 'הפלט יכול להיות שונה מהקלט (ב־S, למשל, B = 40 בהתחלה ו־B = 8 בסוף). העיקר: אותו קלט נותן תמיד אותו פלט.',
+      },
+      { text: 'תהליך שהתוצאה שלו נקבעת במזל', feedback: 'זה ההפך: בתהליך דטרמיניסטי אין מזל בכלל.' },
+    ],
+    hints: ['"דטרמיניסטי" בא מהמילה האנגלית determine — לקבוע. מה נקבע מראש?', 'חשבו על מחשבון: 2 + 3 היום, ו־2 + 3 מחר.'],
+    explanation:
+      'בתהליך דטרמיניסטי כל צעד נקבע לגמרי לפי המצב הנוכחי. לכן מאותו קלט מתקבלים תמיד אותם צעדים ואותה תוצאה. אלגולם כזה: אין בו מזל ואין בו בחירה.',
+  },
+  {
+    id: 'errors-q-050',
+    track: 'errors',
+    lesson: 'errors-07',
+    type: 'numeric',
+    skills: ['determinism', 'zeroing'],
+    difficulty: 2,
+    origin: 'new',
+    prompt: 'סבב שלישי: המלכה מגלה **רק** את A = 6, ושואלת: מה יהיה ב־**B** בסוף?',
+    code: S_SOURCE,
+    codeLang: 'algolem',
+    answer: 11,
+    hints: ['האם צריך לדעת את הערך ההתחלתי של B?', 'מה שמה `FIVE (B)` ב־B, וכמה מוסיפה הלולאה?'],
+    explanation:
+      '`FIVE (B)` מוחקת את מה שהיה ב־B ושמה בו 5. הלולאה רצה 6 סיבובים ומוסיפה ל־B עוד 6: $B^O = 6 + 5 = 11$ — בלי לדעת את B ההתחלתי. השאלה הזו **אינה** מסוכנת.',
+  },
+];
