@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { LESSONS, LESSON_BY_ID, lessonsOf, questionsOf } from '@/content';
@@ -15,7 +16,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: l ? l.title : 'שיעור' };
 }
 
-export default async function Page({ params }: Props) {
+/** The route shell is URL-independent; the lesson (URL data) streams in behind Suspense. */
+export default function Page({ params }: Props) {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-4xl animate-pulse space-y-4"><div className="h-10 w-2/3 rounded bg-paper-2" /><div className="h-40 rounded bg-paper-2" /></div>}>
+      <Lesson params={params} />
+    </Suspense>
+  );
+}
+
+async function Lesson({ params }: Props) {
   const { lesson: id } = await params;
   const lesson = LESSON_BY_ID[id];
   if (!lesson) notFound();

@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# מעבדת מדעי המחשב — פלטפורמת לימוד אינטראקטיבית
 
-## Getting Started
+אתר לימוד מלא לחומר הקורס שבקובץ "מדעי המחשב – מחברת וצילומי מקור" (98 עמודים, 76 צילומי מקור):
+LOGO, אלגולם, טבלאות מעקב, שגיאות וחוסר משמעות, תורת הקבוצות ופונקציות.
 
-First, run the development server:
+## הפעלה
+
+```bash
+npm install
+```
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+האתר נפתח בכתובת http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| פקודה | מה היא עושה |
+|---|---|
+| `npm run dev` | שרת פיתוח |
+| `npm run build` ואז `npm start` | בנייה והרצה לייצור |
+| `npm test` | בדיקות יחידה: מנועי אלגולם ו־LOGO, נוסחאות סימבוליות, ואימות כל התוכן (כל תוכנית בכל שיעור ושאלה רצה במנוע) |
+| `BASE=http://localhost:3000 npm run test:e2e` | בדיקות דפדפן מקצה לקצה (Playwright) מול שרת רץ |
+| `npm run export:knowledge` | ייצוא מאגר הידע (`content/knowledge-base.json`), מפת הקורס ודוח הכיסוי |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## מבנה (שש שכבות נפרדות)
 
-## Learn More
+| שכבה | תיקייה | תפקיד |
+|---|---|---|
+| תוכן הלימוד | `src/content/` | נתונים טהורים בטיפוסי TypeScript: מסלולים, 52 שיעורים, מאגר שאלות, מיומנויות, טעויות נפוצות, מפת מקורות |
+| מנועי סימולציה | `src/engines/` | `algolem` (מפענח, מהדר, מכונה צעד־צעד, הוכחת אי־סיום, טבלאות מעקב, סיכום סימבולי), `logo`, `sets`, `functions` — דטרמיניסטיים, בלי React, עם בדיקות יחידה |
+| ממשק | `src/components/`, `src/app/` | Next.js App Router, React, Tailwind, SVG ו־motion |
+| מנוע השאלות | `src/questions/grade.ts` | בדיקת תשובות ל־13 סוגי שאלות וזיהוי טעויות נפוצות — התשובה הנכונה תמיד מחושבת במנוע |
+| התקדמות התלמיד | `src/progress/store.ts` | localStorage, חזרות מרווחות (תיבות לייטנר), זיהוי נושאים חלשים |
+| שכבת ההסברים | `src/explain/` | טקסט עברי דטרמיניסטי לכל צעד ולכל שורת קוד, בשלוש רמות |
 
-To learn more about Next.js, take a look at the following resources:
+### הרחבות עתידיות
+- **Supabase / התחברות / סנכרון בין מכשירים:** להחליף רק את `load()` / `save()` ב־`src/progress/store.ts`. מבנה הנתונים (`ProgressData`) כבר מתאים לטבלה אחת למשתמש.
+- **מורה AI מבוסס API:** אפשר להוסיף שכבה שמקבלת את מאגר הידע (`content/knowledge-base.json`) ואת אירועי המנוע (`StepEvent`) ומנסחת הסברים. עליה להשתמש במאגר הקורס כמקור, ואסור לה לחשב תוצאות: התוצאות מגיעות רק מהמנועים.
+- **שיעורים חדשים / מערכת ניהול תוכן:** שיעור הוא אובייקט `Lesson` (ראו `src/content/types.ts` ו־`content/CONTENT_BRIEF.md`). בדיקות התוכן מאמתות כל שיעור חדש אוטומטית.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## טיפול במקור
+- **עמודים 1–22** הם מחברת מעובדת (סיכום משני). הטקסט שלהם חולץ ל־`content/source/pdf-text/`.
+- **76 הצילומים** (עמודים 23–98) חולצו כקבצים נפרדים, זהים בבתים לקבצים שבתוך ה־PDF, ונמצאים ב־`public/source/`. כל צילום הוגדל ונקרא בנפרד. התמלול המלא שלו — טקסט, קוד, טבלאות, תיאור חזותי ופרטים לא ודאיים — נמצא ב־`content/source/analysis/photo-NN.md`.
+- כשהמחברת המעובדת והצילום אינם מתאימים, הצילום קובע. רשימת ההבדלים מופיעה בדף `/sources` של האתר.
+- כל פריט תוכן מסומן לפי מקורו: **חומר מקור** (של המרצה), **הסבר חדש**, או **תרגיל חדש**.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## החלטות מימוש שאינן מופיעות בחומר
+1. **מוני עזר בתוך פרוצדורה של אלגולם:** החומר אינו קובע אם הם פרטיים או משותפים. ברירת המחדל היא פרטיים: רק כך הפרוצדורה HUN של המרצה (צילום 28) נותנת 100, כי היא קוראת ל־`TEN (B)`, ו־TEN עצמה משתמשת במונה עזר בשם B (צילום 29). אפשר להחליף מצב בסימולטור.
+2. **משתנים ב־LOGO** נחפשים במחסנית מלמעלה למטה, כמו ב־MSWLogo שמופיע בשקפים. כך מוסבר מקרה 4 (צילום 73).
+3. **"ריצה אינסופית"** נקבעת רק כשיש הוכחה: חזרה מדויקת של מצב, או לולאה שאינה מקטינה אף מונה ואינה מוצאת ריק אף מונה שגדל. מגבלת צעדים לבדה אינה פסיקה.
