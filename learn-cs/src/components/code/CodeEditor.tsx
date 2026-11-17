@@ -95,7 +95,9 @@ export function CodeEditor({ value, onChange, readOnly = false, lang = 'algolem'
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     if (!host.current) return;

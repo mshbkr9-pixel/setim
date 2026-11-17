@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { LESSONS, LESSON_BY_ID, QUESTIONS, QUESTION_BY_ID } from '@/content';
 import { SKILLS, TRACKS } from '@/content/skills';
 import type { Question, TrackId } from '@/content/types';
@@ -43,10 +43,14 @@ function ConceptCard({ term, onDone }: { term: string; onDone: () => void }) {
 
 export function Practice() {
   const p = useProgress();
-  const [mode, setMode] = useState<'topic' | 'review'>('topic');
-  useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('mode') === 'review') setMode('review');
-  }, []);
+  // ?mode=review from the dashboard link — read on the client only (no hydration mismatch)
+  const urlMode = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).get('mode'),
+    () => null,
+  );
+  const [chosen, setMode] = useState<'topic' | 'review' | null>(null);
+  const mode = chosen ?? (urlMode === 'review' ? 'review' : 'topic');
   const [track, setTrack] = useState<TrackId | ''>('');
   const [skill, setSkill] = useState('');
   const [type, setType] = useState('');
@@ -68,7 +72,7 @@ export function Practice() {
       <header>
         <p className="kicker">תרגול</p>
         <h1 className="text-3xl sm:text-4xl">מאגר השאלות</h1>
-        <p className="mt-1 max-w-2xl text-ink-2">{QUESTIONS.length} שאלות בעשרה סוגים. שאלות מסומנות "חומר מקור" נלקחו מדפי התרגול של הקורס; "תרגיל חדש" נכתבו לתרגול. כל תשובה נבדקת במנוע מדויק.</p>
+        <p className="mt-1 max-w-2xl text-ink-2">{QUESTIONS.length} שאלות בעשרה סוגים. שאלות מסומנות &quot;חומר מקור&quot; נלקחו מדפי התרגול של הקורס; &quot;תרגיל חדש&quot; נכתבו לתרגול. כל תשובה נבדקת במנוע מדויק.</p>
       </header>
       <div className="flex gap-1.5" role="tablist">
         <button role="tab" aria-selected={mode === 'topic'} className={`btn ${mode === 'topic' ? 'btn-primary' : ''}`} onClick={() => setMode('topic')}>תרגול לפי נושא</button>

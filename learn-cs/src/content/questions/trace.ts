@@ -10,7 +10,6 @@ import { TRACE_CODE as C } from '../lessons/trace';
  *   exercise 2 → trace-q-044, trace-q-045, trace-q-046.
  */
 
-const MOVE7 = '@ MOVE (A,B)\n' + C.moveBody;
 /** The loop counter goes down by 2 in every round. */
 const STEP2 = 'WHILE (B)\n   ADD (A)\n   SUB (B)\n   SUB (B)\nENDW';
 

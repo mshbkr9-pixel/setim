@@ -136,7 +136,7 @@ export function QuestionView({ q, simpler, onResult, exam = false, onAnswer, hin
                 {hints < q.hints.length && <button className="btn btn-sm" onClick={() => setHints((h) => h + 1)}>תן לי רמז</button>}
                 {tries >= 2 && <button className="btn btn-sm btn-ghost" onClick={() => setShowSolution(true)}>הצג פתרון</button>}
               </div>
-              <p className="mt-2 text-sm muted">שנו את התשובה ולחצו שוב "בדיקה".</p>
+              <p className="mt-2 text-sm muted">שנו את התשובה ולחצו שוב &quot;בדיקה&quot;.</p>
             </>
           )}
         </div>

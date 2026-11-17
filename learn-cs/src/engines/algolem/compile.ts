@@ -15,16 +15,16 @@ function lowerUnit(unit: Unit, id: string, origin: CompiledUnit['origin']): Comp
   const code: Instr[] = [];
   const params = unit.params.map((p) => p.name);
   const free: string[] = [];
-  const use = (n: string) => {
+  const track = (n: string) => {
     if (!params.includes(n) && !free.includes(n)) free.push(n);
   };
   const emit = (stmts: Stmt[]) => {
     for (const s of stmts) {
       if (s.type === 'add' || s.type === 'sub') {
-        use(s.arg.name);
+        track(s.arg.name);
         code.push({ op: s.type, arg: s.arg.name, line: s.line });
       } else if (s.type === 'while') {
-        use(s.arg.name);
+        track(s.arg.name);
         const head = code.length;
         code.push({ op: 'while', arg: s.arg.name, exit: -1, line: s.line, endLine: s.endLine });
         emit(s.body);
@@ -32,7 +32,7 @@ function lowerUnit(unit: Unit, id: string, origin: CompiledUnit['origin']): Comp
         code.push({ op: 'endw', head, line: s.endLine, whileLine: s.line });
         code[head] = { op: 'while', arg: s.arg.name, exit: endIdx + 1, line: s.line, endLine: s.endLine };
       } else {
-        s.args.forEach((a) => use(a.name));
+        s.args.forEach((a) => track(a.name));
         code.push({ op: 'call', proc: s.name, args: s.args.map((a) => a.name), line: s.line });
       }
     }

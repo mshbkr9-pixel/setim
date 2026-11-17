@@ -79,9 +79,11 @@ export function AlgolemLab(props: AlgolemLabProps) {
 
   // functional updates through refs, so rapid clicks never act on a stale history
   const histRef = useRef(hist);
-  histRef.current = hist;
   const idxRef = useRef(idx);
-  idxRef.current = idx;
+  useEffect(() => {
+    histRef.current = hist;
+    idxRef.current = idx;
+  }, [hist, idx]);
   const forward = useCallback(() => {
     if (!program) return false;
     const h = histRef.current;

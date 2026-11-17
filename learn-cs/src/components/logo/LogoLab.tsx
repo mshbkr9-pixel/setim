@@ -109,9 +109,11 @@ export function LogoLab({ code: initialCode, run: initialRun = '', editable = fa
   const finished = !!state && state.status !== 'running';
 
   const histRef = useRef(hist);
-  histRef.current = hist;
   const idxRef = useRef(idx);
-  idxRef.current = idx;
+  useEffect(() => {
+    histRef.current = hist;
+    idxRef.current = idx;
+  }, [hist, idx]);
   const forward = useCallback(() => {
     if (!program) return false;
     const h = histRef.current;

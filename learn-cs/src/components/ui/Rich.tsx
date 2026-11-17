@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 function inline(text: string, keyBase: string): ReactNode[] {
   const out: ReactNode[] = [];
   // math-like runs ("4 → 3", "B = B + 2·A", "−1") are isolated as LTR so the bidi algorithm cannot reverse them
-  const re = /(\*\*[^*]+\*\*|`[^`]+`|\$[^$]+\$|(?:[A-Za-z0-9\u05D0-\u05EA_()=+\-−·×²³'^]+(?:\.[A-Za-z0-9_]+)*\s*[→←⇒↔]\s*)+[A-Za-z0-9\u05D0-\u05EA_()=+\-−·×²³'^]+(?:\.[A-Za-z0-9_]+)*|(?<=^|[\s(])[−-]\d+(?:\.\d+)?)/g;
+  const re = /(\*\*[^*]+\*\*|`[^`]+`|\$[^$]+\$|(?:[A-Za-z0-9\u05D0-\u05EA_()=+\-−·×²³'^]+(?:\.[A-Za-z0-9_]+)*\s*[→←⇒↔]\s*)+[A-Za-z0-9\u05D0-\u05EA_()=+\-−·×²³'^]+(?:\.[A-Za-z0-9_]+)*|[A-Za-z0-9_()²³'^]+(?:\.[A-Za-z0-9_]+)*(?:(?:\s*[=+−·×<>≤≥≠]\s*|\s+-\s+)[A-Za-z0-9_()²³'^]+(?:\.[A-Za-z0-9_]+)*)+|(?<=^|[\s(])[−-]\d+(?:\.\d+)?)/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let i = 0;
