@@ -19,7 +19,7 @@ export function ArrowsLab({ domain, codomain, arrows: initial, editable = true, 
   const W = 420;
   const rows = Math.max(domain.length, codomain.length);
   const H = Math.max(180, rows * 42 + 50);
-  const yOf = (i: number, n: number) => 25 + ((H - 50) * (i + 0.5)) / n;
+  const yOf = (i: number, n: number) => 32 + ((H - 58) * (i + 0.5)) / n;
   const DX = 100;
   const CX = 320;
   const pos = (el: string, side: 'd' | 'c') => (side === 'd' ? { x: DX, y: yOf(domain.indexOf(el), domain.length) } : { x: CX, y: yOf(codomain.indexOf(el), codomain.length) });
@@ -35,10 +35,10 @@ export function ArrowsLab({ domain, codomain, arrows: initial, editable = true, 
             <path d="M0 0 L10 5 L0 10 z" fill="context-stroke" />
           </marker>
         </defs>
-        <ellipse cx={DX} cy={H / 2} rx={70} ry={H / 2 - 10} fill="none" stroke="var(--ink-2)" strokeWidth={1.5} />
-        <ellipse cx={CX} cy={H / 2} rx={70} ry={H / 2 - 10} fill="none" stroke="var(--ink-2)" strokeWidth={1.5} />
-        <text x={DX} y={16} textAnchor="middle" fontSize={12} fill="var(--ink-3)" direction="rtl">תחום</text>
-        <text x={CX} y={16} textAnchor="middle" fontSize={12} fill="var(--ink-3)" direction="rtl">טווח</text>
+        <ellipse cx={DX} cy={H / 2 + 7} rx={70} ry={H / 2 - 17} fill="none" stroke="var(--ink-2)" strokeWidth={1.5} />
+        <ellipse cx={CX} cy={H / 2 + 7} rx={70} ry={H / 2 - 17} fill="none" stroke="var(--ink-2)" strokeWidth={1.5} />
+        <text x={DX} y={11} textAnchor="middle" fontSize={12} fill="var(--ink-3)">תחום</text>
+        <text x={CX} y={11} textAnchor="middle" fontSize={12} fill="var(--ink-3)">טווח</text>
         {arrows.map(([a, b], i) => {
           if (!domain.includes(a) || !codomain.includes(b)) return null;
           const p = pos(a, 'd');
@@ -55,7 +55,7 @@ export function ArrowsLab({ domain, codomain, arrows: initial, editable = true, 
             <g key={d} onClick={() => editable && setFrom(from === d ? null : d)} style={{ cursor: editable ? 'pointer' : 'default' }}>
               <circle cx={p.x} cy={p.y} r={4} fill="var(--ink)" />
               <rect x={p.x - 52} y={p.y - 13} width={74} height={26} rx={8} fill={from === d ? 'var(--accent-soft)' : 'transparent'} stroke={missing ? 'var(--bad)' : 'transparent'} strokeDasharray={missing ? '4 3' : undefined} />
-              <text x={p.x - 10} y={p.y} textAnchor="end" dominantBaseline="central" fontSize={13} fill="var(--ink)" direction="rtl">{d}</text>
+              <text x={p.x - 10} y={p.y} textAnchor="end" dominantBaseline="central" fontSize={13} fill="var(--ink)">{d}</text>
             </g>
           );
         })}
@@ -65,7 +65,7 @@ export function ArrowsLab({ domain, codomain, arrows: initial, editable = true, 
             <g key={c} onClick={() => { if (editable && from) { toggle(from, c); setFrom(null); } }} style={{ cursor: editable && from ? 'pointer' : 'default' }}>
               <circle cx={p.x} cy={p.y} r={4} fill={r.unreached.includes(c) ? 'var(--ink-3)' : 'var(--ink)'} />
               <rect x={p.x - 22} y={p.y - 13} width={74} height={26} rx={8} fill={from ? 'color-mix(in oklab, var(--accent-soft) 60%, transparent)' : 'transparent'} />
-              <text x={p.x + 10} y={p.y} textAnchor="start" dominantBaseline="central" fontSize={13} fill="var(--ink)" direction="rtl">{c}</text>
+              <text x={p.x + 10} y={p.y} textAnchor="start" dominantBaseline="central" fontSize={13} fill="var(--ink)">{c}</text>
             </g>
           );
         })}

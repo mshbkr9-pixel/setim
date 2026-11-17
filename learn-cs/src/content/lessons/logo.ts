@@ -788,7 +788,7 @@ const lesson04: Lesson = {
     skills: ['logo-repeat'],
     difficulty: 1,
     origin: 'new',
-    prompt: 'שימו לב למספר החזרות. איפה יעמוד הצב בסוף, לאן הוא יפנה, וכמה קווים יצוירו?',
+    prompt: 'שימו לב למספר החזרות. איפה יעמוד הצב בסוף, לאן הוא יפנה (כיוון במעלות, בין 0 ל־359), וכמה קווים יצוירו?',
     code: 'REPEAT 3 [ FD 40 RT 90 ]',
     codeLang: 'logo',
     ask: ['x', 'y', 'heading', 'lines'],
@@ -1452,7 +1452,7 @@ const lesson08: Lesson = {
       '- `RT 90` — שוב פונה למעלה\n' +
       'בסוף השן הצב עומד בדיוק במקום שבו מתחילה השן הבאה, ופונה למעלה. לכן TEETH יכולה פשוט לחזור על TOOTH: `REPEAT :TIMES [ TOOTH :SIZE ]`. השיניים מתקדמות שמאלה.',
     advanced:
-      'TOOTH "שקופה" מבחינת כיוון: היא מסיימת באותו כיוון שבו התחילה (שתי פניות שמאלה ושתי פניות ימינה מתקזזות), ומזיזה את הצב $2 \\cdot \\text{SIZE}$ צעדים שמאלה.\n' +
+      'TOOTH "שקופה" מבחינת כיוון: היא מסיימת באותו כיוון שבו התחילה (שתי פניות שמאלה ושתי פניות ימינה מתקזזות), ומזיזה את הצב $2 \\cdot \\text{SIZE}$ צעדים שמאלה (כשהיא מתחילה כשהצב פונה למעלה, כמו ב־TEETH).\n' +
       'לכן אחרי `TEETH n s` הצב נמצא $2 \\cdot n \\cdot s$ צעדים משמאל לנקודת ההתחלה, פונה למעלה, ונוצרו $4n$ קווים.\n' +
       'שני המשתנים של TEETH משמשים לדברים שונים: :TIMES קובע את מספר הסיבובים, ו־:SIZE רק **מועבר** הלאה אל TOOTH.',
   },
@@ -1676,41 +1676,41 @@ const lesson09: Lesson = {
     steps: [
       {
         text: 'לפני הקריאה: אין במחסנית אף קומה של פרוצדורה.',
-        code: TEETH,
+        code: CASE1,
         lang: 'logo',
         state: { 'מחסנית': 'ריקה' },
       },
       {
         text: 'הקריאה `TEETH 3 20` (ב־Commander): נפתחת קומה TEETH — times = 3, size = 20. היא העליונה, ולכן פעילה.',
-        code: TEETH,
+        code: CASE1,
         lang: 'logo',
         highlight: [1],
-        state: { 'קומה 1 (עליונה)': 'TEETH: times = 3, size = 20' },
+        state: { 'TEETH (עליונה)': 'times 3, size 20' },
       },
       {
         text: 'שורה 3, `TOOTH :SIZE`: TEETH שולחת את הערך 20. נפתחת קומה TOOTH **מעל** TEETH — size = 20. עכשיו TOOTH פעילה, ו־TEETH בהמתנה, באמצע הסיבוב הראשון של הלולאה.',
-        code: TEETH,
+        code: CASE1,
         lang: 'logo',
         highlight: [3],
-        state: { 'קומה 2 (עליונה)': 'TOOTH: size = 20', 'קומה 1': 'TEETH: times = 3, size = 20' },
+        state: { 'TOOTH (עליונה)': 'size 20', 'TEETH': 'times 3, size 20' },
       },
       {
         text: 'TOOTH מציירת שן ומגיעה ל־END: הקומה שלה **יוצאת** — האחרונה שנכנסה, הראשונה שיוצאת. TEETH שוב פעילה וממשיכה בלולאה.',
-        code: TEETH,
+        code: CASE1,
         lang: 'logo',
         highlight: [3],
-        state: { 'קומה 1 (עליונה)': 'TEETH: times = 3, size = 20' },
+        state: { 'TEETH (עליונה)': 'times 3, size 20' },
       },
       {
         text: 'סיבובים 2 ו־3: כל אחד פותח קומת TOOTH חדשה (size = 20) וסוגר אותה בסוף השן.',
-        code: TEETH,
+        code: CASE1,
         lang: 'logo',
         highlight: [2, 3],
         state: { 'קומות TOOTH שנפתחו': 3, 'גובה מרבי': '2 קומות' },
       },
       {
         text: 'TEETH מגיעה ל־END: גם הקומה שלה יוצאת. המחסנית שוב ריקה, ועל המסך 3 שיניים.',
-        code: TEETH,
+        code: CASE1,
         lang: 'logo',
         highlight: [5],
         state: { 'מחסנית': 'ריקה', 'קווים': 12 },
@@ -1736,7 +1736,7 @@ const lesson09: Lesson = {
       widget: {
         kind: 'stack',
         frames: [
-          { proc: 'TEETH', vars: [{ name: 'size', value: '20' }, { name: 'times', value: '3' }] },
+          { proc: 'TEETH', vars: [{ name: 'times', value: '3' }, { name: 'size', value: '20' }] },
           { proc: 'TOOTH', vars: [{ name: 'size', value: '20' }] },
         ],
         caption: 'השלב השני בשקף 6: קומת TOOTH (size 20) מעל קומת TEETH (size 20, times 3). בשקף שמות המשתנים כתובים באותיות קטנות — ל־LOGO זה לא משנה.',
@@ -1904,42 +1904,42 @@ const lesson10: Lesson = {
         code: CASE1,
         lang: 'logo',
         highlight: [3, 6],
-        state: { 'TOOTH (עליונה)': 'size = 20', 'TEETH': 'size = 20, times = 3' },
+        state: { 'TOOTH (עליונה)': 'size 20', 'TEETH': 'size 20, times 3' },
       },
       {
         text: 'מקרה (2): ב־TOOTH המשתנה נקרא :MOO — בכותרת ובכל ארבע ה־FD. הקריאה ב־TEETH לא השתנתה: `TOOTH :SIZE` עדיין שולחת 20.',
         code: CASE2,
         lang: 'logo',
         highlight: [3, 6, 7, 9, 11, 13],
-        state: { 'TOOTH (עליונה)': 'moo = 20', 'TEETH': 'size = 20, times = 3' },
+        state: { 'TOOTH (עליונה)': 'moo 20', 'TEETH': 'size 20, times 3' },
       },
       {
         text: 'הערך 20 הגיע ל־TOOTH, רק בשם אחר. הציור זהה למקרה 1. **שם הפרמטר לא משנה — משנה הערך שנשלח.**',
         code: CASE2,
         lang: 'logo',
         highlight: [6],
-        state: { 'TOOTH (עליונה)': 'moo = 20', 'TEETH': 'size = 20, times = 3' },
+        state: { 'TOOTH (עליונה)': 'moo 20', 'TEETH': 'size 20, times 3' },
       },
       {
         text: 'מקרה (3): גם המשתנה הראשון של TEETH נקרא עכשיו :MOO — `TO TEETH :MOO :SIZE` ו־`REPEAT :MOO [`. השם moo מופיע בשתי הפרוצדורות, עם תפקידים שונים: ב־TEETH הוא מספר השיניים, ב־TOOTH — הגודל.',
         code: CASE3,
         lang: 'logo',
         highlight: [1, 2, 6],
-        state: { 'TOOTH (עליונה)': 'moo = 20', 'TEETH': 'size = 20, moo = 3' },
+        state: { 'TOOTH (עליונה)': 'moo 20', 'TEETH': 'size 20, moo 3' },
       },
       {
         text: 'כש־TOOTH מסיימת, הקומה שלה יוצאת — ובקומת TEETH עדיין moo = 3. ה־moo של TOOTH (20) לא נגע בה: כל קומה היא מרחב עצמאי של משתנים. הלולאה של TEETH ממשיכה כרגיל, והציור שוב זהה: 3 שיניים בגודל 20.',
         code: CASE3,
         lang: 'logo',
         highlight: [2, 3],
-        state: { 'TEETH (עליונה)': 'size = 20, moo = 3' },
+        state: { 'TEETH (עליונה)': 'size 20, moo 3' },
       },
       {
         text: 'מקרה (4): בשקף :SIZE מחוק בקו בשני מקומות — בכותרת של TOOTH ובקריאה בתוך TEETH. בקוד שכאן שתי המילים המחוקות פשוט הוסרו. בגוף של TOOTH נשאר `FD :SIZE`. לקומת TOOTH אין משתנים, ובשקף כתוב בה רק "?".',
         code: CASE4,
         lang: 'logo',
         highlight: [3, 6, 7],
-        state: { 'TOOTH (עליונה)': '?', 'TEETH': 'size = 20, times = 3' },
+        state: { 'TOOTH (עליונה)': '?', 'TEETH': 'size 20, times 3' },
       },
       {
         text: 'מה תעשה `FD :SIZE`? השקף משאיר את השאלה פתוחה. ב־MSWLogo (וגם בסימולטור): לא מוצאים size בקומת TOOTH, ממשיכים לחפש בקומה שמתחתיה — של TEETH — ומוצאים size = 20. הציור שוב זהה. אילו גם ב־TEETH לא היה size, הייתה מתקבלת שגיאה.',
@@ -1974,7 +1974,7 @@ const lesson10: Lesson = {
       widget: {
         kind: 'stack',
         frames: [
-          { proc: 'TEETH', vars: [{ name: 'size', value: '20' }, { name: 'times', value: '3' }] },
+          { proc: 'TEETH', vars: [{ name: 'times', value: '3' }, { name: 'size', value: '20' }] },
           { proc: 'TOOTH', vars: [{ name: 'size', value: '20' }] },
         ],
         caption: 'שקף 6, השלב השני: TOOTH (size 20) מעל TEETH (size 20, times 3). בשלב הראשון — רק קומת TEETH.',
@@ -1986,7 +1986,7 @@ const lesson10: Lesson = {
       widget: {
         kind: 'stack',
         frames: [
-          { proc: 'TEETH', vars: [{ name: 'size', value: '20' }, { name: 'times', value: '3' }] },
+          { proc: 'TEETH', vars: [{ name: 'times', value: '3' }, { name: 'size', value: '20' }] },
           { proc: 'TOOTH', vars: [{ name: 'moo', value: '20' }] },
         ],
         caption: 'שקף 8, השלב השני: TOOTH (moo 20) מעל TEETH (size 20, times 3). הערך 20 הגיע — בשם moo.',
@@ -2004,7 +2004,7 @@ const lesson10: Lesson = {
       widget: {
         kind: 'stack',
         frames: [
-          { proc: 'TEETH', vars: [{ name: 'size', value: '20' }, { name: 'moo', value: '3' }] },
+          { proc: 'TEETH', vars: [{ name: 'moo', value: '3' }, { name: 'size', value: '20' }] },
           { proc: 'TOOTH', vars: [{ name: 'moo', value: '20' }] },
         ],
         caption: 'שקף 11, השלב השני (מתוך שלושה): TOOTH (moo 20) מעל TEETH (size 20, moo 3). בשלב השלישי קומת TOOTH יצאה, ו־TEETH נשארה כמו שהייתה: size 20, moo 3.',
@@ -2016,7 +2016,7 @@ const lesson10: Lesson = {
       widget: {
         kind: 'stack',
         frames: [
-          { proc: 'TEETH', vars: [{ name: 'size', value: '20' }, { name: 'times', value: '3' }] },
+          { proc: 'TEETH', vars: [{ name: 'times', value: '3' }, { name: 'size', value: '20' }] },
           { proc: 'TOOTH', vars: [] },
         ],
         caption: 'שקף 13, השלב השני: קומת TOOTH ריקה — בשקף כתוב בה רק "?" — מעל TEETH (size 20, times 3).',

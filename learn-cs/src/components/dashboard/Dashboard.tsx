@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
-import { LESSONS, LESSON_BY_ID, lessonsOf } from '@/content';
+import type { LessonMeta } from '@/content/lessonIndex';
 import { SKILLS, TRACKS } from '@/content/skills';
 import { dueReviews, questionStats, useNow, useProgress, weakSkills, type ProgressData } from '@/progress/store';
 import { Logo } from '@/components/ui/Nav';
@@ -73,7 +73,9 @@ function ActivityChart({ p, now }: { p: ProgressData; now: number }) {
   );
 }
 
-export function Dashboard() {
+export function Dashboard({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
+  const LESSON_BY_ID = Object.fromEntries(LESSONS.map((l) => [l.id, l]));
+  const lessonsOf = (t: string) => LESSONS.filter((l) => l.track === t).sort((a, b) => a.order - b.order);
   const p = useProgress();
   const now = useNow();
   const stats = questionStats(p);

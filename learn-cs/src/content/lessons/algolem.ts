@@ -785,14 +785,14 @@ const lesson06: Lesson = {
     lang: 'algolem',
     code: 'WHILE (R2)\n    SUB (R2)\nENDW\nWHILE (R3)\n    SUB (R3)\nENDW\nWHILE (R1)\n    ADD (R2)\n    ADD (R3)\n    SUB (R1)\nENDW\nWHILE (R3)\n    ADD (R1)\n    SUB (R3)\nENDW',
     labels: [
-      { from: 1, to: 3, text: 'אפס את R2', level: 1 },
+      { from: 1, to: 3, text: 'אפס את R2', level: 1, span: 2 },
       { from: 4, to: 6, text: 'אפס את R3', level: 1 },
       { from: 7, to: 11, text: 'הוסף את R1 ל-R2 ול-R3 תוך איפוס R1', level: 1 },
       { from: 12, to: 15, text: 'הוסף את R3 ל-R1 תוך איפוס R3', level: 1 },
       { from: 4, to: 15, text: 'הוסף את R1 ל-R2 תוך איפוס R3 (ללא שינוי ב-R1)', level: 2 },
       { from: 1, to: 15, text: 'העתק את R1 ל-R2 תוך איפוס R3', level: 3 },
     ],
-    caption: 'טבלת התוויות של דוגמה 7 (שקף 17) בשלוש רמות. בשקף התא "אפס את R2" רחב ותופס גם את עמודת הביניים.',
+    caption: 'טבלת התוויות של דוגמה 7 (שקף 17) בשלוש רמות. כמו בשקף, התא "אפס את R2" רחב ותופס גם את עמודת הביניים.',
   },
 
   fromSource: [

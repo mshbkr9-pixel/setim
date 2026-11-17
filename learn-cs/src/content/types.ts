@@ -109,8 +109,8 @@ export type Widget =
       kind: 'label-table';
       lang: CodeLang;
       code: string;
-      /** Label cells: lines `from`..`to` (1-based), `level` 1 = closest to the code. */
-      labels: { from: number; to: number; text: string; level: number }[];
+      /** Label cells: lines `from`..`to` (1-based), `level` 1 = closest to the code; `span` = number of label columns the cell covers (default 1). */
+      labels: { from: number; to: number; text: string; level: number; span?: number }[];
       caption?: RichText;
     }
   | { kind: 'stack'; frames: { proc: string; vars: { name: string; value: string }[] }[]; caption?: RichText }

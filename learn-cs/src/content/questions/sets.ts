@@ -5,14 +5,9 @@ import type { Question } from '../types';
  * Exercises 13–19 of the page "תרגילים לסעיף א.5" (photos 38, 37) are included with origin 'source'
  * (19ב is the check question of lesson sets-08). Everything else is new practice ('new').
  * `set-answer` questions give only the sets and the expression — the sets engine computes the answer.
+ * The question view lists the sets right under the prompt, so prompts refer to "the sets below".
  * Their elements are numbers only: the answer parser splits on commas, so pairs cannot be typed as answers.
  */
-
-/** Same answer-format line for every set-answer question (so it never hints which answer is ∅). */
-const FORMAT = '\nכתבו את האיברים מופרדים בפסיקים, למשל `1, 2`. לקבוצה הריקה כתבו `{}`.';
-
-/** D = all outcomes of throwing a die twice, as ordered pairs "(x,y)" (photos 43, 41). */
-const DICE_PAIRS: string[] = Array.from({ length: 36 }, (_, i) => `(${Math.floor(i / 6) + 1},${(i % 6) + 1})`);
 
 export const setsQuestions: Question[] = [
   // ================================================================ sets-01 — דרכי תיאור
@@ -137,9 +132,9 @@ export const setsQuestions: Question[] = [
     origin: 'new',
     prompt: 'לכל מספר, התאימו את הקבוצה **הקטנה ביותר** מבין ℕ, ℤ, ℝ שהוא שייך אליה.',
     pairs: [
-      ['$12$', '$\\mathbb{N}$'],
-      ['$-12$', '$\\mathbb{Z}$'],
-      ['$1.2$', '$\\mathbb{R}$'],
+      ['$12$', 'ℕ — הטבעיים'],
+      ['$-12$', 'ℤ — השלמים'],
+      ['$1.2$', 'ℝ — הממשיים'],
     ],
     hints: [
       'כל טבעי הוא גם שלם, וכל שלם הוא גם ממשי. מחפשים את הקבוצה המצומצמת ביותר.',
@@ -461,7 +456,7 @@ export const setsQuestions: Question[] = [
     skills: ['set-difference'],
     difficulty: 1,
     origin: 'new',
-    prompt: 'נתונות $A = \\{1, 2, 3, 4, 5, 6\\}$ ו־$B = \\{2, 4, 6, 8\\}$. כתבו את $A - B$.' + FORMAT,
+    prompt: 'נתונות הקבוצות A ו־B שלמטה. כתבו את $A - B$.',
     sets: { A: [1, 2, 3, 4, 5, 6], B: [2, 4, 6, 8] },
     expr: 'A - B',
     hints: [
@@ -479,7 +474,7 @@ export const setsQuestions: Question[] = [
     skills: ['set-difference'],
     difficulty: 2,
     origin: 'new',
-    prompt: 'אותן קבוצות: $A = \\{1, 2, 3, 4, 5, 6\\}$ ו־$B = \\{2, 4, 6, 8\\}$. כתבו הפעם את $B - A$.' + FORMAT,
+    prompt: 'נתונות הקבוצות A ו־B שלמטה. כתבו את $B - A$.',
     sets: { A: [1, 2, 3, 4, 5, 6], B: [2, 4, 6, 8] },
     expr: 'B - A',
     hints: [
@@ -496,12 +491,12 @@ export const setsQuestions: Question[] = [
     skills: ['set-difference', 'empty-set'],
     difficulty: 1,
     origin: 'new',
-    prompt: 'נתונה $A = \\{3, 7, 9\\}$. כתבו את $A - \\emptyset$.' + FORMAT,
-    sets: { A: [3, 7, 9] },
-    expr: 'A - ∅',
+    prompt: 'נתונות הקבוצות A ו־B שלמטה. B היא הקבוצה הריקה: $B = \\emptyset$. כתבו את $A - B$, כלומר $A - \\emptyset$.',
+    sets: { A: [3, 7, 9], B: [] },
+    expr: 'A - B',
     hints: [
-      'מה מוחקים מ־A? את האיברים שנמצאים ב־∅.',
-      'כמה איברים יש ב־∅?',
+      'מה מוחקים מ־A? את האיברים שנמצאים ב־B.',
+      'כמה איברים יש בקבוצה הריקה?',
     ],
     explanation: 'מ־A מוחקים את כל מה שנמצא ב־∅ — כלומר כלום. לכן $A - \\emptyset = A = \\{3, 7, 9\\}$.',
   },
@@ -513,14 +508,14 @@ export const setsQuestions: Question[] = [
     skills: ['set-difference', 'empty-set'],
     difficulty: 1,
     origin: 'new',
-    prompt: 'נתונה $A = \\{1, 2, 3\\}$. כתבו את $A - A$.' + FORMAT,
-    sets: { A: [1, 2, 3] },
-    expr: 'A - A',
+    prompt: 'נתונות הקבוצות A ו־B שלמטה. כתבו את $A - B$.',
+    sets: { A: [1, 2, 3], B: [3, 1, 2] },
+    expr: 'A - B',
     hints: [
-      'עברו על כל איבר של A: האם הוא נמצא גם בקבוצה שמחסרים?',
-      'מה נשאר אחרי שמוחקים את כל מה שצריך למחוק?',
+      'השוו את האיברים של A ושל B. מה אתם מגלים?',
+      'עברו על כל איבר של A: האם הוא נמצא גם ב־B?',
     ],
-    explanation: 'כל איבר של A נמצא, כמובן, ב־A — ולכן כולם נמחקים. לא נשאר אף איבר: $A - A = \\emptyset$.',
+    explanation: 'B כתובה בסדר אחר, אבל יש בה בדיוק אותם איברים כמו ב־A — כלומר $B = A$. לכן כל איבר של A נמחק, ולא נשאר אף איבר: $A - B = \\emptyset$. (באופן כללי, קבוצה פחות עצמה היא הקבוצה הריקה.)',
   },
   {
     id: 'sets-q-025',
@@ -530,7 +525,7 @@ export const setsQuestions: Question[] = [
     skills: ['set-difference'],
     difficulty: 3,
     origin: 'new',
-    prompt: 'נתונות $A = \\{1, 2, 3, 4, 5, 6, 7, 8, 9, 10\\}$, $B = \\{2, 4, 6, 8, 10\\}$ ו־$C = \\{1, 3, 9, 11\\}$. כתבו את $(A - B) - C$.' + FORMAT,
+    prompt: 'נתונות הקבוצות A, B ו־C שלמטה. כתבו את $(A - B) - C$.',
     sets: { A: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], B: [2, 4, 6, 8, 10], C: [1, 3, 9, 11] },
     expr: '(A - B) - C',
     hints: [
@@ -548,7 +543,7 @@ export const setsQuestions: Question[] = [
     skills: ['set-difference', 'number-sets'],
     difficulty: 2,
     origin: 'new',
-    prompt: 'נתונות $A = \\{-3, -2, -1, 0, 1, 2, 3\\}$ ו־$B = \\{0, 1, 2, 3, 4, 5\\}$. כתבו את $A - B$. מספר שלילי כותבים עם מקף, למשל `-7`.' + FORMAT,
+    prompt: 'נתונות הקבוצות A ו־B שלמטה. כתבו את $A - B$. מספר שלילי כותבים עם מקף, למשל `-7`.',
     sets: { A: [-3, -2, -1, 0, 1, 2, 3], B: [0, 1, 2, 3, 4, 5] },
     expr: 'A - B',
     hints: [
@@ -764,10 +759,10 @@ export const setsQuestions: Question[] = [
     sources: { photos: [39] },
     prompt: 'התאימו כל קבוצה לתיאור שלה.',
     pairs: [
-      ['$\\mathbb{N}^2$', 'כל הזוגות הסדורים $(x,y)$ של מספרים טבעיים'],
-      ['$\\mathbb{N}^3$', 'כל השלשות הסדורות $(x,y,z)$ של מספרים טבעיים'],
-      ['$\\mathbb{N}^1$', 'הקבוצה $\\mathbb{N}$ עצמה'],
-      ['$\\mathbb{N}^0$', '$\\{\\,()\\,\\}$ — קבוצה עם איבר אחד'],
+      ['$\\mathbb{N}^2$', 'כל הזוגות הסדורים (x,y) של מספרים טבעיים'],
+      ['$\\mathbb{N}^3$', 'כל השלשות הסדורות (x,y,z) של מספרים טבעיים'],
+      ['$\\mathbb{N}^1$', 'הקבוצה ℕ עצמה'],
+      ['$\\mathbb{N}^0$', 'קבוצה עם איבר אחד בלבד: ()'],
     ],
     hints: [
       'המספר הקטן למעלה אומר כמה מספרים יש בכל איבר.',
@@ -1038,14 +1033,18 @@ export const setsQuestions: Question[] = [
     id: 'sets-q-049',
     track: 'sets',
     lesson: 'sets-08',
-    type: 'set-answer',
+    type: 'mcq',
     skills: ['set-difference', 'inclusion', 'ordered-pairs'],
     difficulty: 2,
     origin: 'new',
     sources: { photos: [38, 37, 43], note: 'תרגיל חדש על הקבוצות של שאלה 17' },
-    prompt: 'שאלה תאומה לשאלה 17: B היא קבוצת הספרות על קוביית משחק, ו־D היא 36 התוצאות של הטלת קובייה פעמיים, כזוגות סדורים. כתבו את $B - D$.' + FORMAT,
-    sets: { B: [1, 2, 3, 4, 5, 6], D: DICE_PAIRS },
-    expr: 'B - D',
+    prompt: 'שאלה תאומה לשאלה 17: B היא קבוצת הספרות על קוביית משחק, ו־D היא קבוצת 36 התוצאות של הטלת קובייה פעמיים, כזוגות סדורים. מהי $B - D$?',
+    choices: [
+      { text: '$\\{1, 2, 3, 4, 5, 6\\}$ — כלומר B עצמה', correct: true },
+      { text: '$\\emptyset$', feedback: 'כדי שספרה תימחק, היא צריכה להיות **איבר** של D. איברי D הם זוגות, כמו $(1,1)$, והמספר 1 לבדו אינו אחד מהם. לכן שום דבר לא נמחק.' },
+      { text: '$\\{(1,1), (2,2), (3,3), (4,4), (5,5), (6,6)\\}$', feedback: 'ב־$B - D$ יש רק איברים של B — מספרים. זוגות לא יכולים להופיע בתוצאה.' },
+      { text: 'D', feedback: '$B - D$ מכילה רק איברים של B. D היא התשובה של הכיוון ההפוך, $D - B$: שם לא נמחק דבר, כי אין ב־D מספרים.', misconception: 'difference-symmetric' },
+    ],
     hints: [
       '$B - D$ = איברי B שאינם איברים של D.',
       'האם המספר 3, לבדו, הוא אחד הזוגות של D?',

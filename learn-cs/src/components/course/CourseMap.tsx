@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
-import { LESSONS, lessonsOf } from '@/content';
+import type { LessonMeta } from '@/content/lessonIndex';
 import { TRACKS } from '@/content/skills';
 import { useProgress, weakSkills } from '@/progress/store';
 import { SKILLS } from '@/content/skills';
 
-export function CourseMap() {
+export function CourseMap({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
+  const lessonsOf = (t: string) => LESSONS.filter((l) => l.track === t).sort((a, b) => a.order - b.order);
   const p = useProgress();
   const weak = new Set(weakSkills(p).map((s) => SKILLS[s]?.reinforce));
   return (

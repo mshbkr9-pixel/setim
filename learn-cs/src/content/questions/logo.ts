@@ -556,7 +556,7 @@ export const logoQuestions: Question[] = [
     skills: ['logo-procedure'],
     difficulty: 2,
     origin: 'new',
-    prompt: 'בשורת ה־Commander קוראים ל־CORNER שלוש פעמים. מה יהיו המקום והכיוון של הצב בסוף, וכמה קווים יצוירו?',
+    prompt: 'בשורת ה־Commander קוראים ל־CORNER שלוש פעמים. מה יהיו המקום והכיוון של הצב בסוף (כיוון במעלות, בין 0 ל־359), וכמה קווים יצוירו?',
     code: 'TO CORNER\n   FD 30\n   RT 90\nEND',
     run: 'CORNER CORNER CORNER',
     codeLang: 'logo',

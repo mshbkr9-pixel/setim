@@ -114,9 +114,9 @@ export function Chain({ steps, arrows }: { steps: { code: string; caption?: stri
 }
 
 // ------------------------------------------------------------------ nested label table (photos 3, 28, 44–51)
-export function LabelTable({ code, labels }: { code: string; labels: { from: number; to: number; text: string; level: number }[] }) {
+export function LabelTable({ code, labels }: { code: string; labels: { from: number; to: number; text: string; level: number; span?: number }[] }) {
   const lines = code.replace(/\r\n?/g, '\n').split('\n');
-  const levels = Math.max(1, ...labels.map((l) => l.level));
+  const levels = Math.max(1, ...labels.map((l) => l.level + (l.span ?? 1) - 1));
   return (
     <div className="card thin-scroll overflow-x-auto p-3 sm:p-4">
       <div
@@ -134,7 +134,7 @@ export function LabelTable({ code, labels }: { code: string; labels: { from: num
             key={'l' + i}
             dir="rtl"
             className="m-[2px] flex items-center whitespace-pre-line rounded border border-ink-3/60 bg-card px-2 py-1 leading-snug"
-            style={{ gridColumn: lab.level + 1, gridRow: `${lab.from} / ${lab.to + 1}` }}
+            style={{ gridColumn: `${lab.level + 1} / span ${lab.span ?? 1}`, gridRow: `${lab.from} / ${lab.to + 1}` }}
           >
             {lab.text}
           </div>

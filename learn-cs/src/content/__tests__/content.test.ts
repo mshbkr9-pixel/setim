@@ -58,7 +58,10 @@ function checkWidget(w: Widget, where: string) {
       break;
     case 'label-table': {
       const n = w.code.split('\n').length;
-      for (const l of w.labels) expect(l.from >= 1 && l.to <= n && l.from <= l.to, `${ctx}: label lines ${l.from}-${l.to} outside 1-${n}`).toBe(true);
+      for (const l of w.labels) {
+        expect(l.from >= 1 && l.to <= n && l.from <= l.to, `${ctx}: label lines ${l.from}-${l.to} outside 1-${n}`).toBe(true);
+        expect((l.span ?? 1) >= 1 && l.level >= 1, `${ctx}: label level/span`).toBe(true);
+      }
       break;
     }
     case 'arrows':
