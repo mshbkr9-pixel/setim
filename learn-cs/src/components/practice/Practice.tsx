@@ -74,26 +74,26 @@ export function Practice() {
         <h1 className="text-3xl sm:text-4xl">מאגר השאלות</h1>
         <p className="mt-1 max-w-2xl text-ink-2">{QUESTIONS.length} שאלות בעשרה סוגים. שאלות מסומנות &quot;חומר מקור&quot; נלקחו מדפי התרגול של הקורס; &quot;תרגיל חדש&quot; נכתבו לתרגול. כל תשובה נבדקת במנוע מדויק.</p>
       </header>
-      <div className="flex gap-1.5" role="tablist">
+      <div className="seg flex gap-1.5" role="tablist">
         <button role="tab" aria-selected={mode === 'topic'} className={`btn ${mode === 'topic' ? 'btn-primary' : ''}`} onClick={() => setMode('topic')}>תרגול לפי נושא</button>
         <button role="tab" aria-selected={mode === 'review'} className={`btn ${mode === 'review' ? 'btn-primary' : ''}`} onClick={() => setMode('review')}>חזרה מרווחת ({due.length})</button>
       </div>
       {mode === 'topic' ? (
         <>
-          <div className="flex flex-wrap gap-2">
-            <select className="input w-auto" value={track} onChange={(e) => { setTrack(e.target.value as TrackId | ''); setSkill(''); setI(0); }} aria-label="מסלול">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <select className="input sm:w-auto" value={track} onChange={(e) => { setTrack(e.target.value as TrackId | ''); setSkill(''); setI(0); }} aria-label="מסלול">
               <option value="">כל המסלולים</option>
               {TRACKS.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
             </select>
-            <select className="input w-auto" value={skill} onChange={(e) => { setSkill(e.target.value); setI(0); }} aria-label="נושא">
+            <select className="input sm:w-auto" value={skill} onChange={(e) => { setSkill(e.target.value); setI(0); }} aria-label="נושא">
               <option value="">כל הנושאים</option>
               {Object.entries(SKILLS).filter(([, s]) => !track || s.track === track).map(([k, s]) => <option key={k} value={k}>{s.title}</option>)}
             </select>
-            <select className="input w-auto" value={type} onChange={(e) => { setType(e.target.value); setI(0); }} aria-label="סוג שאלה">
+            <select className="input sm:w-auto" value={type} onChange={(e) => { setType(e.target.value); setI(0); }} aria-label="סוג שאלה">
               <option value="">כל הסוגים</option>
               {Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
-            <select className="input w-auto" value={origin} onChange={(e) => { setOrigin(e.target.value); setI(0); }} aria-label="מקור">
+            <select className="input sm:w-auto" value={origin} onChange={(e) => { setOrigin(e.target.value); setI(0); }} aria-label="מקור">
               <option value="">מקור + חדש</option>
               <option value="source">רק שאלות מקור</option>
               <option value="new">רק תרגילים חדשים</option>
@@ -101,9 +101,9 @@ export function Practice() {
           </div>
           {q ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                 <span className="muted">שאלה {Math.min(i, list.length - 1) + 1} מתוך {list.length}</span>
-                {q.lesson && LESSON_BY_ID[q.lesson] && <Link className="underline" href={`/learn/${q.lesson}`}>מתוך השיעור: {LESSON_BY_ID[q.lesson].title}</Link>}
+                {q.lesson && LESSON_BY_ID[q.lesson] && <Link className="order-last basis-full underline sm:order-none sm:basis-auto" href={`/learn/${q.lesson}`}>מתוך השיעור: {LESSON_BY_ID[q.lesson].title}</Link>}
                 <span className="ms-auto flex gap-1">
                   <button className="btn btn-sm" onClick={() => setI((x) => Math.max(0, x - 1))} disabled={i === 0}>→ הקודמת</button>
                   <button className="btn btn-sm btn-primary" onClick={() => setI((x) => Math.min(list.length - 1, x + 1))} disabled={i >= list.length - 1}>הבאה ←</button>

@@ -36,14 +36,14 @@ export default function Page() {
         </p>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { k: 'צילומי מקור שנבדקו', v: `${PHOTOS.length}/76` },
           { k: 'ודאות פענוח גבוהה', v: `${PHOTOS.filter((p) => p.confidence === 'high').length}/76` },
           { k: 'צילומים שמקושרים לשיעור', v: `${covered}/76` },
           { k: 'שאלות מקור במאגר', v: `${sourceQuestions}` },
         ].map((s) => (
-          <div key={s.k} className="card-flat p-4"><div className="text-sm muted">{s.k}</div><div className="display text-3xl">{s.v}</div></div>
+          <div key={s.k} className="card-flat p-3.5 sm:p-4"><div className="text-sm leading-snug muted">{s.k}</div><div className="display text-3xl">{s.v}</div></div>
         ))}
       </section>
 
@@ -51,11 +51,11 @@ export default function Page() {
         <h2 className="text-2xl">הבדלים בין המחברת המעובדת לבין צילומי המקור</h2>
         <p className="text-sm text-ink-2">כשהמחברת (עמ׳ 1–22) והצילום אינם מתאימים — הצילום קובע. אלה ההבדלים שנמצאו בבדיקה:</p>
         <div className="thin-scroll overflow-x-auto">
-          <table className="ttable min-w-full">
+          <table className="ttable stack-table min-w-full">
             <thead><tr><th>נושא</th><th>במחברת המעובדת</th><th>בצילום המקור</th><th>צילום</th></tr></thead>
             <tbody>
               {DIFFS.map((d) => (
-                <tr key={d.topic}><td className="whitespace-normal text-start">{d.topic}</td><td className="whitespace-normal text-start">{d.guide}</td><td className="whitespace-normal text-start font-semibold">{d.photo}</td><td className="num">{d.photos.join(', ')}</td></tr>
+                <tr key={d.topic}><td className="whitespace-normal text-start max-sm:font-semibold">{d.topic}</td><td data-label="במחברת המעובדת" className="whitespace-normal text-start">{d.guide}</td><td data-label="בצילום המקור" className="whitespace-normal text-start font-semibold">{d.photo}</td><td data-label="צילום" className="num">{d.photos.join(', ')}</td></tr>
               ))}
             </tbody>
           </table>

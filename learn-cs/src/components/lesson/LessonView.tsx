@@ -16,7 +16,7 @@ const LEVEL_NAME = { 1: 'מתחיל', 2: 'רגיל', 3: 'מתקדם' } as const;
 
 function Section({ letter, title, children, id, origin }: { letter: string; title: string; children: React.ReactNode; id: string; origin?: 'source' | 'explanation' | 'new' }) {
   return (
-    <section id={id} className="scroll-mt-28 space-y-3">
+    <section id={id} className="anchor-under-bars space-y-3">
       <h2 className="flex items-center gap-2 text-xl">
         <span className="grid h-8 w-8 place-items-center rounded-full bg-accent-soft font-sans text-base font-bold text-accent-strong">{letter}</span>
         {title}
@@ -87,7 +87,7 @@ export function LessonView({ lesson, prev, next, quiz }: { lesson: Lesson; prev?
     <article className="mx-auto max-w-4xl space-y-10">
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <Link href="/learn" className="muted hover:underline">מסלול הלימוד</Link>
+          <Link href="/learn" className="muted -my-2.5 py-2.5 hover:underline">מסלול הלימוד</Link>
           <span className="muted">/</span>
           <span className="chip" style={{ color: track.color, borderColor: track.color }}>{track.title}</span>
           <span className="chip">שיעור {lesson.order}</span>
@@ -113,13 +113,13 @@ export function LessonView({ lesson, prev, next, quiz }: { lesson: Lesson; prev?
         )}
       </header>
 
-      <div className="sticky top-14 z-20 -mx-4 border-y border-line bg-paper/95 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
-        <div className="thin-scroll flex items-center gap-1.5 overflow-x-auto md:flex-wrap md:overflow-visible">
+      <div className="tutor-bar sticky-under-header z-20 border-y border-line bg-paper/95 px-4 py-2 backdrop-blur sm:rounded-xl sm:border">
+        <div className="tutor-scroll thin-scroll flex items-center gap-1.5 overflow-x-auto md:flex-wrap md:overflow-visible">
           <span className="kicker shrink-0">המורה שלך</span>
           {tutorButtons.map((b) => (
             <button key={b.label} className="btn btn-sm shrink-0" onClick={b.onClick}>{b.label}</button>
           ))}
-          <span className="ms-auto flex shrink-0 gap-1 ps-2" role="group" aria-label="רמת הסבר">
+          <span className="seg seg-inline ms-auto flex shrink-0 gap-1 ps-2" role="group" aria-label="רמת הסבר">
             {([1, 2, 3] as const).map((l) => (
               <button key={l} className={`btn btn-sm ${level === l ? 'btn-primary' : ''}`} onClick={() => changeLevel(l)}>{LEVEL_NAME[l]}</button>
             ))}
@@ -167,13 +167,13 @@ export function LessonView({ lesson, prev, next, quiz }: { lesson: Lesson; prev?
             <Rich text={f.text} />
           </blockquote>
         ))}
-        <div id="visual" ref={visualRef} className={`scroll-mt-28 rounded-2xl transition-shadow ${pulse ? 'shadow-[0_0_0_4px_var(--ball)]' : ''}`}>
+        <div id="visual" ref={visualRef} className={`anchor-under-bars rounded-2xl transition-shadow ${pulse ? 'shadow-[0_0_0_4px_var(--ball)]' : ''}`}>
           <Widget w={lesson.visual} />
         </div>
       </Section>
 
       {showLines && lineRows.length > 0 && (
-        <section id="lines" className="scroll-mt-28 space-y-2">
+        <section id="lines" className="anchor-under-bars space-y-2">
           <h2 className="text-xl">הסבר לכל שורת קוד</h2>
           <ol className="card divide-y divide-line">
             {lineRows.map((r, i) => (
@@ -210,7 +210,7 @@ export function LessonView({ lesson, prev, next, quiz }: { lesson: Lesson; prev?
               </div>
             </div>
           )}
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex">
             <button className="btn" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>→ הקודם</button>
             <button className="btn btn-primary" onClick={() => setStep((s) => Math.min(lesson.walkthrough.steps.length - 1, s + 1))} disabled={step === lesson.walkthrough.steps.length - 1}>הבא ←</button>
           </div>
@@ -223,7 +223,7 @@ export function LessonView({ lesson, prev, next, quiz }: { lesson: Lesson; prev?
       </Section>
 
       {exampleIdx !== null && lesson.moreExamples?.[exampleIdx] && (
-        <section id="examples" className="scroll-mt-28 space-y-2">
+        <section id="examples" className="anchor-under-bars space-y-2">
           <h2 className="flex items-center gap-2 text-xl">דוגמה נוספת <OriginTag origin={lesson.moreExamples[exampleIdx].origin} /></h2>
           <p className="font-medium"><RichInline text={lesson.moreExamples[exampleIdx].title} /></p>
           {lesson.moreExamples[exampleIdx].text && <Rich text={lesson.moreExamples[exampleIdx].text!} />}
@@ -239,7 +239,7 @@ export function LessonView({ lesson, prev, next, quiz }: { lesson: Lesson; prev?
       </Section>
 
       {quizOpen && (
-        <section id="quiz" className="scroll-mt-28 space-y-3">
+        <section id="quiz" className="anchor-under-bars space-y-3">
           <h2 className="text-xl">תבחן אותי</h2>
           {quiz.length === 0 && <p className="muted">אין עדיין שאלות נוספות לשיעור הזה.</p>}
           {quiz.map((q) => (
@@ -256,11 +256,11 @@ export function LessonView({ lesson, prev, next, quiz }: { lesson: Lesson; prev?
           </div>
           <p className="text-sm muted">מושגים שכבר למדתם בקורס: {Object.keys(progress.concepts).length}. שיעורים שהושלמו: {Object.values(progress.lessons).filter((l) => l.completedAt).length}.</p>
           <div><span className="kicker">מה הלאה</span><Rich text={lesson.summary.next} /></div>
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap sm:items-center">
             {!done ? (
               <button className="btn btn-primary" onClick={() => completeLesson(lesson.id, lesson.skills, lesson.glossary.map((g) => g.term))}>✓ סיימתי את השיעור</button>
             ) : (
-              <span className="chip border-ok text-ok">השיעור הושלם</span>
+              <span className="chip self-start border-ok text-ok sm:self-auto">השיעור הושלם</span>
             )}
             {next && <Link href={`/learn/${next.id}`} className="btn">לשיעור הבא: {next.title} ←</Link>}
             {prev && <Link href={`/learn/${prev.id}`} className="btn btn-ghost">→ {prev.title}</Link>}

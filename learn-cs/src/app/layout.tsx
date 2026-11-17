@@ -18,12 +18,13 @@ export const metadata: Metadata = {
   title: { default: 'מעבדת מדעי המחשב', template: '%s · מעבדת מדעי המחשב' },
   description: 'לימוד אינטראקטיבי של חומר הקורס: LOGO, אלגולם, טבלאות מעקב, שגיאות, תורת הקבוצות ופונקציות.',
   icons: { icon: asset('/icons/icon-192.png'), apple: asset('/icons/apple-touch-icon.png') },
-  appleWebApp: { capable: true, title: 'מדעי המחשב', statusBarStyle: 'default' },
+  appleWebApp: { capable: true, title: 'מדעי המחשב', statusBarStyle: 'black-translucent' },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#0f172a' },
     { media: '(prefers-color-scheme: dark)', color: '#0b1220' },
@@ -35,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html lang="he" dir="rtl">
       <body>
         <SiteHeader />
-        <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 md:pb-16">{children}</main>
+        <main className="app-main mx-auto w-full max-w-6xl">{children}</main>
         <MobileNav />
         <RegisterSW />
       </body>

@@ -242,7 +242,7 @@ export function AlgolemLab(props: AlgolemLabProps) {
   const procUnit = program && procFrame ? unitOf(program, procFrame.unit) : null;
 
   const controls = (
-    <div className="flex flex-wrap items-center gap-1.5" role="toolbar" aria-label="שליטה בהרצה">
+    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center" role="toolbar" aria-label="שליטה בהרצה">
       {playing ? (
         <button className="btn btn-primary" onClick={() => setPlaying(false)} aria-label="עצירה">⏸ עצירה</button>
       ) : (
@@ -255,9 +255,9 @@ export function AlgolemLab(props: AlgolemLabProps) {
       <button className={`btn btn-sm ${tutorMode ? 'btn-primary' : ''}`} onClick={() => { setTutorMode((m) => !m); setPlaying(false); setTutorFlash(null); }} aria-pressed={tutorMode} title="המורה שואל מה יקרה לפני כל פקודה">
         🧑‍🏫 מצב מורה
       </button>
-      <label className="ms-auto flex items-center gap-2 text-sm muted">
+      <label className="col-span-3 flex items-center gap-2 text-sm muted sm:ms-auto">
         מהירות
-        <input type="range" min={1} max={10} value={speed} onChange={(e) => setSettings({ speed: Number(e.target.value) })} aria-label="מהירות ההרצה" className="w-24 accent-[var(--accent)]" />
+        <input type="range" min={1} max={10} value={speed} onChange={(e) => setSettings({ speed: Number(e.target.value) })} aria-label="מהירות ההרצה" className="w-24 accent-[var(--accent)] max-sm:min-h-10 max-sm:flex-1" />
       </label>
     </div>
   );
@@ -268,7 +268,7 @@ export function AlgolemLab(props: AlgolemLabProps) {
       {counterNames.map((n) => (
         <label key={n} className="flex items-center gap-1 rounded-lg border border-line bg-card px-1.5 py-0.5">
           <span className="font-mono text-sm" dir="ltr">{n}</span>
-          <button className="btn btn-ghost btn-sm min-h-0 px-1.5" onClick={() => setInputs((s) => ({ ...s, [n]: Math.max(0, (s[n] ?? 0) - 1) }))} aria-label={`הפחת ${n}`}>−</button>
+          <button className="btn btn-ghost btn-sm step-btn" onClick={() => setInputs((s) => ({ ...s, [n]: Math.max(0, (s[n] ?? 0) - 1) }))} aria-label={`הפחת ${n}`}>−</button>
           <input
             className="input num-input min-h-0 w-12 py-0.5"
             inputMode="numeric"
@@ -279,7 +279,7 @@ export function AlgolemLab(props: AlgolemLabProps) {
               setInputs((s) => ({ ...s, [n]: v }));
             }}
           />
-          <button className="btn btn-ghost btn-sm min-h-0 px-1.5" onClick={() => setInputs((s) => ({ ...s, [n]: Math.min(9999, (s[n] ?? 0) + 1) }))} aria-label={`הוסף ל־${n}`}>+</button>
+          <button className="btn btn-ghost btn-sm step-btn" onClick={() => setInputs((s) => ({ ...s, [n]: Math.min(9999, (s[n] ?? 0) + 1) }))} aria-label={`הוסף ל־${n}`}>+</button>
         </label>
       ))}
     </div>
@@ -318,7 +318,7 @@ export function AlgolemLab(props: AlgolemLabProps) {
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <span className="kicker">מה קרה עכשיו</span>
         <span className={`text-sm ${statusTone}`}>{status}</span>
-        <span className="ms-auto flex gap-1" role="group" aria-label="רמת הסבר">
+        <span className="seg seg-inline ms-auto flex gap-1" role="group" aria-label="רמת הסבר">
           {([1, 2, 3] as Level[]).map((l) => (
             <button key={l} className={`btn btn-sm ${level === l ? 'btn-primary' : ''}`} onClick={() => { setLevel(l); setSettings({ level: l }); }}>
               {l === 1 ? 'מתחיל' : l === 2 ? 'רגיל' : 'מתקדם'}

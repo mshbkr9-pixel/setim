@@ -1,6 +1,6 @@
-:HL["/setim/cs/_next/static/chunks/3x0_4k0llj3e1.css","style"]
+:HL["/setim/cs/_next/static/chunks/0v1hyq-za_934.css","style"]
 :HC["/",""]
 3:[["children",{"s":"__PAGE__","h":160}]]
 2:[["children",{"s":{"n":"lesson","t":"d","k":"functions-04","s":[]},"h":65632,"c":"$Q3"}]]
 1:[["children",{"s":"learn","h":131168,"c":"$Q2"}]]
-0:{"b":"FzP6sV0dmv5FsxYxi_YJp","t":{"t":{"s":"","h":131152,"c":"$Q1"}}}
+0:{"b":"JLUgOgPuPgiNRZ1EVX0jf","t":{"t":{"s":"","h":131152,"c":"$Q1"}}}

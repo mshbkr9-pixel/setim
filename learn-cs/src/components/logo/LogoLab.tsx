@@ -184,7 +184,7 @@ export function LogoLab({ code: initialCode, run: initialRun = '', editable = fa
         </div>
         <div className="min-w-0 space-y-2">
           {state && <TurtleCanvas state={state} target={targetSegs} height={variant === 'full' ? 340 : 250} />}
-          <div className="flex flex-wrap items-center gap-1.5" role="toolbar" aria-label="שליטה בצב">
+          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center" role="toolbar" aria-label="שליטה בצב">
             {playing ? (
               <button className="btn btn-primary" onClick={() => setPlaying(false)}>⏸ עצירה</button>
             ) : (
@@ -194,7 +194,7 @@ export function LogoLab({ code: initialCode, run: initialRun = '', editable = fa
             <button className="btn" onClick={() => forward()} disabled={!program || (finished && idx === hist.states.length - 1)} aria-label="צעד קדימה">צעד ⏭</button>
             <button className="btn" onClick={toEnd} disabled={!program || finished}>⏩ עד הסוף</button>
             <button className="btn btn-ghost" onClick={() => { setPlaying(false); setIdx(0); }} disabled={idx === 0}>⟲ איפוס</button>
-            <input type="range" min={1} max={10} value={speed} onChange={(e) => setSettings({ speed: Number(e.target.value) })} aria-label="מהירות" className="ms-auto w-20 accent-[var(--accent)]" />
+            <input type="range" min={1} max={10} value={speed} onChange={(e) => setSettings({ speed: Number(e.target.value) })} aria-label="מהירות" className="w-full self-center accent-[var(--accent)] sm:ms-auto sm:w-20" />
           </div>
         </div>
       </div>

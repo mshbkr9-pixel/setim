@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { Chevron } from '@/components/ui/Chevron';
 
 export const metadata: Metadata = { title: 'מעבדות' };
 
@@ -19,9 +20,10 @@ export default function Page() {
         <h1 className="text-3xl sm:text-4xl">להפעיל, לשנות ולראות</h1>
         <p className="mt-1 max-w-2xl text-ink-2">כל מעבדה היא מנוע מדויק ודטרמיניסטי: אותו קלט נותן תמיד אותה תוצאה. אפשר לשנות קוד ונתונים ולראות בדיוק מה קורה.</p>
       </header>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="ios-group grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {LABS.map((l) => (
-          <Link key={l.href} href={l.href} className="card group block p-5 transition-colors hover:border-ink-3">
+          <Link key={l.href} href={l.href} className="ios-row card group block p-5 transition-colors hover:border-ink-3 max-sm:p-4">
+            <Chevron />
             <span className="mb-2 block h-1.5 w-10 rounded-full" style={{ background: l.color }} />
             <h2 className="text-xl group-hover:text-accent-strong">{l.title}</h2>
             <p className="mt-1 text-sm text-ink-2">{l.text}</p>

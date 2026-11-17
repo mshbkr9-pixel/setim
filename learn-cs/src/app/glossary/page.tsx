@@ -24,7 +24,7 @@ export default function Page() {
       </header>
       <dl className="grid gap-2 md:grid-cols-2">
         {terms.map(([term, v]) => (
-          <div key={term} id={term} className="card-flat scroll-mt-24 p-3">
+          <div key={term} id={term} className="card-flat anchor-under-header p-3">
             <dt className="font-semibold">{term}</dt>
             <dd className="text-[0.95rem] text-ink-2">
               <Rich text={v.simple} />

@@ -4,6 +4,7 @@ import type { LessonMeta } from '@/content/lessonIndex';
 import { TRACKS } from '@/content/skills';
 import { useProgress, weakSkills } from '@/progress/store';
 import { SKILLS } from '@/content/skills';
+import { Chevron } from '@/components/ui/Chevron';
 
 export function CourseMap({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
   const lessonsOf = (t: string) => LESSONS.filter((l) => l.track === t).sort((a, b) => a.order - b.order);
@@ -38,12 +39,13 @@ export function CourseMap({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
             {ls.length === 0 ? (
               <p className="text-sm muted">השיעורים של המסלול הזה עדיין בהכנה.</p>
             ) : (
-              <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <ol className="ios-group grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {ls.map((l) => {
                   const st = p.lessons[l.id];
                   return (
                     <li key={l.id}>
-                      <Link href={`/learn/${l.id}`} className="card-flat group flex h-full flex-col gap-1 p-3 transition-colors hover:border-ink-3">
+                      <Link href={`/learn/${l.id}`} className="ios-row card-flat group flex h-full flex-col gap-1 p-3 transition-colors hover:border-ink-3">
+                        <Chevron />
                         <div className="flex items-center gap-2 text-xs muted">
                           <span>שיעור {l.order}</span>
                           <span>· {l.minutes} דק׳</span>

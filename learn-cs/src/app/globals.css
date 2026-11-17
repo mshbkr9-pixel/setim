@@ -63,6 +63,26 @@
   --origin-expl-soft: #e0f2fe;
   --origin-new: #334155;
   --origin-new-soft: #f1f5f9;
+  /* phone chrome (iOS-style materials) */
+  --glass: rgba(255, 255, 255, 0.8);
+  --glass-rim: rgba(15, 23, 42, 0.09);
+  --glass-hi: rgba(255, 255, 255, 0.85);
+  --glass-shadow: 0 14px 34px -14px rgba(15, 23, 42, 0.45), 0 2px 6px -2px rgba(15, 23, 42, 0.12);
+  --tab-ink: #475569;
+  --tab-active: #0369a1;
+  --tab-pill: rgba(56, 189, 248, 0.17);
+  --seg-track: rgba(118, 118, 128, 0.12);
+  --seg-thumb: #ffffff;
+  --pressed: rgba(15, 23, 42, 0.06);
+
+  /* app frame: safe areas (notch, home indicator) and bar heights */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --gutter: max(1rem, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  --header-h: 3.5rem;
+  --header-total: calc(var(--header-h) + var(--safe-top));
+  --tabbar-h: 0px;
+  --tabbar-gap: 0px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -118,6 +138,25 @@
     --origin-expl-soft: #0c2d48;
     --origin-new: #cbd5e1;
     --origin-new-soft: #273449;
+    --glass: rgba(30, 41, 59, 0.8);
+    --glass-rim: rgba(255, 255, 255, 0.1);
+    --glass-hi: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 16px 38px -12px rgba(0, 0, 0, 0.85);
+    --tab-ink: #94a3b8;
+    --tab-active: #7dd3fc;
+    --tab-pill: rgba(56, 189, 248, 0.2);
+    --seg-track: rgba(118, 118, 128, 0.26);
+    --seg-thumb: #475569;
+    --pressed: rgba(255, 255, 255, 0.07);
+  }
+}
+
+/* phones: compact 44pt navigation bar, floating tab bar above the home indicator */
+@media (max-width: 767.98px) {
+  :root {
+    --header-h: 2.75rem;
+    --tabbar-h: 3.875rem;
+    --tabbar-gap: max(0.625rem, calc(var(--safe-bottom) - 0.625rem));
   }
 }
 
@@ -153,6 +192,9 @@ html {
   background: var(--paper);
   color: var(--ink);
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
 }
 body {
   background: var(--paper);
@@ -162,6 +204,7 @@ body {
   line-height: 1.7;
   min-height: 100dvh;
   overflow-x: hidden;
+  overflow-x: clip; /* clips without becoming a scroll container, so sticky bars keep working */
 }
 h1, h2, h3, .display {
   font-family: var(--font-display);
@@ -171,6 +214,8 @@ h1, h2, h3, .display {
 }
 ::selection { background: var(--accent-soft); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+/* no double-tap zoom on controls (fast taps on "step" must not zoom the page); pinch zoom stays */
+a, button, input, select, textarea, label, summary, [role="button"], [role="tab"] { touch-action: manipulation; }
 
 /* code is always left-to-right */
 code, pre, .code, .ltr {
@@ -191,20 +236,25 @@ code, pre, .code, .ltr {
 .card-flat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-  min-height: 2.5rem; padding: 0.35rem 0.95rem; border-radius: 10px;
+  min-height: 2.5rem; max-width: 100%; padding: 0.35rem 0.95rem; border-radius: 10px;
   border: 1px solid var(--line-2); background: var(--card); color: var(--ink);
   font-weight: 500; font-size: 0.95rem; line-height: 1.2; cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.08s, box-shadow 0.15s;
-  user-select: none; white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s, box-shadow 0.15s, opacity 0.15s;
+  user-select: none; -webkit-user-select: none; white-space: nowrap;
 }
-.btn:hover { background: var(--card-2); border-color: var(--ink-3); }
 .btn:active { transform: translateY(1px); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
-.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .btn-ghost { background: transparent; border-color: transparent; }
-.btn-ghost:hover { background: var(--paper-2); border-color: transparent; }
 .btn-sm { min-height: 2rem; padding: 0.2rem 0.65rem; font-size: 0.86rem; border-radius: 8px; }
+/* hover only where a real pointer hovers — on touch screens :hover sticks after a tap */
+@media (hover: hover) {
+  .btn:hover { background: var(--card-2); border-color: var(--ink-3); }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-ghost:hover { background: var(--paper-2); border-color: transparent; }
+}
+/* counter steppers ( − 5 + ) */
+.step-btn { min-height: 0; padding-inline: 0.375rem; }
 .chip {
   display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.08rem 0.55rem;
   border-radius: 999px; font-size: 0.78rem; font-weight: 500; line-height: 1.6;
@@ -239,6 +289,22 @@ code, pre, .code, .ltr {
 .listing .ln > span:first-child { color: var(--ink-3); text-align: right; padding-inline-end: 0.6rem; user-select: none; }
 .listing .ln.hl { background: var(--code-line); }
 
+/* touch screens: 44pt targets (40pt for compact buttons), iOS-style press feedback */
+@media (pointer: coarse) {
+  .btn { min-height: 2.75rem; min-width: 2.75rem; }
+  .btn-sm { min-height: 2.5rem; min-width: 2.5rem; padding-inline: 0.8rem; font-size: 0.9rem; }
+  .btn:active { transform: scale(0.97); opacity: 0.85; }
+  .btn:disabled:active { transform: none; opacity: 0.45; }
+  .step-btn { min-height: 2.5rem; min-width: 2.5rem; font-size: 1.15rem; padding-inline: 0.2rem; }
+  button.chip, a.chip { min-height: 2.25rem; padding-inline: 0.75rem; }
+  input[type="checkbox"], input[type="radio"] { width: 1.25rem; height: 1.25rem; }
+}
+/* phones: long button labels wrap instead of pushing the page sideways */
+@media (max-width: 767.98px) {
+  .btn { white-space: normal; text-wrap: balance; text-align: center; }
+  .chip { max-width: 100%; white-space: normal; }
+  .inline-code { white-space: normal; overflow-wrap: break-word; }
+}
 }
 
 /* CodeMirror (kept outside the layer: it must beat the editor's own injected styles) */
@@ -271,8 +337,143 @@ code, pre, .code, .ltr {
 /* header (navy in both modes) */
 .site-header { background: color-mix(in oklab, var(--header-bg) 96%, transparent); color: var(--header-ink); border-bottom: 1px solid rgba(148, 163, 184, 0.18); }
 .site-header a.nav-link { color: var(--header-ink-2); }
-.site-header a.nav-link:hover { background: var(--header-hover); color: var(--header-ink); }
 .site-header a.nav-link.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+@media (hover: hover) {
+  .site-header a.nav-link:hover { background: var(--header-hover); color: var(--header-ink); }
+}
 .hero { background: radial-gradient(120% 140% at 0% 100%, rgba(56, 189, 248, 0.22), transparent 55%), radial-gradient(90% 120% at 100% 0%, rgba(251, 113, 133, 0.18), transparent 50%), var(--hero-bg); color: var(--hero-ink); border-color: transparent; }
 .hero .muted, .hero .kicker { color: var(--hero-ink-2); }
+}
+
+/* ================================================================== app frame */
+/* Unlayered on purpose: these rules define the frame and must win over utilities. */
+.app-main { padding: 1.5rem var(--gutter) 4rem; }
+@media (min-width: 640px) { .app-main { padding-inline: max(1.5rem, var(--gutter)); } }
+
+.site-header { padding-top: var(--safe-top); }
+.hdr-row { height: var(--header-h); padding-inline: var(--gutter); }
+@media (min-width: 640px) { .hdr-row { padding-inline: max(1.5rem, var(--gutter)); } }
+
+/* brand ⇄ page title swap: when the large title scrolls away, its name moves into the bar (iOS) */
+.hdr-swap { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.hdr-swap > * { grid-area: 1 / 1; min-width: 0; transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.hdr-title {
+  opacity: 0; transform: translateY(7px); pointer-events: none; text-align: start;
+  font-weight: 600; font-size: 1.0625rem; line-height: 2.75rem; color: var(--header-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hdr-brand { line-height: 2.75rem; }
+.hdr-action { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2.75rem; padding-inline: 0.25rem; color: var(--brand-sky); font-size: 0.95rem; font-weight: 500; white-space: nowrap; }
+.hdr-action:active { opacity: 0.55; }
+.hdr-action[aria-current="page"] { font-weight: 700; }
+
+/* the six-link desktop bar becomes a phone navigation bar under 768px */
+@media (max-width: 767.98px) {
+  .site-header {
+    background: color-mix(in oklab, var(--header-bg) 88%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 0.5px solid rgba(148, 163, 184, 0.28);
+  }
+  .site-header[data-collapsed="true"] .hdr-brand { opacity: 0; transform: translateY(-7px); pointer-events: none; }
+  .site-header[data-collapsed="true"] .hdr-title { opacity: 1; transform: none; pointer-events: auto; }
+  .hdr-brand { font-size: 1.0625rem; }
+  .app-main { padding-top: 1rem; padding-bottom: calc(var(--tabbar-h) + var(--tabbar-gap) + 2.25rem); }
+  /* large titles */
+  .app-main h1 { font-size: 2.125rem; line-height: 1.12; font-weight: 700; letter-spacing: -0.012em; }
+  /* every text field ≥ 16px, otherwise iOS zooms the whole page when it gets focus */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea, .cm-editor { font-size: max(16px, 1em); }
+}
+@media (min-width: 768px) { .hdr-title, .hdr-action { display: none; } }
+
+/* floating glass tab bar (iOS) */
+.tabbar {
+  position: fixed; z-index: 40;
+  inset-inline: max(0.75rem, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  bottom: var(--tabbar-gap);
+  height: var(--tabbar-h); max-width: 26rem; margin-inline: auto; padding: 0.3125rem;
+  border-radius: 999px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(24px) saturate(185%);
+  backdrop-filter: blur(24px) saturate(185%);
+  border: 0.5px solid var(--glass-rim);
+  box-shadow: inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+}
+@media (min-width: 768px) { .tabbar { display: none; } }
+/* no backdrop blur available: solid bars, so nothing behind them competes with their labels */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tabbar { background: var(--card); }
+  .site-header { background: var(--header-bg) !important; }
+  .tutor-bar { background: var(--paper) !important; }
+}
+.tabbar-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: 100%; }
+.tab {
+  position: relative; isolation: isolate;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.0625rem;
+  border-radius: 999px; color: var(--tab-ink);
+  font-size: 0.6875rem; font-weight: 500; line-height: 1.15; letter-spacing: 0.01em;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s;
+}
+.tab:active { transform: scale(0.9); }
+.tab[aria-current="page"] { color: var(--tab-active); font-weight: 600; }
+.tab-pill { position: absolute; inset: 0; z-index: -1; border-radius: 999px; background: var(--tab-pill); }
+
+/* sticky bars under the header */
+.sticky-under-header { position: sticky; top: var(--header-total); }
+.anchor-under-bars { scroll-margin-top: calc(var(--header-total) + 4.5rem); }
+.anchor-under-header { scroll-margin-top: calc(var(--header-total) + 1rem); }
+
+/* lesson tutor bar: edge-to-edge scrolling chips on phones */
+@media (max-width: 767.98px) {
+  .tutor-bar {
+    margin-inline: calc(-1 * var(--gutter)); padding: 0.4rem 0; border-inline: 0; border-radius: 0;
+    background: color-mix(in oklab, var(--paper) 88%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-color: color-mix(in oklab, var(--line-2) 70%, transparent);
+    border-top-width: 0;
+  }
+  .tutor-scroll {
+    padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to left, transparent 0, #000 0.9rem, #000 calc(100% - 0.9rem), transparent 100%);
+    mask-image: linear-gradient(to left, transparent 0, #000 0.9rem, #000 calc(100% - 0.9rem), transparent 100%);
+  }
+  .tutor-scroll::-webkit-scrollbar { display: none; }
+  .tutor-scroll > * { scroll-snap-align: start; }
+}
+
+/* segmented controls (iOS) — phones only; the desktop keeps its button rows */
+@media (max-width: 767.98px) {
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; padding: 2px; border-radius: 11px; background: var(--seg-track); }
+  .seg.seg-inline { display: inline-grid; grid-auto-columns: max-content; }
+  .seg > .btn { min-height: 2.375rem; border: 0; border-radius: 9px; background: transparent; color: var(--ink); font-weight: 500; box-shadow: none; padding-inline: 0.75rem; white-space: nowrap; }
+  .seg > .btn.btn-primary { background: var(--seg-thumb); color: var(--ink); font-weight: 600; box-shadow: 0 3px 8px -2px rgba(15, 23, 42, 0.18), 0 0 0 0.5px rgba(15, 23, 42, 0.08); }
+  .seg > .btn:active { transform: none; opacity: 0.7; }
+}
+
+/* inset grouped lists (iOS) — rows share one rounded card with hairline separators */
+.ios-chev { display: none; }
+@media (max-width: 639.98px) {
+  .ios-group { display: block; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+  .ios-group > * { position: relative; }
+  .ios-group > * + *::before { content: ""; position: absolute; z-index: 1; top: 0; inset-inline-start: var(--sep-inset, 1rem); inset-inline-end: 0; border-top: 0.5px solid var(--line-2); }
+  .ios-row { position: relative; border: 0; border-radius: 0; box-shadow: none; background: transparent; padding-inline-end: 2.25rem; transition: background 0.15s; }
+  .ios-row:active { background: var(--pressed); }
+  .ios-chev { display: block; position: absolute; inset-inline-end: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--line-2); }
+  /* a table that becomes stacked cards */
+  .stack-table, .stack-table tbody { display: block; }
+  .stack-table thead { display: none; }
+  .stack-table tr { display: block; margin-bottom: 0.6rem; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+  .stack-table td { display: block; border: 0; padding: 0.45rem 0.85rem; text-align: start; white-space: normal; }
+  .stack-table td + td { border-top: 0.5px solid var(--line); }
+  .stack-table td[data-label]::before { content: attr(data-label); display: block; font-family: var(--font-sans); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-3); direction: rtl; }
+  .stack-table td.num { direction: rtl; text-align: start; }
+}
+
+/* photo viewer: full-screen sheet on phones */
+@media (max-width: 639.98px) {
+  .sheet-modal { padding: 0; align-items: stretch; }
+  .sheet-modal > .card { max-width: none; height: 100%; border-radius: 0; border: 0; padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
 }

@@ -5,6 +5,7 @@ import type { LessonMeta } from '@/content/lessonIndex';
 import { SKILLS, TRACKS } from '@/content/skills';
 import { dueReviews, questionStats, useNow, useProgress, weakSkills, type ProgressData } from '@/progress/store';
 import { Logo } from '@/components/ui/Nav';
+import { Chevron } from '@/components/ui/Chevron';
 
 function days(n: number, now: number) {
   const out: string[] = [];
@@ -98,9 +99,9 @@ export function Dashboard({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
           כל חומר הקורס — LOGO, אלגולם, טבלאות מעקב, שגיאות, קבוצות ופונקציות — כשיעורים קצרים שבהם מפעילים קוד, מזיזים כדורים, גוררים חצים ועונים על שאלות.
           כל תוצאה מחושבת במנוע מדויק, וכל נושא מקושר לצילום המקור.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {continueTo && (
-            <Link href={`/learn/${continueTo.id}`} className="btn btn-primary">
+            <Link href={`/learn/${continueTo.id}`} className="btn btn-primary col-span-2 max-sm:min-h-12 max-sm:text-base">
               {fresh ? 'להתחיל ללמוד' : 'המשך ללמוד'}: {continueTo.title} ←
             </Link>
           )}
@@ -110,15 +111,15 @@ export function Dashboard({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
         {last && <p className="mt-3 text-sm muted">השיעור האחרון: <Link className="underline" href={`/learn/${last.id}`}>{last.title}</Link></p>}
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="סיכום התקדמות">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="סיכום התקדמות">
         {[
           { k: 'שיעורים שהושלמו', v: `${completed}/${LESSONS.length}` },
           { k: 'תשובות נכונות', v: `${stats.correct}`, sub: stats.answered ? `מתוך ${stats.answered} ניסיונות` : 'עוד לא נענו שאלות' },
           { k: 'מושגים שנלמדו', v: `${concepts.length}` },
           { k: 'מבחנים שבוצעו', v: `${p.exams.length}`, sub: p.exams.length ? `אחרון: ${Math.round((p.exams[p.exams.length - 1].score / p.exams[p.exams.length - 1].total) * 100)}%` : undefined },
         ].map((s) => (
-          <div key={s.k} className="card-flat p-4">
-            <div className="text-sm muted">{s.k}</div>
+          <div key={s.k} className="card-flat p-3.5 sm:p-4">
+            <div className="text-sm leading-snug muted">{s.k}</div>
             <div className="display text-3xl">{s.v}</div>
             {s.sub && <div className="text-xs muted">{s.sub}</div>}
           </div>
@@ -127,14 +128,15 @@ export function Dashboard({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
 
       <section className="space-y-3">
         <h2 className="text-2xl">ששת המסלולים</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="ios-group grid gap-3 sm:grid-cols-2 lg:grid-cols-3" style={{ '--sep-inset': '3rem' } as React.CSSProperties}>
           {TRACKS.map((t, i) => {
             const ls = lessonsOf(t.id);
             const done = ls.filter((l) => p.lessons[l.id]?.completedAt).length;
             const pct = ls.length ? Math.round((done / ls.length) * 100) : 0;
             const nextL = ls.find((l) => !p.lessons[l.id]?.completedAt) ?? ls[0];
             return (
-              <Link key={t.id} href={nextL ? `/learn/${nextL.id}` : '/learn'} className="card-flat group block p-4 transition-colors hover:border-ink-3">
+              <Link key={t.id} href={nextL ? `/learn/${nextL.id}` : '/learn'} className="ios-row card-flat group block p-4 transition-colors hover:border-ink-3">
+                <Chevron />
                 <div className="flex items-center gap-2">
                   <span className="display text-2xl" style={{ color: t.color }} aria-hidden>{i + 1}</span>
                   <span className="font-semibold group-hover:text-accent-strong">{t.title}</span>
@@ -162,7 +164,7 @@ export function Dashboard({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
             <div className="space-y-1.5">
               <p className="text-sm">נושאים שדורשים חיזוק (שלוש טעויות או יותר לאחרונה):</p>
               {weak.map((s) => (
-                <Link key={s} href={`/learn/${SKILLS[s].reinforce}`} className="flex items-center gap-2 rounded-lg border border-warn/50 bg-warn-soft px-3 py-2 text-sm">
+                <Link key={s} href={`/learn/${SKILLS[s].reinforce}`} className="flex min-h-11 items-center gap-2 rounded-lg border border-warn/50 bg-warn-soft px-3 py-2 text-sm">
                   <b>{SKILLS[s].title}</b><span className="ms-auto">לשיעור החיזוק ←</span>
                 </Link>
               ))}
@@ -170,11 +172,11 @@ export function Dashboard({ lessons: LESSONS }: { lessons: LessonMeta[] }) {
           ) : (
             <p className="text-sm muted">אין כרגע נושא שמסומן לחיזוק. כשיהיו שלוש טעויות באותו נושא — הוא יופיע כאן עם שיעור חיזוק.</p>
           )}
-          <Link href="/practice?mode=review" className="flex items-center gap-2 rounded-lg border border-line bg-card-2 px-3 py-2 text-sm">
+          <Link href="/practice?mode=review" className="flex min-h-11 flex-wrap items-center gap-x-2 rounded-lg border border-line bg-card-2 px-3 py-2 text-sm">
             <b>חזרה מרווחת</b><span>{due.length ? `${due.length} פריטים מחכים לחזרה` : 'אין פריטים לחזרה כרגע'}</span><span className="ms-auto">←</span>
           </Link>
-          <Link href="/practice" className="flex items-center gap-2 rounded-lg border border-line bg-card-2 px-3 py-2 text-sm"><b>תרגול לפי נושא</b><span className="ms-auto">←</span></Link>
-          <Link href="/exam" className="flex items-center gap-2 rounded-lg border border-line bg-card-2 px-3 py-2 text-sm"><b>מבחן מסכם עם ציון וניתוח טעויות</b><span className="ms-auto">←</span></Link>
+          <Link href="/practice" className="flex min-h-11 items-center gap-2 rounded-lg border border-line bg-card-2 px-3 py-2 text-sm"><b>תרגול לפי נושא</b><span className="ms-auto">←</span></Link>
+          <Link href="/exam" className="flex min-h-11 items-center gap-2 rounded-lg border border-line bg-card-2 px-3 py-2 text-sm"><b>מבחן מסכם עם ציון וניתוח טעויות</b><span className="ms-auto">←</span></Link>
         </section>
       </div>
 

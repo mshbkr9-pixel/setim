@@ -401,7 +401,7 @@ function AnswerInput({ q, answer, setAnswer, locked, wrong, showTrace }: { q: Qu
           <ArrowsLab domain={q.domain} codomain={q.codomain} arrows={q.arrows} editable={false} hideVerdict />
           {q.ask.map((k) => (
             <div key={k} className={`flex flex-wrap items-center gap-2 rounded-lg border px-2 py-1 ${wrong?.includes(k) ? 'border-bad bg-bad-soft' : 'border-line'}`}>
-              <span className="min-w-[11rem]">{names[k]}</span>
+              <span className="basis-full sm:basis-auto sm:min-w-[11rem]">{names[k]}</span>
               {[true, false].map((v) => (
                 <button key={String(v)} disabled={locked} className={`btn btn-sm ${answer.picks[k] === v ? 'btn-primary' : ''}`} onClick={() => setAnswer({ type: 'arrows-classify', picks: { ...answer.picks, [k]: v } })}>{v ? 'כן' : 'לא'}</button>
               ))}
