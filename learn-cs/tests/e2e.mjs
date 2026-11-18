@@ -217,6 +217,19 @@ await check('Exam: a short exam can be taken and produces a score with analysis'
   await page.getByText('תוצאת המבחן').waitFor({ timeout: 3000 });
 });
 
+await check('Dictionary: all 15 words are listed, and SUM runs in its own simulator (C = A+B)', async () => {
+  await page.goto(`${BASE}/dictionary`, { waitUntil: 'networkidle' });
+  for (const w of ['ADD', 'EXCH', 'FIVE', 'HUN', 'MOVE', 'MUL', 'ONE', 'POW', 'SUB', 'SUCC', 'SUM', 'TEN', 'TWO', 'WHILE-ENDW', 'ZERO']) {
+    assert((await page.locator(`[id="${w}"]`).count()) === 1, `${w} missing`);
+  }
+  await page.locator('[id="SUM"] > button').click();
+  const panel = page.locator('#dict-SUM');
+  await panel.locator('.cm-editor').waitFor({ timeout: 10000 });
+  await panel.getByRole('button', { name: /עד הסוף/ }).click();
+  const c = await panel.locator('figure figcaption span.font-mono', { hasText: 'C =' }).first().textContent();
+  assert(Number(c.split('=')[1].replace(/[^\d]/g, '')) === 7, 'SUM (A,B,C) with A=3, B=4 should give C = 7, got ' + c);
+});
+
 await check('Dark mode renders without errors', async () => {
   const dark = await browser.newContext({ colorScheme: 'dark', viewport: { width: 1000, height: 800 } });
   const p = await dark.newPage();
@@ -232,7 +245,7 @@ await check('Dark mode renders without errors', async () => {
 await check('Mobile: no horizontal scroll on the main pages', async () => {
   const m = await browser.newContext({ ...devices['iPhone 13'] });
   const p = await m.newPage();
-  for (const path of ['/', '/learn', '/learn/algolem-03', '/lab/algolem', '/lab/logo', '/lab/trace', '/lab/sets', '/lab/functions', '/practice', '/exam', '/sources']) {
+  for (const path of ['/', '/learn', '/learn/algolem-03', '/lab/algolem', '/lab/logo', '/lab/trace', '/lab/sets', '/lab/functions', '/practice', '/exam', '/sources', '/dictionary']) {
     await p.goto(BASE + path, { waitUntil: 'networkidle' });
     const r = await p.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
     assert(r[0] <= r[1] + 1, `${path} overflows: ${r[0]} > ${r[1]}`);

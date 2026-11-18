@@ -13,6 +13,21 @@ export type Level = 1 | 2 | 3;
 const ltr = (t: string) => `\u2066${t}\u2069`;
 const balls = (n: number) => (n === 1 ? 'כדור אחד' : n === 0 ? 'אפס כדורים' : `${n} כדורים`);
 
+/**
+ * The dictionary meaning of a library word with its parameters renamed to the actual counters:
+ * SUM (D,E,D) → "D = D+E". Null for words without a dictionary meaning.
+ */
+const headerParams = (source: string) => /\(([^)]*)\)/.exec(source.split('\n')[0])?.[1].split(',').map((x) => x.trim()) ?? [];
+
+export function meaningWith(proc: string, names: string[]): string | null {
+  const lib = LIBRARY_BY_NAME[proc];
+  if (!lib?.meaning) return null;
+  const params = headerParams(lib.source);
+  if (params.length !== names.length) return null;
+  const map = new Map(params.map((p, i) => [p, names[i]]));
+  return lib.meaning.map((m) => m.replace(/\b[A-Z][A-Z0-9_]*\b/g, (t) => map.get(t) ?? t)).join(', ');
+}
+
 /** Human label of a cell: "A", or "B (מונה עזר פרטי של TEN)". */
 export function cellLabel(state: MachineState, cell: string): string {
   if (!cell.includes('@')) return cell;
@@ -56,8 +71,14 @@ export function describeEvent(e: StepEvent, after: MachineState, level: Level = 
       const parts = Object.entries(e.bind)
         .filter(([name]) => !e.bind[name].includes('@') || true)
         .map(([name, cell]) => (cell.includes('@') ? `${name} = מונה עזר חדש (מתחיל ב־0)` : name === cell ? `${name}` : ltr(`${name} ← ${cell}`)));
-      if (level === 1) return `קוראים לפרוצדורה ${e.proc}: היא עושה את העבודה שלה, ואחר כך חוזרים לכאן. בתוכה: ${parts.join(', ')}.`;
-      return `קריאה לפרוצדורה ${e.proc}: נפתחת מסגרת חדשה. השמות בתוכה: ${parts.join(', ')}.`;
+      const lib = LIBRARY_BY_NAME[e.proc];
+      const params = lib ? headerParams(lib.source) : [];
+      // only when the frame really is the library word (a learner may redefine a word with other names)
+      const same = params.length > 0 && params.every((p, i) => Object.keys(e.bind)[i] === p);
+      const means = same ? meaningWith(e.proc, params.map((p) => cellName(e.bind[p]))) : null;
+      const after = means ? ` לפי המילון, בסופה: ${ltr(means)}.` : '';
+      if (level === 1) return `קוראים לפרוצדורה ${e.proc}: היא עושה את העבודה שלה, ואחר כך חוזרים לכאן. בתוכה: ${parts.join(', ')}.${after}`;
+      return `קריאה לפרוצדורה ${e.proc}: נפתחת מסגרת חדשה. השמות בתוכה: ${parts.join(', ')}.${after}`;
     }
     case 'return':
       if (level === 1) return `הפרוצדורה ${e.proc} סיימה. חוזרים להמשך האלגוריתם.`;
@@ -97,7 +118,8 @@ export function explainLine(text: string): string {
   if ((m = /^([A-Z][A-Z0-9_]*)\s*\(([^)]*)\)$/.exec(up))) {
     const lib = LIBRARY_BY_NAME[m[1]];
     const args = m[2].split(',').map((s) => s.trim());
-    return `קריאה לפרוצדורה ${m[1]} עם ${args.length === 1 ? 'המונה' : 'המונים'} ${args.join(', ')}${lib ? ` — ${lib.purpose}` : ''}.`;
+    const means = meaningWith(m[1], args);
+    return `קריאה לפרוצדורה ${m[1]} עם ${args.length === 1 ? 'המונה' : 'המונים'} ${args.join(', ')}${lib ? ` — ${lib.purpose}` : ''}.${means ? ` בסיום: ${ltr(means)}.` : ''}`;
   }
   return 'שורה זו אינה הוראה חוקית בשפת אלגולם.';
 }

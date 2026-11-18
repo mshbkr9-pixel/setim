@@ -21,6 +21,9 @@ export default function Page() {
         <p className="kicker">מילון</p>
         <h1 className="text-3xl sm:text-4xl">מילון מושגים</h1>
         <p className="mt-1 text-ink-2">{terms.length} מושגים מכל השיעורים, בשפה פשוטה.</p>
+        <p className="mt-1 text-sm muted">
+          המילים של שפת אלגולם עצמה (ADD, MOVE, SUM ועוד) נמצאות ב<Link href="/dictionary" className="underline underline-offset-4">מילון אלגולם</Link>.
+        </p>
       </header>
       <dl className="grid gap-2 md:grid-cols-2">
         {terms.map(([term, v]) => (

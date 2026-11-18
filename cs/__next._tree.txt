@@ -1,4 +1,4 @@
-:HL["/setim/cs/_next/static/chunks/0v1hyq-za_934.css","style"]
+:HL["/setim/cs/_next/static/chunks/32o6fr__jtj5w.css","style"]
 :HC["/",""]
 1:[["children",{"s":"__PAGE__","h":160}]]
-0:{"b":"JLUgOgPuPgiNRZ1EVX0jf","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
+0:{"b":"fYaUUTbPNhmA0oymQxJHp","t":{"t":{"s":"","h":80,"c":"$Q1"}}}

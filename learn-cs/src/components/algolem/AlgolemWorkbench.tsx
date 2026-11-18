@@ -11,6 +11,8 @@ interface Example {
   inputs: Record<string, number>;
   photos: number[];
   note?: string;
+  /** Where the shown procedure body comes from. */
+  noteLabel?: string;
 }
 
 const EXAMPLES: Example[] = [
@@ -31,8 +33,19 @@ const EXAMPLES: Example[] = [
   ...LIBRARY.map((p) => {
     const params = /\(([^)]*)\)/.exec(p.source.split('\n')[0])?.[1].split(',').map((s) => s.trim()) ?? [];
     const call = `${p.name} (${params.join(',')})`;
-    const defaults: Record<string, Record<string, number>> = { ALEF: { A: 3, B: 5 }, BET: { A: 1, B: 2 }, GIMEL: { A: 3, B: 4 }, DALET: { A: 0 }, HE: { A: 1, B: 3 }, MOVE: { A: 4, B: 9 }, S: { A: 3, B: 40, C: 2 } };
-    return { id: 'lib-' + p.name, title: `${p.name} — ${p.purpose}`, code: call, inputs: defaults[p.name] ?? Object.fromEntries(params.map((x) => [x, 3])), photos: p.photos, note: p.source };
+    const defaults: Record<string, Record<string, number>> = {
+      ALEF: { A: 3, B: 5 }, BET: { A: 1, B: 2 }, GIMEL: { A: 3, B: 4 }, DALET: { A: 0 }, HE: { A: 1, B: 3 }, MOVE: { A: 4, B: 9 }, S: { A: 3, B: 40, C: 2 },
+      SUM: { A: 3, B: 4, C: 0 }, MUL: { A: 3, B: 4, C: 0 }, POW: { A: 2, B: 3, C: 0 }, SUCC: { A: 4, B: 0 }, EXCH: { A: 2, B: 7 },
+    };
+    return {
+      id: 'lib-' + p.name,
+      title: `${p.name} — ${p.purpose}`,
+      code: call,
+      inputs: defaults[p.name] ?? Object.fromEntries(params.map((x) => [x, 3])),
+      photos: p.photos,
+      note: p.source,
+      noteLabel: p.status === 'dictionary' ? 'המימוש בסימולטור (נכתב לאתר; במילון של הקורס מופיע רק הפירוש)' : 'הגדרת הפרוצדורה (מהמקור)',
+    };
   }),
 ];
 
@@ -51,7 +64,7 @@ export function AlgolemWorkbench() {
       </div>
       {ex.note && (
         <details className="text-sm">
-          <summary className="cursor-pointer muted">הגדרת הפרוצדורה (מהמקור)</summary>
+          <summary className="cursor-pointer muted">{ex.noteLabel ?? 'הגדרת הפרוצדורה (מהמקור)'}</summary>
           <pre className="listing mt-1 p-2 code" dir="ltr">{ex.note}</pre>
         </details>
       )}
